@@ -2,6 +2,9 @@ import torch
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from typing import List, Tuple
+import networkx as nx
+from itertools import combinations
 
 # ---------- Geometry & Segment Utilities ----------
 
@@ -32,129 +35,60 @@ def segment_length(seg):
 
 # ---------- Grouping and Clustering ----------
 
-def group_colinear_segments_by_midpoint_projection(segments, distance_thresh=5, projection_margin=5, logger=print):
-    from collections import deque
-    segments = sorted(segments, key=lambda seg: -np.linalg.norm(seg[1] - seg[0]))
-    remaining = deque(segments)
-    groups = []
+def segment_angle(v1: np.ndarray, v2: np.ndarray) -> float:
+    v1n = v1 / np.linalg.norm(v1)
+    v2n = v2 / np.linalg.norm(v2)
+    return np.degrees(np.arccos(np.clip(np.dot(v1n, v2n), -1.0, 1.0)))
 
-    while remaining:
-        base = remaining.popleft()
-        base_pt = base[0]
-        direction = base[1] - base[0]
-        direction = direction / np.linalg.norm(direction)
-        normal = np.array([-direction[1], direction[0]])
+def point_line_distance(p: np.ndarray, a: np.ndarray, b: np.ndarray) -> float:
+    return abs((b[1] - a[1]) * p[0] - (b[0] - a[0]) * p[1] + b[0]*a[1] - b[1]*a[0]) / np.linalg.norm(b - a)
 
-        def point_to_line_dist(pt):
-            vec = pt - base_pt
-            return abs(np.dot(vec, normal))
 
-        def project(pt):
-            return np.dot(pt - base_pt, direction)
+def group_approximately_collinear_segments(
+    segments: List[Tuple[np.ndarray, np.ndarray]],
+    angle_thresh_deg: float = 2.0,
+    distance_thresh_px: float = 5.0
+) -> List[List[Tuple[np.ndarray, np.ndarray]]]:
+    """
+    Groups approximately collinear segments using angular and positional thresholds.
 
-        group = [base]
-        to_remove = []
+    Args:
+        segments: List of segments, each as a tuple of two np.ndarray points (shape (2,), format (y, x)).
+        angle_thresh_deg: Max angle difference between segment directions (in degrees).
+        distance_thresh_px: Max midpoint-to-line distance for grouping.
 
-        for i, seg in enumerate(remaining):
-            p0, p1 = seg
+    Returns:
+        List of groups, where each group is a list of segments in (y, x) format.
+    """
+    seg_xy = [(p[::-1], q[::-1]) for p, q in segments]  # (x, y) for geometry
+    G = nx.Graph()
+    G.add_nodes_from(range(len(segments)))
 
-            logger(f"🔍 Comparing to base segment:")
-            logger(f"    Base: ({base[0][0]:.1f}, {base[0][1]:.1f}) → ({base[1][0]:.1f}, {base[1][1]:.1f})")
-            logger(f"    Cand: ({p0[0]:.1f}, {p0[1]:.1f}) → ({p1[0]:.1f}, {p1[1]:.1f})")
+    for i, j in combinations(range(len(segments)), 2):
+        p1, q1 = seg_xy[i]
+        p2, q2 = seg_xy[j]
+        v1 = q1 - p1
+        v2 = q2 - p2
 
-            # 1. Orthogonal alignment check (both endpoints)
-            d0 = point_to_line_dist(p0)
-            d1 = point_to_line_dist(p1)
-
-            logger(f"    Point 0 distance: {d0:.2f}")
-            logger(f"    Point 1 distance: {d1:.2f}")
-
-            if d0 > distance_thresh or d1 > distance_thresh:
-                logger("    → Rejected: one or both points too far from base line.\n")
-                continue
-            else:
-                logger("    → Accepted (passes orthogonal distance check).\n")
-
-            # 2. Projection span check — reject if endpoint projects *inside* base segment
-            proj_base = sorted([project(base[0]), project(base[1])])
-            p0_proj = project(p0)
-            p1_proj = project(p1)
-
-            logger(f"    Projected p0: {p0_proj:.2f}")
-            logger(f"    Projected p1: {p1_proj:.2f}")
-            logger(f"    Base span: [{proj_base[0]:.2f}, {proj_base[1]:.2f}]")
-
-            '''
-            within_base = lambda t: proj_base[0] - projection_margin <= t <= proj_base[1] + projection_margin
-
-            if within_base(p0_proj) or within_base(p1_proj):
-                logger("    → Rejected: one or both endpoints project inside base segment.\n")
-                continue
-            '''
-            logger("    → Accepted: segment is spatially aligned and extends line.\n")
-            group.append(seg)
-            to_remove.append(i)
-
-            # Otherwise: reject segment if it lies fully inside projection span
-            # i.e., overlapping or redundant
+        angle = segment_angle(v1, v2)
+        if angle > angle_thresh_deg:
             continue
 
-        logger("    → Rejected: segment is enclosed or overlapping.\n")
-        for i in reversed(to_remove):
-            del remaining[i]
+        midpoint_j = (p2 + q2) / 2
+        dist = point_line_distance(midpoint_j, p1, q1)
 
-        groups.append(group)
+        if dist < distance_thresh_px:
+            G.add_edge(i, j)
 
-    return groups
+    # Extract connected components using networkx
+    connected = list(nx.connected_components(G))
 
-def group_colinear_segments_ransac(segments, distance_thresh=5.0, angle_thresh_deg=2.0, min_inliers=4, max_trials=100, logger=print):
-    import random
-    if len(segments) < 2:
-        logger("RANSAC skipped: not enough segments.")
-        return []
+    grouped_segments = [
+        [segments[idx] for idx in component]
+        for component in connected
+    ]
 
-    def compute_line_model(p0, p1):
-        # Line: ax + by + c = 0
-        dx, dy = p1 - p0
-        a, b = -dy, dx
-        norm = np.sqrt(a**2 + b**2)
-        return a / norm, b / norm, -(a * p0[0] + b * p0[1]) / norm
-
-    def point_to_line_dist(pt, line):
-        a, b, c = line
-        return abs(a * pt[0] + b * pt[1] + c)
-
-    best_inliers = []
-    best_model = None
-
-    for _ in range(max_trials):
-        s1, s2 = random.sample(segments, 2)
-        p0 = (s1[0] + s1[1]) / 2
-        p1 = (s2[0] + s2[1]) / 2
-        if np.linalg.norm(p1 - p0) < 1e-2:
-            continue
-
-        model = compute_line_model(p0, p1)
-        inliers = []
-
-        for seg in segments:
-            mid = (seg[0] + seg[1]) / 2
-            dist = point_to_line_dist(mid, model)
-            angle = compute_angle_deg(seg)
-            model_angle = compute_angle_deg([p0, p1])
-            if dist < distance_thresh and abs(angle - model_angle) < angle_thresh_deg:
-                inliers.append(seg)
-
-        if len(inliers) > len(best_inliers):
-            best_inliers = inliers
-            best_model = model
-
-    if len(best_inliers) >= min_inliers:
-        logger(f"RANSAC selected {len(best_inliers)} inliers.")
-        return [best_inliers]
-    else:
-        logger("RANSAC failed to find a strong model.")
-        return []
+    return grouped_segments
 
 def cluster_group_positions(groups, orientation='horizontal', cluster_thresh=28, min_group_separation=15):
     axis = 0 if orientation == 'horizontal' else 1
@@ -167,27 +101,36 @@ def cluster_group_positions(groups, orientation='horizontal', cluster_thresh=28,
 
     sorted_indices = sorted(range(len(groups)), key=lambda i: group_positions[i])
     clusters = []
-    i = 0
 
-    while i < len(sorted_indices):
-        curr = sorted_indices[i]
-        pos_curr = group_positions[curr]
+    for i, idx_i in enumerate(sorted_indices):
+        pos_i = group_positions[idx_i]
+        found_pair = False
 
-        if i + 1 < len(sorted_indices):
-            next_ = sorted_indices[i + 1]
-            pos_next = group_positions[next_]
-            dist = abs(pos_next - pos_curr)
+        for j in range(i + 1, len(sorted_indices)):
+            idx_j = sorted_indices[j]
+            pos_j = group_positions[idx_j]
+            dist = abs(pos_j - pos_i)
 
-            if 0 <= dist <= cluster_thresh:
-                clusters.append([curr, next_])
-                i += 2
+            if dist < min_group_separation:
                 continue
+            if dist > cluster_thresh:
+                break
 
-        # Either too close or no pair → single cluster
-        clusters.append([curr])
-        i += 1
+            clusters.append([idx_i, idx_j])
+            found_pair = True
 
-    return clusters, group_positions
+        if not found_pair:
+            clusters.append([idx_i])
+
+    # Deduplicate: remove clusters that are strict subsets of others
+    unique_clusters = []
+    seen_sets = []
+    for cluster in clusters:
+        s = set(cluster)
+        if not any(s < seen for seen in seen_sets):  # strict subset
+            unique_clusters.append(cluster)
+            seen_sets.append(s)
+    return unique_clusters, group_positions
 
 
 def select_best_cluster(clusters, groups, verbose=False, logger=print):
@@ -326,15 +269,21 @@ def draw_segments(img, segments, color, thickness=1):
         cv2.line(img_out, pt1, pt2, color, thickness)
     return img_out
 
-def draw_groups(img, groups, thickness=2):
-    img_out = img.copy()
-    for group in groups:
-        color = tuple(np.random.randint(80, 255, 3).tolist())
-        for (y0, x0), (y1, x1) in group:
-            pt1 = (int(round(x0)), int(round(y0)))
-            pt2 = (int(round(x1)), int(round(y1)))
-            cv2.line(img_out, pt1, pt2, color, thickness)
-    return img_out
+def draw_groups(image, groups, thickness=2):
+    output = image.copy()
+    cmap = plt.get_cmap('tab20')  # Up to 20 distinguishable colors
+    num_colors = cmap.N
+
+    for i, group in enumerate(groups):
+        color_rgb = cmap(i % num_colors)[:3]  # RGB tuple in [0,1]
+        color_bgr = tuple(int(255 * c) for c in reversed(color_rgb))  # Convert to BGR for OpenCV
+
+        for segment in group:
+            pt1 = (int(round(segment[0][1])), int(round(segment[0][0])))
+            pt2 = (int(round(segment[1][1])), int(round(segment[1][0])))
+            cv2.line(output, pt1, pt2, color_bgr, thickness)
+
+    return output
 
 def draw_clusters(img, groups, clusters, thickness=2):
     img_out = img.copy()
@@ -400,3 +349,8 @@ def print_cluster_summary(clusters, positions, orientation='horizontal', logger=
         logger(f"    - Group indices: {group_indices}")
         logger(f"    - Avg {label} position: {avg_pos:.1f}")
         logger(f"    - Position values: {[f'{positions[idx]:.1f}' for idx in group_indices if isinstance(idx, int)]}")
+
+def passthrough_clusters(clusters, positions, logger, orientation):
+    for i, cluster in enumerate(clusters):
+        logger(f"Retaining cluster {i} ({orientation}): {cluster}")
+    return clusters

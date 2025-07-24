@@ -10,8 +10,7 @@ from detect_utils import (
     preprocess_for_sold2,
     compute_angle_deg,
     segment_length,
-    group_colinear_segments_by_midpoint_projection,
-    group_colinear_segments_ransac,
+    group_approximately_collinear_segments,
     print_colinear_groups,
     print_cluster_summary,
     cluster_group_positions,
@@ -117,9 +116,9 @@ def process_image(img_path, show=False, output_path=None, vis_mode="best_cluster
     logger(f"Candidate verticals (angle-based): {len(vert)}")
 
     logger(f"\nGrouping horizontal segments")
-    groups_h = group_colinear_segments_by_midpoint_projection(horiz, distance_thresh=5, logger=logger)
+    groups_h = group_approximately_collinear_segments(horiz)
     logger(f"\nGrouping vertical segments")
-    groups_v = group_colinear_segments_by_midpoint_projection(vert, distance_thresh=5, logger=logger)
+    groups_v = group_approximately_collinear_segments(vert)
 
 
     logger(f"\nHorizontal groups:")
@@ -130,17 +129,28 @@ def process_image(img_path, show=False, output_path=None, vis_mode="best_cluster
     clusters_h, positions_h = cluster_group_positions(groups_h, orientation='horizontal', cluster_thresh=50)
     clusters_v, positions_v = cluster_group_positions(groups_v, orientation='vertical', cluster_thresh=50)
 
-    logger(f"\nORIGINAL CLUSTERS:")
+    # --- Filter clusters: only retain exact matches to originals, and skip strict subsets ---
+    def filter_clusters(original_clusters):
+        filtered_clusters = []
+        seen = []
+        for cluster in original_clusters:
+            indices_set = set(cluster)
+            # Only add if not a strict subset of any seen cluster
+            if not any(indices_set < set(c) for c in seen):
+                filtered_clusters.append(cluster)
+                seen.append(cluster)
+        return filtered_clusters
+
+    clusters_h = filter_clusters(clusters_h)
+    clusters_v = filter_clusters(clusters_v)
+
+    logger(f"\nFILTERED CLUSTERS:")
     print_cluster_summary(clusters_h, positions_h, 'horizontal', logger=logger)
     print_cluster_summary(clusters_v, positions_v, 'vertical', logger=logger)
 
-    # Merge colinear clusters before selecting the best clusters
-    clusters_h = merge_colinear_clusters(clusters_h, direction='horizontal', groups=groups_h, positions=positions_h)
-    clusters_v = merge_colinear_clusters(clusters_v, direction='vertical', groups=groups_v, positions=positions_v)
-
-    logger(f"\nFILTERED CLUSTERS:")
+    # Select best clusters after filtering
+    logger(f"\nSELECTED CLUSTERS:")
     logger(f"\nHorizontal:")
-
     top_h_clusters = select_nonoverlapping_clusters(clusters_h, groups_h, positions_h, min_spacing=10, orientation='horizontal', image_shape=img.shape[:2], min_score=300)
     print_cluster_summary(top_h_clusters, positions_h, 'horizontal', logger=logger)
     logger(f"\nVertical:")
@@ -154,7 +164,10 @@ def process_image(img_path, show=False, output_path=None, vis_mode="best_cluster
         img_out = draw_segments(img_out, horiz, (0, 255, 0))
         img_out = draw_segments(img_out, vert, (255, 0, 0))
     elif vis_mode == "grouped":
-        img_out = draw_groups(img_out, groups_h + groups_v)
+        img_out = draw_groups(
+            img_out,
+            [[(np.array([y0, x0]), np.array([y1, x1])) for (y0, x0), (y1, x1) in group] for group in (groups_h + groups_v)]
+        )
     elif vis_mode == "clustered":
         img_out = draw_clusters(img_out, groups_h, clusters_h)
         img_out = draw_clusters(img_out, groups_v, clusters_v)
