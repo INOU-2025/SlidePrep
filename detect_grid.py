@@ -5,29 +5,24 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import kornia.feature as KF
-from collections import deque
 from detect_utils import (
     preprocess_for_sold2,
     compute_angle_deg,
     segment_length,
     group_approximately_collinear_segments,
     print_colinear_groups,
-    print_cluster_summary,
-    cluster_group_positions,
-    select_best_cluster,
     draw_segments,
     draw_groups,
     draw_clusters,
-    draw_selected_cluster,
-    select_nonoverlapping_clusters
+    identify_thick_line_groups,
+    print_cluster_summary
 )
 
 VISUALIZATION_OPTIONS = [
     "original",
     "filtered",
     "grouped",
-    "clustered",
-    "best_clusters"
+    "clustered"
 ]
 
 class Logger:
@@ -52,44 +47,7 @@ def is_image_file(filename):
     return filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tif', '.tiff'))
 
 
-def merge_colinear_clusters(clusters, direction, groups, positions, max_pos_diff=30, max_angle_diff=3):
-    """Merge clusters that are aligned but separated."""
-    def compute_angle(segment):
-        dx = segment[1][0] - segment[0][0]
-        dy = segment[1][1] - segment[0][1]
-        return np.arctan2(dy, dx) * 180 / np.pi
-
-    merged = []
-    used = set()
-
-    for i, c1 in enumerate(clusters):
-        if i in used:
-            continue
-        base_angle = compute_angle(groups[c1[0]][0])
-        merged_cluster = {
-            'group_indices': list(c1),
-            'groups': [seg for idx in c1 for seg in groups[idx]],
-            'avg_pos': positions[c1[0]]
-        }
-
-        for j, c2 in enumerate(clusters):
-            if j <= i or j in used:
-                continue
-            c2_angle = compute_angle(groups[c2[0]][0])
-            pos_diff = abs(float(merged_cluster['avg_pos']) - float(positions[c2[0]]))
-            angle_diff = abs(base_angle - c2_angle)
-            if pos_diff < max_pos_diff and angle_diff < max_angle_diff:
-                merged_cluster['group_indices'].extend(c2)
-                merged_cluster['groups'].extend([seg for idx in c2 for seg in groups[idx]])
-                used.add(j)
-
-        merged.append(merged_cluster)
-        used.add(i)
-
-    return merged
-
-
-def process_image(img_path, show=False, output_path=None, vis_mode="best_clusters", logger=print):
+def process_image(img_path, show=False, output_path=None, vis_mode="clustered", logger=print):
     img = cv2.imread(img_path)
     if img is None:
         logger(f"Error loading {img_path}")
@@ -126,36 +84,15 @@ def process_image(img_path, show=False, output_path=None, vis_mode="best_cluster
     logger(f"\nVertical groups:")
     print_colinear_groups(groups_v, orientation='vertical', logger=logger)
 
-    clusters_h, positions_h = cluster_group_positions(groups_h, orientation='horizontal', cluster_thresh=50)
-    clusters_v, positions_v = cluster_group_positions(groups_v, orientation='vertical', cluster_thresh=50)
+    clusters_h = identify_thick_line_groups(groups_h, orientation='horizontal')
+    clusters_v = identify_thick_line_groups(groups_v, orientation='vertical')
 
-    # --- Filter clusters: only retain exact matches to originals, and skip strict subsets ---
-    def filter_clusters(original_clusters):
-        filtered_clusters = []
-        seen = []
-        for cluster in original_clusters:
-            indices_set = set(cluster)
-            # Only add if not a strict subset of any seen cluster
-            if not any(indices_set < set(c) for c in seen):
-                filtered_clusters.append(cluster)
-                seen.append(cluster)
-        return filtered_clusters
-
-    clusters_h = filter_clusters(clusters_h)
-    clusters_v = filter_clusters(clusters_v)
-
-    logger(f"\nFILTERED CLUSTERS:")
-    print_cluster_summary(clusters_h, positions_h, 'horizontal', logger=logger)
-    print_cluster_summary(clusters_v, positions_v, 'vertical', logger=logger)
-
-    # Select best clusters after filtering
-    logger(f"\nSELECTED CLUSTERS:")
+    logger(f"\nCLUSTERS:")
     logger(f"\nHorizontal:")
-    top_h_clusters = select_nonoverlapping_clusters(clusters_h, groups_h, positions_h, min_spacing=10, orientation='horizontal', image_shape=img.shape[:2], min_score=300)
-    print_cluster_summary(top_h_clusters, positions_h, 'horizontal', logger=logger)
+    print_cluster_summary(clusters_h, 'horizontal', logger=logger)
     logger(f"\nVertical:")
-    top_v_clusters = select_nonoverlapping_clusters(clusters_v, groups_v, positions_v, min_spacing=10, orientation='vertical', image_shape=img.shape[:2], min_score=300)
-    print_cluster_summary(top_v_clusters, positions_v, 'vertical', logger=logger)
+    print_cluster_summary(clusters_v, 'vertical', logger=logger)
+
 
     img_out = img.copy()
     if vis_mode == "original":
@@ -169,13 +106,8 @@ def process_image(img_path, show=False, output_path=None, vis_mode="best_cluster
             [[(np.array([y0, x0]), np.array([y1, x1])) for (y0, x0), (y1, x1) in group] for group in (groups_h + groups_v)]
         )
     elif vis_mode == "clustered":
-        img_out = draw_clusters(img_out, groups_h, clusters_h)
-        img_out = draw_clusters(img_out, groups_v, clusters_v)
-    elif vis_mode == "best_clusters":
-        for cl in top_h_clusters:
-            img_out = draw_selected_cluster(img_out, groups_h, cl)
-        for cl in top_v_clusters:
-            img_out = draw_selected_cluster(img_out, groups_v, cl)
+        img_out = draw_clusters(img_out, clusters_h)
+        img_out = draw_clusters(img_out, clusters_v)
     else:
         raise ValueError(f"Invalid vis_mode: {vis_mode}")
 
@@ -210,7 +142,7 @@ if __name__ == "__main__":
     parser.add_argument('--image', type=str, help='Path to single image')
     parser.add_argument('--folder', type=str, help='Path to folder of images')
     parser.add_argument('--out', type=str, help='Output image or folder')
-    parser.add_argument('--vis', type=str, choices=VISUALIZATION_OPTIONS, default='best_clusters')
+    parser.add_argument('--vis', type=str, choices=VISUALIZATION_OPTIONS, default='clustered')
     parser.add_argument('--suffix', type=str, default='_ch00.jpg', help='Only process files ending with this suffix')
     parser.add_argument('--show', action='store_true')
     args = parser.parse_args()
