@@ -1,7 +1,6 @@
 import torch
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 from typing import List, Tuple
 import networkx as nx
 from itertools import combinations
@@ -141,7 +140,7 @@ def identify_thick_line_groups(groups, orientation='horizontal', min_thickness=1
 
 # ---------- Drawing ----------
 
-def draw_segments(img, segments, color, thickness=1):
+def draw_lines(img, segments, color, thickness=1):
     img_out = img.copy()
     for (y0, x0), (y1, x1) in segments:
         pt1 = (int(round(x0)), int(round(y0)))
@@ -151,12 +150,18 @@ def draw_segments(img, segments, color, thickness=1):
 
 def draw_groups(image, groups, thickness=2):
     output = image.copy()
-    cmap = plt.get_cmap('tab20')  # Up to 20 distinguishable colors
-    num_colors = cmap.N
+    # Use a fixed set of colors similar to tab20 but hardcoded to avoid matplotlib
+    colors_bgr = [
+        (255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0),
+        (255, 0, 255), (0, 255, 255), (128, 0, 0), (0, 128, 0),
+        (0, 0, 128), (128, 128, 0), (128, 0, 128), (0, 128, 128),
+        (64, 0, 0), (0, 64, 0), (0, 0, 64), (64, 64, 0),
+        (64, 0, 64), (0, 64, 64), (192, 192, 192), (128, 128, 128)
+    ]
+    num_colors = len(colors_bgr)
 
     for i, group in enumerate(groups):
-        color_rgb = cmap(i % num_colors)[:3]  # RGB tuple in [0,1]
-        color_bgr = tuple(int(255 * c) for c in reversed(color_rgb))  # Convert to BGR for OpenCV
+        color_bgr = colors_bgr[i % num_colors]
 
         for segment in group:
             pt1 = (int(round(segment[0][1])), int(round(segment[0][0])))
@@ -167,8 +172,8 @@ def draw_groups(image, groups, thickness=2):
 
 def draw_clusters(img, clusters, thickness=2):
     img_out = img.copy()
+    color = (0, 255, 0)  # Green in BGR
     for cluster in clusters:
-        color = (0, 255, 0)  # Green in BGR
         for (pt1, pt2) in cluster:
             p1 = (int(round(pt1[1])), int(round(pt1[0])))
             p2 = (int(round(pt2[1])), int(round(pt2[0])))
