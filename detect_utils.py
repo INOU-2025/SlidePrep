@@ -388,7 +388,12 @@ def print_cluster_summary(clusters, positions, orientation='horizontal', logger=
     label = 'Y' if orientation == 'horizontal' else 'X'
     logger(f"\n{orientation.capitalize()} contour clusters:")
 
-    for i, group_indices in enumerate(clusters):
+    for i, cluster in enumerate(clusters):
+        if isinstance(cluster, dict):
+            group_indices = cluster.get('group_indices', [])
+        else:
+            group_indices = cluster
+
         pos_values = [positions[idx] for idx in group_indices if isinstance(idx, int)]
         avg_pos = np.mean(pos_values)
         logger(f"  Cluster {i}:")

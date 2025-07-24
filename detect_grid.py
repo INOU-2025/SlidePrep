@@ -127,8 +127,8 @@ def process_image(img_path, show=False, output_path=None, vis_mode="best_cluster
     logger(f"\nVertical groups:")
     print_colinear_groups(groups_v, orientation='vertical', logger=logger)
 
-    clusters_h, positions_h = cluster_group_positions(groups_h, orientation='horizontal', cluster_thresh=38)
-    clusters_v, positions_v = cluster_group_positions(groups_v, orientation='vertical', cluster_thresh=38)
+    clusters_h, positions_h = cluster_group_positions(groups_h, orientation='horizontal', cluster_thresh=50)
+    clusters_v, positions_v = cluster_group_positions(groups_v, orientation='vertical', cluster_thresh=50)
 
     logger(f"\nORIGINAL CLUSTERS:")
     print_cluster_summary(clusters_h, positions_h, 'horizontal', logger=logger)
