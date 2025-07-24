@@ -195,10 +195,17 @@ def select_best_cluster(clusters, groups, verbose=False, logger=print):
         return []
 
     def cluster_score(cluster):
-        num_groups = len(cluster)
-        total_length = sum(
-            np.linalg.norm(seg[0] - seg[1]) for idx in cluster for seg in groups[idx]
-        )
+        # Adjusted for merged cluster dict format
+        if isinstance(cluster, dict):
+            num_groups = len(cluster['groups'])
+            total_length = sum(
+                np.linalg.norm(seg[0] - seg[1]) for seg in cluster['groups']
+            )
+        else:
+            num_groups = len(cluster)
+            total_length = sum(
+                np.linalg.norm(seg[0] - seg[1]) for idx in cluster for seg in groups[idx]
+            )
         return (num_groups, total_length)
 
     scored_clusters = [(cluster, cluster_score(cluster)) for cluster in clusters]
@@ -206,15 +213,108 @@ def select_best_cluster(clusters, groups, verbose=False, logger=print):
 
     if verbose:
         for i, (cluster, (num_groups, total_length)) in enumerate(sorted_clusters):
-            logger(f"\nCluster {i}: groups={cluster}, num_groups={num_groups}, total_length={total_length:.1f}")
-            for idx in cluster:
-                logger(f"  Group {idx}:")
-                for seg in groups[idx]:
+            logger(f"\nCluster {i}: groups={cluster if not isinstance(cluster, dict) else cluster['group_indices']}, num_groups={num_groups}, total_length={total_length:.1f}")
+            if isinstance(cluster, dict):
+                for seg in cluster['groups']:
                     (y0, x0), (y1, x1) = seg
                     logger(f"    Segment: ({x0:.1f}, {y0:.1f}) -> ({x1:.1f}, {y1:.1f})")
+            else:
+                for idx in cluster:
+                    logger(f"  Group {idx}:")
+                    for seg in groups[idx]:
+                        (y0, x0), (y1, x1) = seg
+                        logger(f"    Segment: ({x0:.1f}, {y0:.1f}) -> ({x1:.1f}, {y1:.1f})")
 
-    return sorted_clusters[0][0]  # Best cluster (list of group indices)
+    return sorted_clusters[0][0]  # Best cluster (list of group indices or merged cluster dict)
 
+def select_nonoverlapping_clusters(clusters, groups, positions, min_spacing=10, orientation='horizontal', image_shape=None, min_score=300):
+    import math
+    H, W = image_shape
+    margin_ratio = 0.1
+    border_margin = margin_ratio * (H if orientation == 'horizontal' else W)
+
+    def count_segments(cluster):
+        if isinstance(cluster, dict):
+            return len(cluster['groups'])
+        else:
+            return sum(len(groups[idx]) for idx in cluster)
+
+    def total_length(cluster):
+        if isinstance(cluster, dict):
+            return sum(segment_length(s) for s in cluster['groups'])
+        else:
+            return sum(segment_length(s) for idx in cluster for s in groups[idx])
+
+    def span_extent(cluster):
+        axis = 0 if orientation == 'horizontal' else 1
+        if isinstance(cluster, dict):
+            pts = [pt[axis] for seg in cluster['groups'] for pt in seg]
+        else:
+            pts = [pt[axis] for idx in cluster for seg in groups[idx] for pt in seg]
+        return max(pts) - min(pts) if pts else 0
+
+    def average_position(cluster):
+        if isinstance(cluster, dict):
+            return cluster['avg_pos']
+        else:
+            return np.mean([positions[idx] for idx in cluster])
+
+    def near_border(avg_pos):
+        return avg_pos < border_margin or avg_pos > ((H if orientation == 'horizontal' else W) - border_margin)
+
+    scored = []
+    for cl in clusters:
+        n_segs = count_segments(cl)
+        if n_segs < 1:
+            continue
+        length = total_length(cl)
+        span = span_extent(cl)
+        avg_pos = average_position(cl)
+        border_bonus = 200 if near_border(avg_pos) else 0
+        score = length + 20 * math.log(n_segs + 1) + 10 * span + border_bonus
+        scored.append((cl, score))
+
+    if not scored:
+        return []
+
+    scored.sort(key=lambda x: -x[1])
+    return [scored[0][0]] if scored[0][1] >= min_score else []
+
+def merge_colinear_clusters(clusters, direction, groups, positions, max_pos_diff=30, max_angle_diff=3):
+    """Merge clusters that are aligned but separated."""
+    def compute_angle(segment):
+        dx = segment[1][0] - segment[0][0]
+        dy = segment[1][1] - segment[0][1]
+        return np.arctan2(dy, dx) * 180 / np.pi
+
+    merged = []
+    used = set()
+
+    for i, c1 in enumerate(clusters):
+        if i in used:
+            continue
+        base_angle = compute_angle(groups[c1[0]][0])
+        merged_cluster = {
+            'group_indices': list(c1),
+            'groups': [seg for idx in c1 for seg in groups[idx]],
+            'avg_pos': positions[c1[0]]
+        }
+
+        for j, c2 in enumerate(clusters):
+            if j <= i or j in used:
+                continue
+            c2_angle = compute_angle(groups[c2[0]][0])
+            pos_diff = abs(float(merged_cluster['avg_pos']) - float(positions[c2[0]]))
+            angle_diff = abs(base_angle - c2_angle)
+            if pos_diff < max_pos_diff and angle_diff < max_angle_diff:
+                merged_cluster['group_indices'].extend(c2)
+                merged_cluster['groups'].extend([seg for idx in c2 for seg in groups[idx]])
+                used.add(j)
+
+        merged.append(merged_cluster)
+        used.add(i)
+
+    return merged
 
 # ---------- Drawing ----------
 
@@ -249,11 +349,18 @@ def draw_clusters(img, groups, clusters, thickness=2):
 
 def draw_selected_cluster(img, groups, cluster, color=(0, 255, 0), thickness=2):
     img_out = img.copy()
-    for group_idx in cluster:
-        for (y0, x0), (y1, x1) in groups[group_idx]:
+    if isinstance(cluster, dict):
+        for seg in cluster['groups']:
+            (y0, x0), (y1, x1) = seg
             pt1 = (int(round(x0)), int(round(y0)))
             pt2 = (int(round(x1)), int(round(y1)))
             cv2.line(img_out, pt1, pt2, color, thickness)
+    else:
+        for group_idx in cluster:
+            for (y0, x0), (y1, x1) in groups[group_idx]:
+                pt1 = (int(round(x0)), int(round(y0)))
+                pt2 = (int(round(x1)), int(round(y1)))
+                cv2.line(img_out, pt1, pt2, color, thickness)
     return img_out
 
 # ---------- Reporting ----------
@@ -282,9 +389,9 @@ def print_cluster_summary(clusters, positions, orientation='horizontal', logger=
     logger(f"\n{orientation.capitalize()} contour clusters:")
 
     for i, group_indices in enumerate(clusters):
-        pos_values = [positions[idx] for idx in group_indices]
+        pos_values = [positions[idx] for idx in group_indices if isinstance(idx, int)]
         avg_pos = np.mean(pos_values)
         logger(f"  Cluster {i}:")
         logger(f"    - Group indices: {group_indices}")
         logger(f"    - Avg {label} position: {avg_pos:.1f}")
-        logger(f"    - Position values: {[f'{p:.1f}' for p in pos_values]}")
+        logger(f"    - Position values: {[f'{positions[idx]:.1f}' for idx in group_indices if isinstance(idx, int)]}")

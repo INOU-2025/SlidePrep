@@ -19,7 +19,8 @@ from detect_utils import (
     draw_segments,
     draw_groups,
     draw_clusters,
-    draw_selected_cluster
+    draw_selected_cluster,
+    select_nonoverlapping_clusters
 )
 
 VISUALIZATION_OPTIONS = [
@@ -50,6 +51,43 @@ class Logger:
 
 def is_image_file(filename):
     return filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tif', '.tiff'))
+
+
+def merge_colinear_clusters(clusters, direction, groups, positions, max_pos_diff=30, max_angle_diff=3):
+    """Merge clusters that are aligned but separated."""
+    def compute_angle(segment):
+        dx = segment[1][0] - segment[0][0]
+        dy = segment[1][1] - segment[0][1]
+        return np.arctan2(dy, dx) * 180 / np.pi
+
+    merged = []
+    used = set()
+
+    for i, c1 in enumerate(clusters):
+        if i in used:
+            continue
+        base_angle = compute_angle(groups[c1[0]][0])
+        merged_cluster = {
+            'group_indices': list(c1),
+            'groups': [seg for idx in c1 for seg in groups[idx]],
+            'avg_pos': positions[c1[0]]
+        }
+
+        for j, c2 in enumerate(clusters):
+            if j <= i or j in used:
+                continue
+            c2_angle = compute_angle(groups[c2[0]][0])
+            pos_diff = abs(float(merged_cluster['avg_pos']) - float(positions[c2[0]]))
+            angle_diff = abs(base_angle - c2_angle)
+            if pos_diff < max_pos_diff and angle_diff < max_angle_diff:
+                merged_cluster['group_indices'].extend(c2)
+                merged_cluster['groups'].extend([seg for idx in c2 for seg in groups[idx]])
+                used.add(j)
+
+        merged.append(merged_cluster)
+        used.add(i)
+
+    return merged
 
 
 def process_image(img_path, show=False, output_path=None, vis_mode="best_clusters", logger=print):
@@ -96,26 +134,18 @@ def process_image(img_path, show=False, output_path=None, vis_mode="best_cluster
     print_cluster_summary(clusters_h, positions_h, 'horizontal', logger=logger)
     print_cluster_summary(clusters_v, positions_v, 'vertical', logger=logger)
 
+    # Merge colinear clusters before selecting the best clusters
+    clusters_h = merge_colinear_clusters(clusters_h, direction='horizontal', groups=groups_h, positions=positions_h)
+    clusters_v = merge_colinear_clusters(clusters_v, direction='vertical', groups=groups_v, positions=positions_v)
+
     logger(f"\nFILTERED CLUSTERS:")
     logger(f"\nHorizontal:")
 
-    def select_nonoverlapping_clusters(clusters, groups, positions, min_spacing=10):
-        scored = sorted(
-            [(cl, (len(cl), sum(segment_length(s) for idx in cl for s in groups[idx])), np.mean([positions[idx] for idx in cl]))
-             for cl in clusters],
-            key=lambda x: (-x[1][0], -x[1][1])
-        )
-        selected = []
-        used_positions = []
-        for cl, _, pos in scored:
-            if all(abs(pos - upos) > min_spacing for upos in used_positions):
-                selected.append(cl)
-                used_positions.append(pos)
-        return selected
-
-    top_h_clusters = select_nonoverlapping_clusters(clusters_h, groups_h, positions_h, min_spacing=10)
+    top_h_clusters = select_nonoverlapping_clusters(clusters_h, groups_h, positions_h, min_spacing=10, orientation='horizontal', image_shape=img.shape[:2], min_score=300)
+    print_cluster_summary(top_h_clusters, positions_h, 'horizontal', logger=logger)
     logger(f"\nVertical:")
-    top_v_clusters = select_nonoverlapping_clusters(clusters_v, groups_v, positions_v, min_spacing=10)
+    top_v_clusters = select_nonoverlapping_clusters(clusters_v, groups_v, positions_v, min_spacing=10, orientation='vertical', image_shape=img.shape[:2], min_score=300)
+    print_cluster_summary(top_v_clusters, positions_v, 'vertical', logger=logger)
 
     img_out = img.copy()
     if vis_mode == "original":
