@@ -81,8 +81,8 @@ def filter_and_group_segments(segments, logger):
 
 
 def identify_clusters(groups_h, groups_v, logger):
-    clusters_h = identify_thick_line_groups(groups_h, orientation='horizontal')
-    clusters_v = identify_thick_line_groups(groups_v, orientation='vertical')
+    clusters_h = identify_thick_line_groups(groups_h)
+    clusters_v = identify_thick_line_groups(groups_v)
 
     logger(f"\nCLUSTERS:")
     logger(f"\nHorizontal:")

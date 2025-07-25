@@ -4,6 +4,9 @@ import numpy as np
 from typing import List, Tuple
 import networkx as nx
 from itertools import combinations
+from shapely.geometry import LineString
+from shapely.geometry import Polygon
+from shapely.ops import unary_union
 
 # ---------- Geometry & Segment Utilities ----------
 
@@ -89,53 +92,50 @@ def group_approximately_collinear_segments(
 
     return grouped_segments
 
+def connect_segments(group):
+    # Sort and connect all endpoints into a single polyline
+    endpoints = []
+    for seg in group:
+        endpoints.extend(seg)
+    endpoints = sorted(endpoints, key=lambda pt: (pt[1], pt[0]))  # sort by Y then X
+    return LineString(endpoints)
 
-def identify_thick_line_groups(groups, orientation='horizontal', min_thickness=18.0, max_thickness=22.0,
-                               min_segment_count=2):
+def expand_line_to_polygon(line: LineString, thickness: float) -> Polygon:
+    # Expand line into a polygon of given thickness
+    return line.buffer(thickness / 2.0, cap_style=2, join_style=2)
+
+def identify_thick_line_groups(groups, thickness: float = 35.0):
     """
-    Identify groups that define a thick line.
+    Identify the best pair of groups forming a thick line using polygonal overlap.
 
     Parameters:
-        groups (list): List of groups, each a list of (pt1, pt2) segment tuples.
-        orientation (str): 'horizontal' or 'vertical'.
-        min_thickness (float): Minimum distance between parallel groups to qualify.
-        max_thickness (float): Maximum distance allowed.
-        min_segment_count (int): Minimum number of segments required per group.
+        groups (list): Each group is a list of segments (pt1, pt2).
+        thickness (float): Expected thickness of the thick line.
 
     Returns:
-        List of 1 or 2 groups representing the thick line.
+        List of 2 selected groups if found, otherwise empty list.
     """
-    axis = 0 if orientation == 'horizontal' else 1
-    positions = []
+    indexed_polygons = []
+    for idx, group in enumerate(groups):
+        line = connect_segments(group)
+        poly = expand_line_to_polygon(line, thickness)
+        indexed_polygons.append((idx, poly))
 
-    for group in groups:
-        coords = [pt[axis] for seg in group for pt in seg]
-        mean = np.mean(coords)
-        positions.append(mean)
+    best_pair = None
+    best_overlap_area = 0
 
-    sorted_indices = np.argsort(positions)
+    for i in range(len(indexed_polygons)):
+        for j in range(i + 1, len(indexed_polygons)):
+            idx1, poly1 = indexed_polygons[i]
+            idx2, poly2 = indexed_polygons[j]
+            intersection = poly1.intersection(poly2)
+            overlap_area = intersection.area
+            if overlap_area > best_overlap_area:
+                best_overlap_area = overlap_area
+                best_pair = (idx1, idx2)
 
-    # Try to find a pair of groups at the right distance
-    for i in range(len(sorted_indices)):
-        idx_i = sorted_indices[i]
-        gi = groups[idx_i]
-        pi = positions[idx_i]
-        for j in range(i + 1, len(sorted_indices)):
-            idx_j = sorted_indices[j]
-            gj = groups[idx_j]
-            pj = positions[idx_j]
-            distance = abs(pj - pi)
-            if min_thickness <= distance <= max_thickness:
-                if len(gi) >= min_segment_count and len(gj) >= min_segment_count:
-                    return [gi, gj]
-
-    # Otherwise, check for single group with large span
-    for group in groups:
-        coords = [pt[axis] for seg in group for pt in seg]
-        span = max(coords) - min(coords)
-        if span >= min_thickness:
-            return [group]
-
+    if best_pair:
+        return [groups[best_pair[0]], groups[best_pair[1]]]
     return []
 
 # ---------- Drawing ----------
