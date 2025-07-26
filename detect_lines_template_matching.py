@@ -37,21 +37,24 @@ def process_image(image_path, output_path, templates, percentile_thresh=1):
     }
 
     for key, tmpl in templates.items():
-        result = cv2.matchTemplate(inverted, tmpl, cv2.TM_SQDIFF_NORMED)
+        t_h, t_w = tmpl.shape
+        offset = np.array([t_w // 2, t_h // 2])
+        pad_y, pad_x = t_h // 2, t_w // 2
+
+        padded = cv2.copyMakeBorder(inverted, pad_y, pad_y, pad_x, pad_x, cv2.BORDER_CONSTANT, value=0)
+        result = cv2.matchTemplate(padded, tmpl, cv2.TM_SQDIFF_NORMED)
         threshold = np.percentile(result, percentile_thresh)
+        print(f"[INFO] {key} template threshold = {threshold:.4f}")
         mask = (result < threshold).astype(np.uint8) * 255
 
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        t_h, t_w = tmpl.shape
-        offset = np.array([t_w // 2, t_h // 2])
 
         for cnt in contours:
             if cv2.contourArea(cnt) < area_thresholds[key]:
                 continue
             rect = cv2.minAreaRect(cnt)
             box = cv2.boxPoints(rect)
-            box = np.intp(box + offset)
+            box = np.intp(box + offset - [pad_x, pad_y])
             cv2.drawContours(overlay, [box], 0, (0, 0, 255), 2)
 
     fname = os.path.basename(image_path)
