@@ -3,7 +3,7 @@ import numpy as np
 import os
 from glob import glob
 
-def create_line_template(length=60, thickness=20, angle_deg=2.0, orientation='horizontal'):
+def create_line_template(length=60, thickness=21, angle_deg=2.0, orientation='horizontal'):
     size = (length + thickness, length + thickness)
     template = np.zeros(size, dtype=np.uint8)
 
@@ -22,9 +22,34 @@ def create_line_template(length=60, thickness=20, angle_deg=2.0, orientation='ho
     rotated = cv2.warpAffine(template, rot_mat, size, flags=cv2.INTER_LINEAR, borderValue=0)
     return rotated
 
-def compute_min_required_ratio(area, base_area=3000, base_ratio=0.95, alpha=0.157):
-    ratio = base_ratio - alpha * np.log10(area / base_area)
-    return max(0.0, min(1.0, ratio))  # Clamp between 0 and 1
+def compute_min_required_ratio(area, is_edge_case=False):
+    if area >= 9500:
+        base_ratio =  0.85
+    elif area <= 2000:
+        base_ratio = 0.96
+    else:
+        # Linear interpolation between 0.96 (at 2000) and 0.85 (at 9500)
+        base_ratio = 0.96 - 0.11 * ((area - 2000) / 7500)
+
+    if is_edge_case:
+        base_ratio *= 0.98  # apply 8% relaxation
+    return base_ratio
+
+
+def is_edge_aligned(box, key, image_shape, margin=5):
+    img_h, img_w = image_shape
+    box_x = box[:, 0]
+    box_y = box[:, 1]
+
+    near_left   = np.any(box_x < margin)
+    near_right  = np.any(box_x > img_w - margin)
+    near_top    = np.any(box_y < margin)
+    near_bottom = np.any(box_y > img_h - margin)
+
+    return (
+        (key == "vertical" and (near_left or near_right)) or
+        (key == "horizontal" and (near_top or near_bottom))
+    )
 
 def process_image(image_path, output_path, templates, percentile_thresh=1):
     gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
@@ -39,6 +64,12 @@ def process_image(image_path, output_path, templates, percentile_thresh=1):
         "horizontal": 2000,
         "vertical": 2000
     }
+
+    fname = os.path.basename(image_path)
+    log_path = os.path.join(output_path, "detection_log.csv")
+    if not os.path.exists(log_path):
+        with open(log_path, "w") as f:
+            f.write("file,area,dark_ratio,min_required_ratio\n")
 
     for key, tmpl in templates.items():
         t_h, t_w = tmpl.shape
@@ -58,17 +89,18 @@ def process_image(image_path, output_path, templates, percentile_thresh=1):
                 continue
 
             # print(f"[INFO] We process contour {i}")
-            rect = cv2.minAreaRect(cnt)
-            area = int(rect[1][0] * rect[1][1])
-            box = cv2.boxPoints(rect)
-            box = np.intp(box + offset - [pad_x, pad_y])
 
-            # Draw rotated box (yellow) and axis-aligned box (green)
-            '''
-            cv2.drawContours(overlay, [box], 0, (255, 255, 0), 4)
-            x, y, w, h = cv2.boundingRect(box)
-            cv2.rectangle(overlay, (x, y), (x + w, y + h), (0, 255, 0), 1)
-            '''
+            cnt = cnt + offset - [pad_x, pad_y]  # Shift contour
+            area = cv2.contourArea(cnt)
+            if area == 0:
+                continue
+            box = cv2.approxPolyDP(cnt, epsilon=1.0, closed=True).reshape(-1, 2)
+
+            # Debug visualization
+            debug_rect = cv2.minAreaRect(cnt)
+            debug_box = cv2.boxPoints(debug_rect)
+            debug_box = np.intp(debug_box)
+            cv2.drawContours(overlay, [debug_box], 0, (0, 255, 255), 1)  # Yellow rectangle
 
             # Dark pixel ratio on original image (not inverted!)
             mask_region = np.zeros_like(gray, dtype=np.uint8)
@@ -83,13 +115,9 @@ def process_image(image_path, output_path, templates, percentile_thresh=1):
             dark_ratio = black_pixels / total_pixels
             # print(f"[INFO] {key} box {i}: dark_ratio = {dark_ratio:.3f}")
 
-            '''
-            if dark_ratio < 0.9:
-                cv2.drawContours(overlay, [box], 0, (255, 0, 0), 2)  # Rejected: blue
-            else:
-                cv2.drawContours(overlay, [box], 0, (0, 0, 255), 2)  # Accepted: red
-            '''
-            min_required_ratio = compute_min_required_ratio(area)
+            is_edge_case = is_edge_aligned(box, key, gray.shape)
+
+            min_required_ratio = compute_min_required_ratio(area, is_edge_case=is_edge_case)
 
             if dark_ratio < min_required_ratio:
                 print(f"[REJECT] dark_ratio={dark_ratio:.3f} < {min_required_ratio:.3f}")
@@ -97,6 +125,12 @@ def process_image(image_path, output_path, templates, percentile_thresh=1):
             else:
                 print(f"[ACCEPT] dark_ratio={dark_ratio:.3f} ≥ {min_required_ratio:.3f}")
                 cv2.drawContours(overlay, [box], 0, (0, 0, 255), 2)
+
+            print(
+                f"[{key} box {i}: area={area:.1f}, dark_ratio={dark_ratio:.3f}, threshold={min_required_ratio:.3f}")
+            with open(log_path, "a") as f:
+                f.write(f"{fname},{area:.1f},{dark_ratio:.3f},{min_required_ratio:.3f}\n")
+
     fname = os.path.basename(image_path)
     out_path = os.path.join(output_path, fname.replace('.png', '_detected.png'))
     cv2.imwrite(out_path, overlay)
