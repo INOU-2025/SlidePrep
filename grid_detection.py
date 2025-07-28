@@ -3,17 +3,20 @@ import numpy as np
 import os
 from glob import glob
 from utils.grid_detection_utils import LineTemplateFactory
-from utils.config_manager import ConfigManager
+from utils.grid_detection_config import GridDetectionConfig
+import logging
+
 
 # Load configuration
-config = ConfigManager("config/grid_detection.json")
-ANGLE_DEG = config.get("angle_deg")
-MARGIN = config.get("margin")
-PERCENTILE_THRESH = config.get("percentile_thresh")
-HORIZONTAL_AREA_THRESHOLD = config.get("horizontal_area_threshold")
-VERTICAL_AREA_THRESHOLD = config.get("vertical_area_threshold")
-LINE_LENGTH = config.get("line_length")
-LINE_THICKNESS = config.get("line_thickness")
+config = GridDetectionConfig("config/grid_detection.json")
+# Logging is already set up by the base class
+ANGLE_DEG = config.angle_deg
+MARGIN = config.margin
+PERCENTILE_THRESH = config.percentile_thresh
+HORIZONTAL_AREA_THRESHOLD = config.horizontal_area_threshold
+VERTICAL_AREA_THRESHOLD = config.vertical_area_threshold
+LINE_LENGTH = config.line_length
+LINE_THICKNESS = config.line_thickness
 
 def compute_min_required_ratio(area):
     if area >= 9500:
@@ -71,10 +74,18 @@ def border_touch_ratio(rotated_box, orientation, image_shape, margin=MARGIN):
     touches = ratio > 0
     return touches, ratio
 
+def log_detection(fname, area, dark_ratio, contour_dark_ratio, min_required_ratio,
+                  length, orientation_type, angle, decision, touches_margin, touch_ratio):
+    log_msg = (
+        f"{fname},{area:.1f},{dark_ratio:.3f},{contour_dark_ratio:.3f},{min_required_ratio:.3f},"
+        f"{length:.1f},{orientation_type},{angle:.2f},{decision},{int(touches_margin)},{touch_ratio:.2f}"
+    )
+    logging.info(log_msg)
+
 def process_image(image_path, output_path, templates, percentile_thresh=PERCENTILE_THRESH):
     gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     if gray is None:
-        print(f"[ERROR] Cannot read {image_path}")
+        logging.error(f"Cannot read {image_path}")
         return
     inverted = cv2.bitwise_not(gray)
     overlay = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
@@ -83,10 +94,7 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
         "vertical": VERTICAL_AREA_THRESHOLD
     }
     fname = os.path.basename(image_path)
-    log_path = os.path.join(output_path, "detection_log.csv")
-    if not os.path.exists(log_path):
-        with open(log_path, "w") as f:
-            f.write("file,area,dark_ratio,contour_dark_ratio,min_required_ratio,length,orientation,angle,decision,touches_margin,touch_ratio\n")
+
     for key, tmpl in templates.items():
         t_h, t_w = tmpl.shape
         offset = np.array([t_w // 2, t_h // 2])
@@ -101,15 +109,12 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
             if cv2.contourArea(cnt) < area_thresholds[key]:
                 continue
 
-            # print(f"[INFO] We process contour {i}")
-
             cnt = cnt + offset - [pad_x, pad_y]  # Shift contour
             area = cv2.contourArea(cnt)
             if area == 0:
                 continue
             box = cv2.approxPolyDP(cnt, epsilon=1.0, closed=True).reshape(-1, 2)
 
-            # Debug visualization
             debug_rect = cv2.minAreaRect(cnt)
             debug_box = cv2.boxPoints(debug_rect)
             debug_box = np.intp(debug_box)
@@ -121,7 +126,6 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
             mask_region = np.zeros_like(gray, dtype=np.uint8)
             cv2.fillPoly(mask_region, [rotated_box], 1)
 
-            # Rotated rectangle mask
             rotated_mask = np.zeros_like(gray, dtype=np.uint8)
             cv2.fillPoly(rotated_mask, [rotated_box], 1)
             rotated_black_pixels = np.sum((gray == 0) & (rotated_mask == 1))
@@ -130,7 +134,6 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
                 continue
             dark_ratio = rotated_black_pixels / rotated_total_pixels
 
-            # Contour mask
             contour_mask = np.zeros_like(gray, dtype=np.uint8)
             cv2.drawContours(contour_mask, [cnt], -1, 1, thickness=-1)
             contour_black_pixels = np.sum((gray == 0) & (contour_mask == 1))
@@ -145,19 +148,18 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
             (_, _), (w, h), raw_angle = rotated_rect
             angle = raw_angle + 90 if w < h else raw_angle
 
-            # Normalize to [-90, 90]
             if angle > 90:
                 angle -= 180
             elif angle < -90:
                 angle += 180
 
             angle_valid = (
-                    (-4 <= angle <= 4) or  # Near 0°
-                    (86 <= abs(angle) <= 94)  # Near ±90°
+                    (-4 <= angle <= 4) or
+                    (86 <= abs(angle) <= 94)
             )
 
             length = max(w, h)
-            orientation_type = key  # Already 'horizontal' or 'vertical'
+            orientation_type = key
             touches_margin, touch_ratio = -1, -1
 
             if dark_ratio >= 0.93:
@@ -172,7 +174,6 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
                 decision = "MAYBE (edge case)"
                 maybe = True
                 min_required_ratio = compute_min_required_ratio(area)
-                # accepted = dark_ratio >= min_required_ratio
                 accepted = False
                 img_h, img_w = gray.shape
                 length_threshold = 0.55 * (img_w if key == "horizontal" else img_h)
@@ -183,8 +184,8 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
                     decision = "ACCEPT (length override)"
 
                 angle_valid = (
-                        (-4 <= angle <= 4) or  # Near 0°
-                        (86 <= abs(angle) <= 94)  # Near ±90°
+                        (-4 <= angle <= 4) or
+                        (86 <= abs(angle) <= 94)
                 )
 
                 if maybe and not angle_valid:
@@ -192,11 +193,8 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
                     accepted = False
                     decision = "REJECT (angle out of bounds)"
 
-            # Additional override for maybe cases
             if maybe:
-
                 touches_margin, touch_ratio = border_touch_ratio(rotated_box, orientation_type, gray.shape)
-
                 if contour_dark_ratio > 0.96 and dark_ratio >= 0.83:
                     accepted = True
                     maybe = False
@@ -205,7 +203,6 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
                     accepted = False
                     maybe = False
                     decision = "REJECT (contour ratio override)"
-
                 elif (
                         contour_dark_ratio >= 0.80 and
                         dark_ratio >= 0.70 and
@@ -226,9 +223,11 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
             else:
                 cv2.drawContours(overlay, [box], 0, (255, 0, 0), 2)
 
-            with open(log_path, "a") as f:
-                f.write(
-                    f"{fname},{area:.1f},{dark_ratio:.3f},{contour_dark_ratio:.3f},{min_required_ratio:.3f},{length:.1f},{orientation_type},{angle:.2f},{decision},{int(touches_margin)},{touch_ratio:.2f}\n")
+            # Log detection result
+            log_detection(
+                fname, area, dark_ratio, contour_dark_ratio, min_required_ratio,
+                length, orientation_type, angle, decision, touches_margin, touch_ratio
+            )
 
     fname = os.path.basename(image_path)
     out_path = os.path.join(output_path, fname.replace('.png', '_detected.png'))

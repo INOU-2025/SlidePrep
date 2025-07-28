@@ -1,12 +1,13 @@
 import json
+import logging
 
 class ConfigManager:
-    def __init__(self, path):
-        self.path = path
-        self._config = self._load()
+    def __init__(self, config_path):
+        self._config = self._load_config(config_path)
+        self.setup_logging()
 
-    def _load(self):
-        with open(self.path, "r") as f:
+    def _load_config(self, path):
+        with open(path, "r") as f:
             return json.load(f)
 
     def save(self):
@@ -18,6 +19,19 @@ class ConfigManager:
 
     def set(self, key, value):
         self._config[key] = value
+
+    def setup_logging(self):
+        handlers = []
+        log_format = "%(asctime)s %(levelname)s %(message)s"
+        if self.get("log_to_file", True):
+            handlers.append(logging.FileHandler(self.get("log_file_name", "detection.log")))
+        if self.get("log_to_console", True):
+            handlers.append(logging.StreamHandler())
+        logging.basicConfig(
+            level=logging.INFO,
+            format=log_format,
+            handlers=handlers
+        )
 
     @property
     def config(self):
