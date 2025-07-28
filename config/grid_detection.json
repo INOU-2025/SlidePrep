@@ -1,0 +1,9 @@
+{
+  "angle_deg": 2.0,
+  "margin": 5,
+  "percentile_thresh": 2,
+  "horizontal_area_threshold": 2000,
+  "vertical_area_threshold": 2000,
+  "line_length": 40,
+  "line_thickness": 21
+}
