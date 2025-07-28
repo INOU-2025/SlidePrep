@@ -6,7 +6,14 @@
   "vertical_area_threshold": 2000,
   "line_length": 40,
   "line_thickness": 21,
-  "log_to_file": true,
-  "log_to_console": true,
-  "log_file_name": "detection.log"
+  "logging": {
+    "log_to_file": true,
+    "log_to_console": false,
+    "log_file_name": "detection.log"
+  },
+  "debug": {
+    "enabled": true,
+    "visualization": true,
+    "logging": false
+  }
 }

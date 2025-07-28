@@ -1,15 +1,19 @@
 import cv2
 import numpy as np
 import os
+import time
 from glob import glob
-from utils.grid_detection_utils import LineTemplateFactory
-from utils.grid_detection_config import GridDetectionConfig
+from utils.detection.line_template_factory import LineTemplateFactory
+from utils.detection.grid_detection_config import GridDetectionConfig
+from utils.detection.grid_detection_drawer import GridDetectionDrawer
 import logging
-
 
 # Load configuration
 config = GridDetectionConfig("config/grid_detection.json")
-# Logging is already set up by the base class
+log = config.logger
+
+log.info(f"Loaded config: {config.config}")
+
 ANGLE_DEG = config.angle_deg
 MARGIN = config.margin
 PERCENTILE_THRESH = config.percentile_thresh
@@ -80,20 +84,25 @@ def log_detection(fname, area, dark_ratio, contour_dark_ratio, min_required_rati
         f"{fname},{area:.1f},{dark_ratio:.3f},{contour_dark_ratio:.3f},{min_required_ratio:.3f},"
         f"{length:.1f},{orientation_type},{angle:.2f},{decision},{int(touches_margin)},{touch_ratio:.2f}"
     )
-    logging.info(log_msg)
+    log.info(log_msg)
 
 def process_image(image_path, output_path, templates, percentile_thresh=PERCENTILE_THRESH):
+    start_time = time.time()
+    log.info(f"Processing image: {image_path}")
     gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     if gray is None:
-        logging.error(f"Cannot read {image_path}")
+        log.error(f"Cannot read {image_path}")
         return
     inverted = cv2.bitwise_not(gray)
     overlay = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+    drawer = GridDetectionDrawer(overlay, enabled=config.debug_visualization)
     area_thresholds = {
         "horizontal": HORIZONTAL_AREA_THRESHOLD,
         "vertical": VERTICAL_AREA_THRESHOLD
     }
     fname = os.path.basename(image_path)
+
+    n_accept, n_reject, n_maybe = 0, 0, 0
 
     for key, tmpl in templates.items():
         t_h, t_w = tmpl.shape
@@ -118,7 +127,7 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
             debug_rect = cv2.minAreaRect(cnt)
             debug_box = cv2.boxPoints(debug_rect)
             debug_box = np.intp(debug_box)
-            cv2.drawContours(overlay, [debug_box], 0, (0, 255, 255), 1)  # Yellow rectangle
+            drawer.draw_box(debug_box, color=(0, 255, 255), thickness=1)
 
             rotated_rect = cv2.minAreaRect(cnt)
             rotated_box = cv2.boxPoints(rotated_rect).astype(np.intp)
@@ -166,13 +175,16 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
                 decision = "ACCEPT (high confidence)"
                 accepted = True
                 maybe = False
+                n_accept += 1
             elif dark_ratio < 0.73:
                 decision = "REJECT (low confidence)"
                 accepted = False
                 maybe = False
+                n_reject += 1
             else:
                 decision = "MAYBE (edge case)"
                 maybe = True
+                n_maybe += 1
                 min_required_ratio = compute_min_required_ratio(area)
                 accepted = False
                 img_h, img_w = gray.shape
@@ -182,6 +194,8 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
                     accepted = True
                     maybe = False
                     decision = "ACCEPT (length override)"
+                    n_accept += 1
+                    n_maybe -= 1  # Remove from maybe count if overridden
 
                 angle_valid = (
                         (-4 <= angle <= 4) or
@@ -192,6 +206,8 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
                     maybe = False
                     accepted = False
                     decision = "REJECT (angle out of bounds)"
+                    n_reject += 1
+                    n_maybe -= 1  # Remove from maybe count if overridden
 
             if maybe:
                 touches_margin, touch_ratio = border_touch_ratio(rotated_box, orientation_type, gray.shape)
@@ -199,10 +215,14 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
                     accepted = True
                     maybe = False
                     decision = "ACCEPT (contour ratio override)"
+                    n_accept += 1
+                    n_maybe -= 1
                 elif contour_dark_ratio < 0.85 and dark_ratio < 0.80:
                     accepted = False
                     maybe = False
                     decision = "REJECT (contour ratio override)"
+                    n_reject += 1
+                    n_maybe -= 1
                 elif (
                         contour_dark_ratio >= 0.80 and
                         dark_ratio >= 0.70 and
@@ -212,16 +232,15 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
                     accepted = True
                     maybe = False
                     decision = "ACCEPT (relaxed contour-touch override)"
+                    n_accept += 1
+                    n_maybe -= 1
                 else:
                     accepted = False
                     decision = "REJECT (not enough evidences to accept segment)"
+                    n_reject += 1
+                    n_maybe -= 1
 
-            if accepted:
-                cv2.drawContours(overlay, [box], 0, (0, 0, 255), 2)
-            elif maybe:
-                cv2.drawContours(overlay, [box], 0, (0, 255, 0), 2)
-            else:
-                cv2.drawContours(overlay, [box], 0, (255, 0, 0), 2)
+            drawer.draw_contour(box, accepted=accepted, maybe=maybe)
 
             # Log detection result
             log_detection(
@@ -231,18 +250,29 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
 
     fname = os.path.basename(image_path)
     out_path = os.path.join(output_path, fname.replace('.png', '_detected.png'))
-    cv2.imwrite(out_path, overlay)
+    drawer.save(out_path)
+    elapsed = time.time() - start_time
+    log.info(f"Saved output: {out_path}")
+    log.info(f"Image processed in {elapsed:.2f} seconds. Accepted: {n_accept}, Rejected: {n_reject}, Maybe: {n_maybe}")
 
 def batch_process(input_dir, output_dir):
     os.makedirs(output_dir, exist_ok=True)
     images = glob(os.path.join(input_dir, "*.png"))
+    log.info(f"Found {len(images)} images in {input_dir}")
     factory = LineTemplateFactory(length=LINE_LENGTH, thickness=LINE_THICKNESS, angle_deg=ANGLE_DEG)
     templates = {
         "horizontal": factory.create(orientation='horizontal'),
         "vertical": factory.create(orientation='vertical')
     }
+    total_accept, total_reject, total_maybe = 0, 0, 0
+    start_time = time.time()
     for img_path in images:
-        process_image(img_path, output_dir, templates)
+        try:
+            process_image(img_path, output_dir, templates)
+        except Exception as e:
+            log.exception(f"Exception occurred while processing {img_path}")
+    elapsed = time.time() - start_time
+    log.info(f"Batch processing completed in {elapsed:.2f} seconds for {len(images)} images.")
 
 if __name__ == "__main__":
     import argparse
