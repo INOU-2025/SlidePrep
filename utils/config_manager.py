@@ -8,6 +8,7 @@ class NoOpLogger:
 
 class ConfigManager:
     def __init__(self, config_path):
+        self.path = config_path  # Store the config file path
         self._config = self._load_config(config_path)
         self.setup_debugging()
 
@@ -16,6 +17,13 @@ class ConfigManager:
             return json.load(f)
 
     def save(self):
+        """
+        Save the current configuration to the file specified by self.path.
+
+        Raises:
+            AttributeError: If self.path is not set.
+            IOError: If the file cannot be written.
+        """
         with open(self.path, "w") as f:
             json.dump(self._config, f, indent=2)
 
@@ -60,9 +68,11 @@ class ConfigManager:
 
         if debug_enabled and debug_logging:
             self.setup_logging()
-            self.logger = logging
+            self.logger = logging.getLogger()
         else:
-            logging.getLogger().handlers.clear()
+            for handler in logging.root.handlers[:]:
+                logging.root.removeHandler(handler)
+                handler.close()
             logging.disable(logging.CRITICAL)
             self.logger = NoOpLogger()
 
