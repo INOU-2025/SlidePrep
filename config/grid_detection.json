@@ -14,6 +14,7 @@
   "debug": {
     "enabled": true,
     "visualization": true,
-    "logging": false
+    "logging": false,
+    "output_dir": "/Users/irconde/Downloads/V2_170225_exp250225/output_masks"
   }
 }

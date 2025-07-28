@@ -95,7 +95,7 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
         return
     inverted = cv2.bitwise_not(gray)
     overlay = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
-    drawer = GridDetectionDrawer(overlay, enabled=config.debug_visualization)
+    drawer = GridDetectionDrawer(overlay, enabled=config.visualization_enabled)
     area_thresholds = {
         "horizontal": HORIZONTAL_AREA_THRESHOLD,
         "vertical": VERTICAL_AREA_THRESHOLD
@@ -249,13 +249,14 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
             )
 
     fname = os.path.basename(image_path)
-    out_path = os.path.join(output_path, fname.replace('.png', '_detected.png'))
+    out_path = os.path.join(output_path, fname)
     drawer.save(out_path)
     elapsed = time.time() - start_time
     log.info(f"Saved output: {out_path}")
     log.info(f"Image processed in {elapsed:.2f} seconds. Accepted: {n_accept}, Rejected: {n_reject}, Maybe: {n_maybe}")
 
-def batch_process(input_dir, output_dir):
+def batch_process(input_dir):
+    output_dir = config.debug_output_dir
     os.makedirs(output_dir, exist_ok=True)
     images = glob(os.path.join(input_dir, "*.png"))
     log.info(f"Found {len(images)} images in {input_dir}")
@@ -278,6 +279,5 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True, help="Input folder with PNG images")
-    parser.add_argument("--output", required=True, help="Output folder to save annotated images")
     args = parser.parse_args()
-    batch_process(args.input, args.output)
+    batch_process(args.input)

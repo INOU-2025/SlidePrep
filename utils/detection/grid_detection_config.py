@@ -56,3 +56,7 @@ class GridDetectionConfig(ConfigManager):
     def debug_logging(self):
         debug_cfg = self.get("debug", {})
         return debug_cfg.get("logging", False) if "logging" in debug_cfg and self.debug_enabled else False
+    
+    @property
+    def debug_output_dir(self):
+        return self.get("debug", {}).get("output_dir", "debug_output")

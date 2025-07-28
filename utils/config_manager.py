@@ -65,6 +65,10 @@ class ConfigManager:
         debug_cfg = self.get("debug", {})
         debug_enabled = debug_cfg.get("enabled", False)
         debug_logging = debug_cfg.get("logging", False) if "logging" in debug_cfg else False
+        debug_visualization = debug_cfg.get("visualization", False) if "visualization" in debug_cfg else False
+        debug_output_dir = debug_cfg.get("output_dir", "debug_output") if "output_dir" in debug_cfg else "debug_output"
+
+        self.visualization_enabled = debug_enabled and debug_visualization
 
         if debug_enabled and debug_logging:
             self.setup_logging()
@@ -79,3 +83,7 @@ class ConfigManager:
     @property
     def config(self):
         return self._config
+
+    @property
+    def debug_output_dir(self):
+        return self._config.get("debug", {}).get("output_dir", "debug_output")
