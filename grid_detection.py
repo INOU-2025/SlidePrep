@@ -84,7 +84,7 @@ def log_detection(fname, area, dark_ratio, contour_dark_ratio, min_required_rati
         f"{fname},{area:.1f},{dark_ratio:.3f},{contour_dark_ratio:.3f},{min_required_ratio:.3f},"
         f"{length:.1f},{orientation_type},{angle:.2f},{decision},{int(touches_margin)},{touch_ratio:.2f}"
     )
-    log.info(log_msg)
+    log.debug(log_msg)
 
 def process_image(image_path, output_path, templates, percentile_thresh=PERCENTILE_THRESH):
     start_time = time.time()

@@ -7,15 +7,15 @@
   "line_length": 40,
   "line_thickness": 21,
   "logging": {
-    "log_to_file": true,
-    "log_to_console": false,
+    "log_to_file": false,
+    "log_to_console": true,
     "log_file_name": "detection.log",
-    "log_level": "DEBUG"
+    "log_level": "INFO"
   },
   "debug": {
     "enabled": true,
-    "visualization": true,
-    "logging": false,
+    "visualization": false,
+    "logging": true,
     "output_dir": "/Users/irconde/Downloads/V2_170225_exp250225/output_masks"
   }
 }
