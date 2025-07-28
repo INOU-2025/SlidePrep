@@ -35,16 +35,19 @@ class ConfigManager:
 
     def setup_logging(self):
         root_logger = logging.getLogger()
-        # Remove all handlers to prevent duplicate or unwanted output
         for handler in root_logger.handlers[:]:
             root_logger.removeHandler(handler)
 
         handlers = []
-        log_format = "%(asctime)s %(levelname)s %(message)s"
         logging_cfg = self.get("logging", {})
         log_to_file = logging_cfg.get("log_to_file", False)
         log_file_name = logging_cfg.get("log_file_name", "")
         log_to_console = logging_cfg.get("log_to_console", False)
+        log_level_str = logging_cfg.get("log_level", "INFO")
+        log_format = "%(asctime)s %(levelname)s %(message)s"
+
+        # Convert log level string to logging constant
+        log_level = getattr(logging, log_level_str.upper(), logging.INFO)
 
         if log_to_file and log_file_name:
             handlers.append(logging.FileHandler(log_file_name))
@@ -53,12 +56,11 @@ class ConfigManager:
 
         if handlers:
             logging.basicConfig(
-                level=logging.INFO,
+                level=log_level,
                 format=log_format,
                 handlers=handlers
             )
         else:
-            # No handlers requested, disable all logging
             logging.disable(logging.CRITICAL)
 
     def setup_debugging(self):

@@ -9,7 +9,8 @@
   "logging": {
     "log_to_file": true,
     "log_to_console": false,
-    "log_file_name": "detection.log"
+    "log_file_name": "detection.log",
+    "log_level": "DEBUG"
   },
   "debug": {
     "enabled": true,
