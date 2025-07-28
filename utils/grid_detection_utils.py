@@ -2,12 +2,32 @@ import cv2
 import numpy as np
 
 class LineTemplateFactory:
+    """
+    Factory for creating line templates for grid/line detection.
+
+    Parameters:
+        length (int): Length of the line. Default is 40.
+        thickness (int): Thickness of the line. Default is 21.
+        angle_deg (float): Rotation angle in degrees. Default is 2.0.
+    """
+
     def __init__(self, length=40, thickness=21, angle_deg=2.0):
+        if length <= 0 or thickness <= 0:
+            raise ValueError("Length and thickness must be positive integers.")
         self.length = length
         self.thickness = thickness
         self.angle_deg = angle_deg
 
     def create(self, orientation='horizontal'):
+        """
+        Create a line template.
+
+        Parameters:
+            orientation (str): 'horizontal' or 'vertical'
+
+        Returns:
+            np.ndarray: The template image.
+        """
         size = (self.length + self.thickness, self.length + self.thickness)
         template = np.zeros(size, dtype=np.uint8)
 
@@ -22,6 +42,8 @@ class LineTemplateFactory:
 
         cv2.rectangle(template, start, end, 255, -1)
         center = (size[0] // 2, size[1] // 2)
+        if self.angle_deg == 0.0:
+            return template
         rot_mat = cv2.getRotationMatrix2D(center, self.angle_deg, 1.0)
         rotated = cv2.warpAffine(template, rot_mat, size, flags=cv2.INTER_LINEAR, borderValue=0)
         return rotated
