@@ -6,6 +6,7 @@ class NoOpLogger:
     def info(self, *args, **kwargs) -> None: pass
     def error(self, *args, **kwargs) -> None: pass
     def exception(self, *args, **kwargs) -> None: pass
+    def debug(self, *args, **kwargs) -> None: pass
 
 class ConfigManager:
     """
