@@ -2,25 +2,7 @@ import cv2
 import numpy as np
 import os
 from glob import glob
-
-def create_line_template(length=40, thickness=21, angle_deg=2.0, orientation='horizontal'):
-    size = (length + thickness, length + thickness)
-    template = np.zeros(size, dtype=np.uint8)
-
-    if orientation == 'horizontal':
-        start = (thickness // 2, size[1] // 2 - thickness // 2)
-        end = (size[0] - thickness // 2, size[1] // 2 + thickness // 2)
-    elif orientation == 'vertical':
-        start = (size[0] // 2 - thickness // 2, thickness // 2)
-        end = (size[0] // 2 + thickness // 2, size[1] - thickness // 2)
-    else:
-        raise ValueError("orientation must be 'horizontal' or 'vertical'")
-
-    cv2.rectangle(template, start, end, 255, -1)
-    center = (size[0] // 2, size[1] // 2)
-    rot_mat = cv2.getRotationMatrix2D(center, angle_deg, 1.0)
-    rotated = cv2.warpAffine(template, rot_mat, size, flags=cv2.INTER_LINEAR, borderValue=0)
-    return rotated
+from detect_utils import LineTemplateFactory
 
 def compute_min_required_ratio(area, is_edge_case=False):
     if area >= 9500:
@@ -30,11 +12,6 @@ def compute_min_required_ratio(area, is_edge_case=False):
     else:
         # Linear interpolation between 0.96 (at 2000) and 0.85 (at 9500)
         base_ratio = 0.96 - 0.11 * ((area - 2000) / 7500)
-
-    '''
-    if is_edge_case:
-        base_ratio *= 0.98  # apply 8% relaxation
-    '''
     return base_ratio
 
 
@@ -288,9 +265,10 @@ def batch_process(input_dir, output_dir):
     os.makedirs(output_dir, exist_ok=True)
     images = glob(os.path.join(input_dir, "*.png"))
 
+    factory = LineTemplateFactory(angle_deg=2.0)
     templates = {
-        "horizontal": create_line_template(angle_deg=2.0, orientation='horizontal'),
-        "vertical": create_line_template(angle_deg=2.0, orientation='vertical')
+        "horizontal": factory.create(orientation='horizontal'),
+        "vertical": factory.create(orientation='vertical')
     }
 
     for img_path in images:
