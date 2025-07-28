@@ -5,10 +5,19 @@ class LineTemplateFactory:
     """
     Factory for creating line templates for grid/line detection.
 
-    Parameters:
-        length (int): Length of the line. Default is 40.
-        thickness (int): Thickness of the line. Default is 21.
-        angle_deg (float): Rotation angle in degrees. Default is 2.0.
+    Attributes
+    ----------
+    length : int
+        Length of the line.
+    thickness : int
+        Thickness of the line.
+    angle_deg : float
+        Rotation angle in degrees.
+
+    Methods
+    -------
+    create(orientation: str = 'horizontal') -> np.ndarray
+        Create a line template image for the specified orientation.
     """
 
     length: int
@@ -24,13 +33,22 @@ class LineTemplateFactory:
 
     def create(self, orientation: str = 'horizontal') -> np.ndarray:
         """
-        Create a line template.
+        Create a line template image.
 
-        Parameters:
-            orientation (str): 'horizontal' or 'vertical'
+        Parameters
+        ----------
+        orientation : str
+            'horizontal' or 'vertical'
 
-        Returns:
-            np.ndarray: The template image.
+        Returns
+        -------
+        np.ndarray
+            The template image as a numpy array.
+
+        Raises
+        ------
+        ValueError
+            If orientation is not 'horizontal' or 'vertical'.
         """
         size: tuple[int, int] = (self.length + self.thickness, self.length + self.thickness)
         template: np.ndarray = np.zeros(size, dtype=np.uint8)
