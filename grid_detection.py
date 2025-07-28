@@ -3,26 +3,25 @@ import numpy as np
 import os
 import time
 from glob import glob
+from typing import Dict, Tuple, Any
 from utils.detection.line_template_factory import LineTemplateFactory
 from utils.detection.grid_detection_config import GridDetectionConfig
 from utils.detection.grid_detection_drawer import GridDetectionDrawer
 import logging
 
 # Load configuration
-config = GridDetectionConfig("config/grid_detection.json")
-log = config.logger
+config: GridDetectionConfig = GridDetectionConfig("config/grid_detection.json")
+log: logging.Logger = config.logger
 
-log.info(f"Loaded config: {config.config}")
+ANGLE_DEG: float = config.angle_deg
+MARGIN: int = config.margin
+PERCENTILE_THRESH: int = config.percentile_thresh
+HORIZONTAL_AREA_THRESHOLD: int = config.horizontal_area_threshold
+VERTICAL_AREA_THRESHOLD: int = config.vertical_area_threshold
+LINE_LENGTH: int = config.line_length
+LINE_THICKNESS: int = config.line_thickness
 
-ANGLE_DEG = config.angle_deg
-MARGIN = config.margin
-PERCENTILE_THRESH = config.percentile_thresh
-HORIZONTAL_AREA_THRESHOLD = config.horizontal_area_threshold
-VERTICAL_AREA_THRESHOLD = config.vertical_area_threshold
-LINE_LENGTH = config.line_length
-LINE_THICKNESS = config.line_thickness
-
-def compute_min_required_ratio(area):
+def compute_min_required_ratio(area: float) -> float:
     if area >= 9500:
         base_ratio =  0.85
     elif area <= 2000:
@@ -31,7 +30,12 @@ def compute_min_required_ratio(area):
         base_ratio = 0.96 - 0.11 * ((area - 2000) / 7500)
     return base_ratio
 
-def is_edge_aligned(box, key, image_shape, margin=MARGIN):
+def is_edge_aligned(
+    box: np.ndarray, 
+    key: str, 
+    image_shape: Tuple[int, int], 
+    margin: int = MARGIN
+) -> bool:
     img_h, img_w = image_shape
     box_x = box[:, 0]
     box_y = box[:, 1]
@@ -44,7 +48,12 @@ def is_edge_aligned(box, key, image_shape, margin=MARGIN):
         (key == "horizontal" and (near_top or near_bottom))
     )
 
-def border_touch_ratio(rotated_box, orientation, image_shape, margin=MARGIN):
+def border_touch_ratio(
+    rotated_box: np.ndarray, 
+    orientation: str, 
+    image_shape: Tuple[int, int], 
+    margin: int = MARGIN
+) -> Tuple[int, float]:
     h, w = image_shape
     box = np.array(rotated_box, dtype=np.float32)
     rect = cv2.minAreaRect(box)
@@ -54,6 +63,7 @@ def border_touch_ratio(rotated_box, orientation, image_shape, margin=MARGIN):
     long_edges = sorted([(i, l) for i, l in enumerate(edge_lengths)], key=lambda x: -x[1])[:2]
     total_length = long_edges[0][1]
     max_overlap = 0.0
+    num_samples = 0
     for i, _ in long_edges:
         p1, p2 = edges[i]
         num_samples = int(np.linalg.norm(p1 - p2))
@@ -75,18 +85,34 @@ def border_touch_ratio(rotated_box, orientation, image_shape, margin=MARGIN):
         if overlap_length > max_overlap:
             max_overlap = overlap_length
     ratio = max_overlap / num_samples if num_samples > 0 else 0.0
-    touches = ratio > 0
+    touches = int(ratio > 0)
     return touches, ratio
 
-def log_detection(fname, area, dark_ratio, contour_dark_ratio, min_required_ratio,
-                  length, orientation_type, angle, decision, touches_margin, touch_ratio):
+def log_detection(
+    fname: str, 
+    area: float, 
+    dark_ratio: float, 
+    contour_dark_ratio: float, 
+    min_required_ratio: float,
+    length: float, 
+    orientation_type: str, 
+    angle: float, 
+    decision: str, 
+    touches_margin: int, 
+    touch_ratio: float
+) -> None:
     log_msg = (
         f"{fname},{area:.1f},{dark_ratio:.3f},{contour_dark_ratio:.3f},{min_required_ratio:.3f},"
         f"{length:.1f},{orientation_type},{angle:.2f},{decision},{int(touches_margin)},{touch_ratio:.2f}"
     )
     log.debug(log_msg)
 
-def process_image(image_path, output_path, templates, percentile_thresh=PERCENTILE_THRESH):
+def process_image(
+    image_path: str, 
+    output_path: str, 
+    templates: Dict[str, np.ndarray], 
+    percentile_thresh: int = PERCENTILE_THRESH
+) -> None:
     start_time = time.time()
     log.info(f"Processing image: {image_path}")
     gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
@@ -255,29 +281,31 @@ def process_image(image_path, output_path, templates, percentile_thresh=PERCENTI
     log.info(f"Saved output: {out_path}")
     log.info(f"Image processed in {elapsed:.2f} seconds. Accepted: {n_accept}, Rejected: {n_reject}, Maybe: {n_maybe}")
 
-def batch_process(input_dir):
-    output_dir = config.debug_output_dir
+def batch_process(input_dir: str) -> None:
+    output_dir: str = config.debug_output_dir
     os.makedirs(output_dir, exist_ok=True)
-    images = glob(os.path.join(input_dir, "*.png"))
+    images: list[str] = glob(os.path.join(input_dir, "*.png"))
     log.info(f"Found {len(images)} images in {input_dir}")
-    factory = LineTemplateFactory(length=LINE_LENGTH, thickness=LINE_THICKNESS, angle_deg=ANGLE_DEG)
-    templates = {
+    factory: LineTemplateFactory = LineTemplateFactory(length=LINE_LENGTH, thickness=LINE_THICKNESS, angle_deg=ANGLE_DEG)
+    templates: Dict[str, np.ndarray] = {
         "horizontal": factory.create(orientation='horizontal'),
         "vertical": factory.create(orientation='vertical')
     }
-    total_accept, total_reject, total_maybe = 0, 0, 0
-    start_time = time.time()
+    total_accept: int = 0
+    total_reject: int = 0
+    total_maybe: int = 0
+    start_time: float = time.time()
     for img_path in images:
         try:
             process_image(img_path, output_dir, templates)
         except Exception as e:
             log.exception(f"Exception occurred while processing {img_path}")
-    elapsed = time.time() - start_time
+    elapsed: float = time.time() - start_time
     log.info(f"Batch processing completed in {elapsed:.2f} seconds for {len(images)} images.")
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser()
+    parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True, help="Input folder with PNG images")
-    args = parser.parse_args()
+    args: argparse.Namespace = parser.parse_args()
     batch_process(args.input)
