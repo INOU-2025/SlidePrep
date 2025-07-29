@@ -4,22 +4,34 @@ import os
 import time
 from glob import glob
 from typing import Dict, Tuple
+
+from config.config_schema import GridDetectionConfig
 from utils.detection.line_template_factory import LineTemplateFactory
-from utils.detection.grid_detection_config import GridDetectionConfig
 from utils.detection.grid_detection_drawer import GridDetectionDrawer
-import logging
+from core.app_config_manager import AppConfigManager
+from core.logger import Logger
+from core.debugger import Debugger
 
-# Load configuration
-config: GridDetectionConfig = GridDetectionConfig("config/grid_detection.json")
-log: logging.Logger = config.logger
 
-ANGLE_DEG: float = config.angle_deg
-MARGIN: int = config.margin
-PERCENTILE_THRESH: int = config.percentile_thresh
-HORIZONTAL_AREA_THRESHOLD: int = config.horizontal_area_threshold
-VERTICAL_AREA_THRESHOLD: int = config.vertical_area_threshold
-LINE_LENGTH: int = config.line_length
-LINE_THICKNESS: int = config.line_thickness
+# Initialize global config and tools
+cfg = AppConfigManager.get_instance()
+cfg.initialize("/Users/irconde/Desktop/ashlar-conversion/config/init_config.json")
+
+logger = Logger.get_instance()
+logger.initialize(cfg.logging_config, enabled=cfg.logger_active)
+
+debugger = Debugger.get_instance()
+debugger.initialize(cfg.debug_config)
+
+# Constants from config
+gd: GridDetectionConfig = cfg.grid_detection_config
+ANGLE_DEG = gd.angle_deg
+MARGIN = gd.margin
+PERCENTILE_THRESH = gd.percentile_thresh
+HORIZONTAL_AREA_THRESHOLD = gd.horizontal_area_threshold
+VERTICAL_AREA_THRESHOLD = gd.vertical_area_threshold
+LINE_LENGTH = gd.line_length
+LINE_THICKNESS = gd.line_thickness
 
 def compute_min_required_ratio(area: float) -> float:
     if area >= 9500:
@@ -105,7 +117,7 @@ def log_detection(
         f"{fname},{area:.1f},{dark_ratio:.3f},{contour_dark_ratio:.3f},{min_required_ratio:.3f},"
         f"{length:.1f},{orientation_type},{angle:.2f},{decision},{int(touches_margin)},{touch_ratio:.2f}"
     )
-    log.debug(log_msg)
+    logger.debug(log_msg)
 
 def process_image(
     image_path: str,
@@ -113,14 +125,15 @@ def process_image(
     percentile_thresh: int = PERCENTILE_THRESH
 ) -> None:
     start_time = time.time()
-    log.info(f"Processing image: {image_path}")
+    logger.info(f"Processing image: {image_path}")
     gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     if gray is None:
-        log.error(f"Cannot read {image_path}")
+        logger.error(f"Cannot read {image_path}")
         return
     inverted = cv2.bitwise_not(gray)
     overlay = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
-    drawer = GridDetectionDrawer(overlay, enabled=config.debug_visualization)
+    drawer = debugger.create_drawer(overlay)
+
     area_thresholds = {
         "horizontal": HORIZONTAL_AREA_THRESHOLD,
         "vertical": VERTICAL_AREA_THRESHOLD
@@ -257,17 +270,16 @@ def process_image(
 
         # Log all messages at once after the loop
         for msg in batch_log_messages:
-            log.debug(msg)
+            logger.debug(msg)
 
     fname = os.path.basename(image_path)
-    out_path = os.path.join(config.debug_output_dir, fname)
-    drawer.save(out_path)
+    drawer.save(fname)
     elapsed = time.time() - start_time
-    log.info(f"Image processed in {elapsed:.2f} seconds. Accepted: {n_accept}, Rejected: {n_reject}, Maybe: {n_maybe}")
+    logger.info(f"Image processed in {elapsed:.2f} seconds. Accepted: {n_accept}, Rejected: {n_reject}, Maybe: {n_maybe}")
 
 def batch_process(input_dir: str) -> None:
     images: list[str] = glob(os.path.join(input_dir, "*.png"))
-    log.info(f"Found {len(images)} images in {input_dir}")
+    logger.info(f"Found {len(images)} images in {input_dir}")
     factory: LineTemplateFactory = LineTemplateFactory(length=LINE_LENGTH, thickness=LINE_THICKNESS, angle_deg=ANGLE_DEG)
     templates: Dict[str, np.ndarray] = {
         "horizontal": factory.create(orientation='horizontal'),
@@ -278,9 +290,9 @@ def batch_process(input_dir: str) -> None:
         try:
             process_image(img_path, templates)
         except Exception as e:
-            log.exception(f"Exception occurred while processing {img_path}")
+            logger.exception(f"Exception occurred while processing {img_path}")
     elapsed: float = time.time() - start_time
-    log.info(f"Batch processing completed in {elapsed:.2f} seconds for {len(images)} images.")
+    logger.info(f"Batch processing completed in {elapsed:.2f} seconds for {len(images)} images.")
 
 if __name__ == "__main__":
     import argparse

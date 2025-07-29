@@ -1,6 +1,6 @@
 import logging
 import os
-from utils.logger_config import LogConfig
+from config.config_schema import LogConfig
 
 class NoOpLogger:
     def info(self, *args, **kwargs) -> None: pass
@@ -15,17 +15,28 @@ class Logger:
         raise RuntimeError("Use 'Logger.get_instance()' to access the Logger instance.")
 
     @classmethod
-    def get_instance(cls, log_config: LogConfig, disable_logging: bool = False) -> "Logger":
+    def get_instance(cls) -> "Logger":
         if not cls._instance:
             cls._instance = super(Logger, cls).__new__(cls)
             cls._instance._initialized = False
-            cls._instance._initialize(log_config, disable_logging)
+            cls._instance._enabled = False
         return cls._instance
 
-    def _initialize(self, log_config: LogConfig, disable_logging: bool) -> None:
+    @property
+    def enabled(self) -> bool:
+        """
+        Property to check if logging is enabled.
+        """
+        return self._enabled
+
+    def initialize(self, log_config: LogConfig, enabled: bool = True) -> None:
+        """
+        Initialize the Logger instance with the given configuration.
+        """
         if self._initialized:
             return
-        if disable_logging:
+        self._enabled = enabled
+        if not self._enabled:
             self.logger = NoOpLogger()
         else:
             self.logger = logging.getLogger(__name__)

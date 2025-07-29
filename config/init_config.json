@@ -1,0 +1,23 @@
+{
+  "grid_detection": {
+    "angle_deg": 2.0,
+    "margin": 5,
+    "percentile_thresh": 2,
+    "horizontal_area_threshold": 2000,
+    "vertical_area_threshold": 2000,
+    "line_length": 40,
+    "line_thickness": 21
+  },
+  "logging": {
+    "log_to_file": false,
+    "log_to_console": true,
+    "log_file_name": "detection.log",
+    "log_level": "INFO"
+  },
+  "debug": {
+    "enabled": true,
+    "visualization": true,
+    "logging": false,
+    "output_dir": "/Users/irconde/Downloads/V2_170225_exp250225/output_masks"
+  }
+}

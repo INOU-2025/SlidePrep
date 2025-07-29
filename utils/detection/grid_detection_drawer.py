@@ -1,40 +1,28 @@
 import cv2
 import numpy as np
+import os
+from typing import Optional
+
 
 class GridDetectionDrawer:
     """
     Handles drawing and saving overlays for grid/line detection visualization.
-
-    Attributes
-    ----------
-    overlay : np.ndarray
-        The image overlay to draw on.
-    enabled : bool
-        Whether visualization is enabled.
-
-    Methods
-    -------
-    draw_box(box, color=(0,255,255), thickness=1)
-        Draws a box on the overlay.
-    draw_contour(contour, accepted=False, maybe=False)
-        Draws a contour with color depending on acceptance/maybe status.
-    save(out_path)
-        Saves the overlay image to the specified path.
     """
 
-    def __init__(self, overlay: np.ndarray, enabled: bool = True) -> None:
+    def __init__(self, overlay: np.ndarray, enabled: bool = True, output_dir: Optional[str] = None) -> None:
         """
-        Initialize the drawer.
-
         Parameters
         ----------
         overlay : np.ndarray
             The image overlay to draw on.
         enabled : bool, optional
             Whether visualization is enabled (default: True).
+        output_dir : Optional[str], optional
+            Directory to save overlay images (default: None — use full path in `save()`).
         """
-        self.overlay: np.ndarray = overlay
-        self.enabled: bool = enabled
+        self.overlay = overlay
+        self.enabled = enabled
+        self.output_dir = output_dir
 
     def draw_box(
         self, 
@@ -42,18 +30,6 @@ class GridDetectionDrawer:
         color: tuple[int, int, int] = (0, 255, 255), 
         thickness: int = 1
     ) -> None:
-        """
-        Draw a box on the overlay.
-
-        Parameters
-        ----------
-        box : np.ndarray
-            The box points.
-        color : tuple[int, int, int], optional
-            Color for the box (default: yellow).
-        thickness : int, optional
-            Line thickness (default: 1).
-        """
         if self.enabled:
             cv2.drawContours(self.overlay, [box], 0, color, thickness)
 
@@ -63,42 +39,28 @@ class GridDetectionDrawer:
         accepted: bool = False, 
         maybe: bool = False
     ) -> None:
-        """
-        Draw a contour on the overlay.
-
-        Parameters
-        ----------
-        contour : np.ndarray
-            The contour points.
-        accepted : bool, optional
-            If True, draw in red.
-        maybe : bool, optional
-            If True, draw in green.
-            Otherwise, draw in blue.
-        """
         if not self.enabled:
             return
         if accepted:
-            color: tuple[int, int, int] = (0, 0, 255)      # Red
-            thickness: int = 2
+            color = (0, 0, 255)      # Red
         elif maybe:
             color = (0, 255, 0)      # Green
-            thickness = 2
         else:
             color = (255, 0, 0)      # Blue
-            thickness = 2
-        cv2.drawContours(self.overlay, [contour], 0, color, thickness)
+        cv2.drawContours(self.overlay, [contour], 0, color, 2)
 
-    def save(self, out_path: str) -> None:
+    def save(self, filename: str) -> None:
         """
-        Save the overlay image to the specified path.
+        Save the overlay image. If output_dir is set, filename is relative to it.
+        Otherwise, filename is treated as full path.
+        """
+        if not self.enabled:
+            return
 
-        Parameters
-        ----------
-        out_path : str
-            Path to save the image.
-        """
-        if self.enabled:
-            cv2.imwrite(out_path, self.overlay)
-            # TODO. Fix me
-            # log.info(f"Saved output: {out_path}")
+        if self.output_dir:
+            os.makedirs(self.output_dir, exist_ok=True)
+            out_path = os.path.join(self.output_dir, filename)
+        else:
+            out_path = filename
+
+        cv2.imwrite(out_path, self.overlay)
