@@ -10,11 +10,11 @@
     "log_to_file": true,
     "log_to_console": false,
     "log_file_name": "detection.log",
-    "log_level": "INFO"
+    "log_level": "DEBUG"
   },
   "debug": {
     "enabled": true,
-    "visualization": false,
+    "visualization": true,
     "logging": true,
     "output_dir": "/Users/irconde/Downloads/V2_170225_exp250225/output_masks"
   }

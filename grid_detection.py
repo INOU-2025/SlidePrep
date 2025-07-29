@@ -141,11 +141,13 @@ def process_image(
         mask = (result < threshold).astype(np.uint8) * 255
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+        batch_log_messages = []
+
         for i, cnt in enumerate(contours):
             if cv2.contourArea(cnt) < area_thresholds[key]:
                 continue
 
-            cnt = cnt + offset - [pad_x, pad_y]  # Shift contour
+            cnt += offset - [pad_x, pad_y]
             area = cv2.contourArea(cnt)
             if area == 0:
                 continue
@@ -157,16 +159,16 @@ def process_image(
 
             rotated_mask = np.zeros_like(gray, dtype=np.uint8)
             cv2.fillPoly(rotated_mask, [rotated_box], 1)
-            rotated_black_pixels = np.sum((gray == 0) & (rotated_mask == 1))
-            rotated_total_pixels = np.sum(rotated_mask == 1)
+            rotated_black_pixels = np.count_nonzero((gray == 0) & (rotated_mask == 1))
+            rotated_total_pixels = np.count_nonzero(rotated_mask == 1)
             if rotated_total_pixels == 0:
                 continue
             dark_ratio = rotated_black_pixels / rotated_total_pixels
 
             contour_mask = np.zeros_like(gray, dtype=np.uint8)
             cv2.drawContours(contour_mask, [cnt], -1, 1, thickness=-1)
-            contour_black_pixels = np.sum((gray == 0) & (contour_mask == 1))
-            contour_total_pixels = np.sum(contour_mask == 1)
+            contour_black_pixels = np.count_nonzero((gray == 0) & (contour_mask == 1))
+            contour_total_pixels = np.count_nonzero(contour_mask == 1)
             if contour_total_pixels == 0:
                 continue
             contour_dark_ratio = contour_black_pixels / contour_total_pixels
@@ -246,11 +248,15 @@ def process_image(
 
             drawer.draw_contour(box, accepted=accepted, maybe=maybe)
 
-            # Log detection result
-            log_detection(
-                fname, area, dark_ratio, contour_dark_ratio, min_required_ratio,
-                length, orientation_type, angle, decision, touches_margin, touch_ratio
+            # Collect log message instead of logging immediately
+            log_msg = (
+                f"{fname},{area:.1f},{dark_ratio:.3f},{contour_dark_ratio:.3f},{min_required_ratio:.3f},"
+                f"{length:.1f},{orientation_type},{angle:.2f},{decision},{int(touches_margin)},{touch_ratio:.2f}"
             )
+            batch_log_messages.append(log_msg)
+
+        # Log all messages at once after processing the image
+        log.debug("\n".join(batch_log_messages))
 
     fname = os.path.basename(image_path)
     out_path = os.path.join(config.debug_output_dir, fname)
