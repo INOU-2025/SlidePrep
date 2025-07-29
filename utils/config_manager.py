@@ -2,6 +2,8 @@ import json
 import os
 from typing import Any, Dict
 from utils.logger import Logger
+from utils.logger_config import LogConfig
+
 
 class ConfigManager:
     """
@@ -34,6 +36,8 @@ class ConfigManager:
         Save the current config to file.
     setup_debugging() -> None
         Set up debugging and visualization options from config.
+    create_log_config() -> LogConfig
+        Create a LogConfig object from the JSON configuration.
     """
 
     path: str
@@ -62,13 +66,24 @@ class ConfigManager:
         if self.debug_visualization:
             os.makedirs(self.debug_output_dir, exist_ok=True)
 
+        log_config = self._create_log_config()
+
         self.logger = Logger.get_instance(
-            log_to_file=self.log_to_file,
-            log_to_console=self.log_to_console,
-            log_file_name=self.log_file_name,
-            log_level=self.log_level,
-            output_dir=self.debug_output_dir,
+            log_config,
             disable_logging=not self.debug_logging
+        )
+
+    def _create_log_config(self) -> LogConfig:
+        """
+        Create a LogConfig object from the JSON configuration.
+        """
+        logging_cfg = self.get("logging", {})
+        return LogConfig(
+            log_to_file=logging_cfg.get("log_to_file", False),
+            log_to_console=logging_cfg.get("log_to_console", True),
+            log_file_name=logging_cfg.get("log_file_name", ""),
+            log_level=logging_cfg.get("log_level", "INFO"),
+            output_dir=self.debug_output_dir
         )
 
     @property
@@ -102,24 +117,3 @@ class ConfigManager:
         """Enable debug logging."""
         debug_cfg = self.get("debug", {})
         return debug_cfg.get("logging", False) if "logging" in debug_cfg and self.debug_enabled else False
-
-    # Log options (from "logging" group)
-    @property
-    def log_to_file(self) -> bool:
-        """Enable logging to file."""
-        return self.get("logging", {}).get("log_to_file", False)
-
-    @property
-    def log_to_console(self) -> bool:
-        """Enable logging to console."""
-        return self.get("logging", {}).get("log_to_console", False)
-
-    @property
-    def log_file_name(self) -> str:
-        """File name for logging."""
-        return self.get("logging", {}).get("log_file_name", "")
-
-    @property
-    def log_level(self) -> str:
-        """Logging level."""
-        return self.get("logging", {}).get("log_level", "INFO")

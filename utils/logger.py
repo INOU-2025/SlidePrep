@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Optional
+from utils.logger_config import LogConfig
 
 class NoOpLogger:
     def info(self, *args, **kwargs) -> None: pass
@@ -15,47 +15,25 @@ class Logger:
         raise RuntimeError("Use 'Logger.get_instance()' to access the Logger instance.")
 
     @classmethod
-    def get_instance(
-        cls, 
-        log_to_file: bool = False, 
-        log_to_console: bool = True, 
-        log_file_name: Optional[str] = None, 
-        log_level: str = "INFO", 
-        output_dir: str = "logs", 
-        disable_logging: bool = False
-    ) -> "Logger":
+    def get_instance(cls, log_config: LogConfig, disable_logging: bool = False) -> "Logger":
         if not cls._instance:
             cls._instance = super(Logger, cls).__new__(cls)
             cls._instance._initialized = False
-            cls._instance._initialize(log_to_file, log_to_console, log_file_name, log_level, output_dir, disable_logging)
+            cls._instance._initialize(log_config, disable_logging)
         return cls._instance
 
-    def _initialize(
-        self, 
-        log_to_file: bool, 
-        log_to_console: bool, 
-        log_file_name: Optional[str], 
-        log_level: str, 
-        output_dir: str, 
-        disable_logging: bool
-    ) -> None:
+    def _initialize(self, log_config: LogConfig, disable_logging: bool) -> None:
         if self._initialized:
             return
         if disable_logging:
             self.logger = NoOpLogger()
         else:
             self.logger = logging.getLogger(__name__)
-            self.logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
-            self._setup_handlers(log_to_file, log_to_console, log_file_name, output_dir)
+            self.logger.setLevel(getattr(logging, log_config.log_level.upper(), logging.INFO))
+            self._setup_handlers(log_config)
         self._initialized = True
 
-    def _setup_handlers(
-        self, 
-        log_to_file: bool, 
-        log_to_console: bool, 
-        log_file_name: Optional[str], 
-        output_dir: str
-    ) -> None:
+    def _setup_handlers(self, log_config: LogConfig) -> None:
         # Remove existing handlers
         for handler in self.logger.handlers[:]:
             self.logger.removeHandler(handler)
@@ -63,13 +41,13 @@ class Logger:
         log_format = "%(asctime)s %(levelname)s %(message)s"
         formatter = logging.Formatter(log_format)
 
-        if log_to_file and log_file_name:
-            os.makedirs(output_dir, exist_ok=True)
-            file_handler = logging.FileHandler(os.path.join(output_dir, log_file_name), mode='w')
+        if log_config.log_to_file and log_config.log_file_name:
+            os.makedirs(log_config.output_dir, exist_ok=True)
+            file_handler = logging.FileHandler(os.path.join(log_config.output_dir, log_config.log_file_name), mode='w')
             file_handler.setFormatter(formatter)
             self.logger.addHandler(file_handler)
 
-        if log_to_console:
+        if log_config.log_to_console:
             console_handler = logging.StreamHandler()
             console_handler.setFormatter(formatter)
             self.logger.addHandler(console_handler)

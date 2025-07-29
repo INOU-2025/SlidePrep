@@ -100,3 +100,5 @@ class GridDetectionDrawer:
         """
         if self.enabled:
             cv2.imwrite(out_path, self.overlay)
+            # TODO. Fix me
+            # log.info(f"Saved output: {out_path}")
