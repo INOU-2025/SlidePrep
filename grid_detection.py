@@ -3,7 +3,7 @@ import numpy as np
 import os
 import time
 from glob import glob
-from typing import Dict, Tuple, Any
+from typing import Dict, Tuple
 from utils.detection.line_template_factory import LineTemplateFactory
 from utils.detection.grid_detection_config import GridDetectionConfig
 from utils.detection.grid_detection_drawer import GridDetectionDrawer
@@ -150,16 +150,9 @@ def process_image(
                 continue
             box = cv2.approxPolyDP(cnt, epsilon=1.0, closed=True).reshape(-1, 2)
 
-            debug_rect = cv2.minAreaRect(cnt)
-            debug_box = cv2.boxPoints(debug_rect)
-            debug_box = np.intp(debug_box)
-            drawer.draw_box(debug_box, color=(0, 255, 255), thickness=1)
-
             rotated_rect = cv2.minAreaRect(cnt)
             rotated_box = cv2.boxPoints(rotated_rect).astype(np.intp)
-
-            mask_region = np.zeros_like(gray, dtype=np.uint8)
-            cv2.fillPoly(mask_region, [rotated_box], 1)
+            drawer.draw_box(rotated_box, color=(0, 255, 255), thickness=1)
 
             rotated_mask = np.zeros_like(gray, dtype=np.uint8)
             cv2.fillPoly(rotated_mask, [rotated_box], 1)
@@ -179,7 +172,6 @@ def process_image(
 
             min_required_ratio = compute_min_required_ratio(area)
 
-            rotated_rect = cv2.minAreaRect(cnt)
             (_, _), (w, h), raw_angle = rotated_rect
             angle = raw_angle + 90 if w < h else raw_angle
 
@@ -188,52 +180,43 @@ def process_image(
             elif angle < -90:
                 angle += 180
 
-            angle_valid = (
-                    (-4 <= angle <= 4) or
-                    (86 <= abs(angle) <= 94)
-            )
-
             length = max(w, h)
             orientation_type = key
             touches_margin, touch_ratio = -1, -1
+            img_h, img_w = gray.shape
+            length_threshold = 0.55 * (img_w if key == "horizontal" else img_h)
+            angle_valid = (-4 <= angle <= 4) or (86 <= abs(angle) <= 94)
+
+            # Set defaults once
+            accepted = False
+            maybe = False
+            decision = "REJECT (default)"
 
             if dark_ratio >= 0.93:
-                decision = "ACCEPT (high confidence)"
                 accepted = True
-                maybe = False
+                decision = "ACCEPT (high confidence)"
                 n_accept += 1
             elif dark_ratio < 0.73:
                 decision = "REJECT (low confidence)"
-                accepted = False
-                maybe = False
                 n_reject += 1
             else:
-                decision = "MAYBE (edge case)"
                 maybe = True
+                decision = "MAYBE (edge case)"
                 n_maybe += 1
-                min_required_ratio = compute_min_required_ratio(area)
-                accepted = False
-                img_h, img_w = gray.shape
-                length_threshold = 0.55 * (img_w if key == "horizontal" else img_h)
 
-                if not accepted and length >= length_threshold:
+                if length >= length_threshold:
                     accepted = True
                     maybe = False
                     decision = "ACCEPT (length override)"
                     n_accept += 1
-                    n_maybe -= 1  # Remove from maybe count if overridden
+                    n_maybe -= 1
 
-                angle_valid = (
-                        (-4 <= angle <= 4) or
-                        (86 <= abs(angle) <= 94)
-                )
-
-                if maybe and not angle_valid:
+                elif not angle_valid:
                     maybe = False
                     accepted = False
                     decision = "REJECT (angle out of bounds)"
                     n_reject += 1
-                    n_maybe -= 1  # Remove from maybe count if overridden
+                    n_maybe -= 1
 
             if maybe:
                 touches_margin, touch_ratio = border_touch_ratio(rotated_box, orientation_type, gray.shape)
@@ -250,10 +233,10 @@ def process_image(
                     n_reject += 1
                     n_maybe -= 1
                 elif (
-                        contour_dark_ratio >= 0.80 and
-                        dark_ratio >= 0.70 and
-                        touches_margin == 1 and
-                        touch_ratio > 0.9
+                    contour_dark_ratio >= 0.80 and
+                    dark_ratio >= 0.70 and
+                    touches_margin == 1 and
+                    touch_ratio > 0.9
                 ):
                     accepted = True
                     maybe = False
@@ -262,6 +245,7 @@ def process_image(
                     n_maybe -= 1
                 else:
                     accepted = False
+                    maybe = False
                     decision = "REJECT (not enough evidences to accept segment)"
                     n_reject += 1
                     n_maybe -= 1
@@ -291,9 +275,6 @@ def batch_process(input_dir: str) -> None:
         "horizontal": factory.create(orientation='horizontal'),
         "vertical": factory.create(orientation='vertical')
     }
-    total_accept: int = 0
-    total_reject: int = 0
-    total_maybe: int = 0
     start_time: float = time.time()
     for img_path in images:
         try:
