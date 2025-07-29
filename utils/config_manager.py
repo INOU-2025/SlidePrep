@@ -1,13 +1,7 @@
 import json
-import logging
 import os
 from typing import Any, Dict
-
-class NoOpLogger:
-    def info(self, *args, **kwargs) -> None: pass
-    def error(self, *args, **kwargs) -> None: pass
-    def exception(self, *args, **kwargs) -> None: pass
-    def debug(self, *args, **kwargs) -> None: pass
+from utils.logger import Logger
 
 class ConfigManager:
     """
@@ -27,7 +21,7 @@ class ConfigManager:
         Path to the loaded configuration file.
     _config : dict
         Dictionary containing all configuration parameters.
-    logger : logging.Logger or NoOpLogger
+    logger : Logger
         Logger instance, set up according to config.
 
     Methods
@@ -38,36 +32,8 @@ class ConfigManager:
         Set a config value.
     save() -> None
         Save the current config to file.
-    setup_logging() -> None
-        Set up logging handlers and level from config.
     setup_debugging() -> None
         Set up debugging and visualization options from config.
-
-    Config File Structure
-    --------------------
-    The config file should be a JSON file with keys such as:
-
-    {
-      "logging": {
-        "log_to_file": true,
-        "log_to_console": false,
-        "log_file_name": "detection.log",
-        "log_level": "INFO"  # Valid values: "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"
-      },
-      "debug": {
-        "enabled": true,
-        "visualization": true,
-        "logging": false,
-        "output_dir": "debug_output"
-      }
-      // ... other pipeline parameters ...
-    }
-
-    Notes
-    -----
-    - Use the 'log_level' key to control which log messages are shown.
-    - Use 'visualization' and 'enabled' in the 'debug' section to control debug visualization.
-    - Use 'output_dir' in the 'debug' section to set the output directory for results.
     """
 
     path: str
@@ -92,44 +58,18 @@ class ConfigManager:
     def set(self, key: str, value: Any) -> None:
         self._config[key] = value
 
-    def setup_logging(self) -> None:
-        root_logger = logging.getLogger()
-        for handler in root_logger.handlers[:]:
-            root_logger.removeHandler(handler)
-
-        handlers: list[Any] = []
-        log_format: str = "%(asctime)s %(levelname)s %(message)s"
-        log_level: int = getattr(logging, self.log_level.upper(), logging.INFO)
-
-        if self.log_to_file and self.log_file_name:
-            os.makedirs(self.debug_output_dir, exist_ok=True)
-            handlers.append(logging.FileHandler(os.path.join(self.debug_output_dir, self.log_file_name)))
-        if self.log_to_console:
-            handlers.append(logging.StreamHandler())
-
-        if handlers:
-            logging.basicConfig(
-                level=log_level,
-                format=log_format,
-                handlers=handlers
-            )
-        else:
-            logging.disable(logging.CRITICAL)
-
     def setup_debugging(self) -> None:
-
         if self.debug_visualization:
             os.makedirs(self.debug_output_dir, exist_ok=True)
 
-        if self.debug_logging:
-            self.setup_logging()
-            self.logger: logging.Logger = logging.getLogger()
-        else:
-            for handler in logging.root.handlers[:]:
-                logging.root.removeHandler(handler)
-                handler.close()
-            logging.disable(logging.CRITICAL)
-            self.logger: NoOpLogger = NoOpLogger()
+        self.logger = Logger.get_instance(
+            log_to_file=self.log_to_file,
+            log_to_console=self.log_to_console,
+            log_file_name=self.log_file_name,
+            log_level=self.log_level,
+            output_dir=self.debug_output_dir,
+            disable_logging=not self.debug_logging
+        )
 
     @property
     def config(self) -> Dict[str, Any]:
@@ -144,7 +84,7 @@ class ConfigManager:
         Returns the output directory for debug products, as set in the config file.
         """
         return self._config.get("debug", {}).get("output_dir", "debug_output")
-    
+
     # Debug options (from "debug" group)
     @property
     def debug_enabled(self) -> bool:

@@ -141,7 +141,7 @@ def process_image(
         mask = (result < threshold).astype(np.uint8) * 255
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        batch_log_messages = []
+        batch_log_messages = []  # Collect log messages here
 
         for i, cnt in enumerate(contours):
             if cv2.contourArea(cnt) < area_thresholds[key]:
@@ -255,14 +255,14 @@ def process_image(
             )
             batch_log_messages.append(log_msg)
 
-        # Log all messages at once after processing the image
-        log.debug("\n".join(batch_log_messages))
+        # Log all messages at once after the loop
+        for msg in batch_log_messages:
+            log.debug(msg)
 
     fname = os.path.basename(image_path)
     out_path = os.path.join(config.debug_output_dir, fname)
     drawer.save(out_path)
     elapsed = time.time() - start_time
-    log.info(f"Saved output: {out_path}")
     log.info(f"Image processed in {elapsed:.2f} seconds. Accepted: {n_accept}, Rejected: {n_reject}, Maybe: {n_maybe}")
 
 def batch_process(input_dir: str) -> None:
