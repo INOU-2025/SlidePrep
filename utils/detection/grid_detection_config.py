@@ -1,4 +1,5 @@
 from utils.config_manager import ConfigManager
+import os
 
 class GridDetectionConfig(ConfigManager):
     """
@@ -42,73 +43,34 @@ class GridDetectionConfig(ConfigManager):
     @property
     def angle_deg(self) -> float:
         """Rotation angle in degrees."""
-        return self.get("angle_deg")
+        return self.get("angle_deg", 0.0)
 
     @property
     def margin(self) -> int:
         """Margin for edge detection."""
-        return self.get("margin")
+        return self.get("margin", 0)
 
     @property
     def percentile_thresh(self) -> int:
         """Percentile threshold for template matching."""
-        return self.get("percentile_thresh")
+        return self.get("percentile_thresh", 0)
 
     @property
     def horizontal_area_threshold(self) -> int:
         """Minimum area for horizontal lines."""
-        return self.get("horizontal_area_threshold")
+        return self.get("horizontal_area_threshold", 0)
 
     @property
     def vertical_area_threshold(self) -> int:
         """Minimum area for vertical lines."""
-        return self.get("vertical_area_threshold")
+        return self.get("vertical_area_threshold", 0)
 
     @property
     def line_length(self) -> int:
         """Length of the line template."""
-        return self.get("line_length")
+        return self.get("line_length", 0)
 
     @property
     def line_thickness(self) -> int:
         """Thickness of the line template."""
-        return self.get("line_thickness")
-
-    # Logging options (from "logging" group)
-    @property
-    def log_to_file(self) -> bool:
-        """Enable logging to file."""
-        return self.get("logging", {}).get("log_to_file", False)
-
-    @property
-    def log_to_console(self) -> bool:
-        """Enable logging to console."""
-        return self.get("logging", {}).get("log_to_console", False)
-
-    @property
-    def log_file_name(self) -> str:
-        """Log file name."""
-        return self.get("logging", {}).get("log_file_name", "detection.log")
-
-    # Debug options (from "debug" group)
-    @property
-    def debug_enabled(self) -> bool:
-        """Enable debug features."""
-        return self.get("debug", {}).get("enabled", False)
-
-    @property
-    def debug_visualization(self) -> bool:
-        """Enable debug visualization."""
-        debug_cfg = self.get("debug", {})
-        return debug_cfg.get("visualization", False) if "visualization" in debug_cfg and self.debug_enabled else False
-
-    @property
-    def debug_logging(self) -> bool:
-        """Enable debug logging."""
-        debug_cfg = self.get("debug", {})
-        return debug_cfg.get("logging", False) if "logging" in debug_cfg and self.debug_enabled else False
-
-    @property
-    def debug_output_dir(self) -> str:
-        """Output directory for debug products."""
-        return self.get("debug", {}).get("output_dir", "debug_output")
+        return self.get("line_thickness", 0)

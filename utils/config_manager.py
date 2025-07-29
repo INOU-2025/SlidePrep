@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from typing import Any, Dict
 
 class NoOpLogger:
@@ -110,7 +111,7 @@ class ConfigManager:
         log_level: int = getattr(logging, log_level_str.upper(), logging.INFO)
 
         if log_to_file and log_file_name:
-            handlers.append(logging.FileHandler(log_file_name))
+            handlers.append(logging.FileHandler(os.path.join(self.debug_output_dir, log_file_name)))
         if log_to_console:
             handlers.append(logging.StreamHandler())
 
@@ -154,3 +155,21 @@ class ConfigManager:
         Returns the output directory for debug products, as set in the config file.
         """
         return self._config.get("debug", {}).get("output_dir", "debug_output")
+    
+    # Debug options (from "debug" group)
+    @property
+    def debug_enabled(self) -> bool:
+        """Enable debug features."""
+        return self.get("debug", {}).get("enabled", False)
+
+    @property
+    def debug_visualization(self) -> bool:
+        """Enable debug visualization."""
+        debug_cfg = self.get("debug", {})
+        return debug_cfg.get("visualization", False) if "visualization" in debug_cfg and self.debug_enabled else False
+
+    @property
+    def debug_logging(self) -> bool:
+        """Enable debug logging."""
+        debug_cfg = self.get("debug", {})
+        return debug_cfg.get("logging", False) if "logging" in debug_cfg and self.debug_enabled else False

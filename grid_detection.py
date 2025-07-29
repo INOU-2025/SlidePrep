@@ -202,21 +202,18 @@ def process_image(
             else:
                 maybe = True
                 decision = "MAYBE (edge case)"
-                n_maybe += 1
 
                 if length >= length_threshold:
                     accepted = True
                     maybe = False
                     decision = "ACCEPT (length override)"
                     n_accept += 1
-                    n_maybe -= 1
 
                 elif not angle_valid:
                     maybe = False
                     accepted = False
                     decision = "REJECT (angle out of bounds)"
                     n_reject += 1
-                    n_maybe -= 1
 
             if maybe:
                 touches_margin, touch_ratio = border_touch_ratio(rotated_box, orientation_type, gray.shape)
@@ -225,13 +222,11 @@ def process_image(
                     maybe = False
                     decision = "ACCEPT (contour ratio override)"
                     n_accept += 1
-                    n_maybe -= 1
                 elif contour_dark_ratio < 0.85 and dark_ratio < 0.80:
                     accepted = False
                     maybe = False
                     decision = "REJECT (contour ratio override)"
                     n_reject += 1
-                    n_maybe -= 1
                 elif (
                     contour_dark_ratio >= 0.80 and
                     dark_ratio >= 0.70 and
@@ -242,13 +237,13 @@ def process_image(
                     maybe = False
                     decision = "ACCEPT (relaxed contour-touch override)"
                     n_accept += 1
-                    n_maybe -= 1
                 else:
                     accepted = False
                     maybe = False
                     decision = "REJECT (not enough evidences to accept segment)"
                     n_reject += 1
-                    n_maybe -= 1
+                    # TODO: REVIEW THIS LAST BLOCK. IT SHOULD BE MAYBE
+                    # n_maybe += 1
 
             drawer.draw_contour(box, accepted=accepted, maybe=maybe)
 
