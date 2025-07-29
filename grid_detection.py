@@ -108,8 +108,7 @@ def log_detection(
     log.debug(log_msg)
 
 def process_image(
-    image_path: str, 
-    output_path: str, 
+    image_path: str,
     templates: Dict[str, np.ndarray], 
     percentile_thresh: int = PERCENTILE_THRESH
 ) -> None:
@@ -121,12 +120,13 @@ def process_image(
         return
     inverted = cv2.bitwise_not(gray)
     overlay = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
-    drawer = GridDetectionDrawer(overlay, enabled=config.visualization_enabled)
+    drawer = GridDetectionDrawer(overlay, enabled=config.debug_visualization)
     area_thresholds = {
         "horizontal": HORIZONTAL_AREA_THRESHOLD,
         "vertical": VERTICAL_AREA_THRESHOLD
     }
     fname = os.path.basename(image_path)
+    img_h, img_w = gray.shape
 
     n_accept, n_reject, n_maybe = 0, 0, 0
 
@@ -137,6 +137,7 @@ def process_image(
         padded = cv2.copyMakeBorder(inverted, pad_y, pad_y, pad_x, pad_x, cv2.BORDER_CONSTANT, value=0)
         result = cv2.matchTemplate(padded, tmpl, cv2.TM_SQDIFF_NORMED)
         threshold = np.percentile(result, percentile_thresh)
+        length_threshold = 0.55 * (img_w if key == "horizontal" else img_h)
         mask = (result < threshold).astype(np.uint8) * 255
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -183,8 +184,6 @@ def process_image(
             length = max(w, h)
             orientation_type = key
             touches_margin, touch_ratio = -1, -1
-            img_h, img_w = gray.shape
-            length_threshold = 0.55 * (img_w if key == "horizontal" else img_h)
             angle_valid = (-4 <= angle <= 4) or (86 <= abs(angle) <= 94)
 
             # Set defaults once
@@ -254,15 +253,13 @@ def process_image(
             )
 
     fname = os.path.basename(image_path)
-    out_path = os.path.join(output_path, fname)
+    out_path = os.path.join(config.debug_output_dir, fname)
     drawer.save(out_path)
     elapsed = time.time() - start_time
     log.info(f"Saved output: {out_path}")
     log.info(f"Image processed in {elapsed:.2f} seconds. Accepted: {n_accept}, Rejected: {n_reject}, Maybe: {n_maybe}")
 
 def batch_process(input_dir: str) -> None:
-    output_dir: str = config.debug_output_dir
-    os.makedirs(output_dir, exist_ok=True)
     images: list[str] = glob(os.path.join(input_dir, "*.png"))
     log.info(f"Found {len(images)} images in {input_dir}")
     factory: LineTemplateFactory = LineTemplateFactory(length=LINE_LENGTH, thickness=LINE_THICKNESS, angle_deg=ANGLE_DEG)
@@ -273,7 +270,7 @@ def batch_process(input_dir: str) -> None:
     start_time: float = time.time()
     for img_path in images:
         try:
-            process_image(img_path, output_dir, templates)
+            process_image(img_path, templates)
         except Exception as e:
             log.exception(f"Exception occurred while processing {img_path}")
     elapsed: float = time.time() - start_time

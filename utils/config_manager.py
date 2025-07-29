@@ -27,8 +27,6 @@ class ConfigManager:
         Path to the loaded configuration file.
     _config : dict
         Dictionary containing all configuration parameters.
-    visualization_enabled : bool
-        True if debug visualization is enabled (from config).
     logger : logging.Logger or NoOpLogger
         Logger instance, set up according to config.
 
@@ -74,7 +72,6 @@ class ConfigManager:
 
     path: str
     _config: Dict[str, Any]
-    visualization_enabled: bool
 
     def __init__(self, config_path: str) -> None:
         self.path = config_path  # Store the config file path
@@ -101,18 +98,13 @@ class ConfigManager:
             root_logger.removeHandler(handler)
 
         handlers: list[Any] = []
-        logging_cfg: Dict[str, Any] = self.get("logging", {})
-        log_to_file: bool = logging_cfg.get("log_to_file", False)
-        log_file_name: str = logging_cfg.get("log_file_name", "")
-        log_to_console: bool = logging_cfg.get("log_to_console", False)
-        log_level_str: str = logging_cfg.get("log_level", "INFO")
         log_format: str = "%(asctime)s %(levelname)s %(message)s"
+        log_level: int = getattr(logging, self.log_level.upper(), logging.INFO)
 
-        log_level: int = getattr(logging, log_level_str.upper(), logging.INFO)
-
-        if log_to_file and log_file_name:
-            handlers.append(logging.FileHandler(os.path.join(self.debug_output_dir, log_file_name)))
-        if log_to_console:
+        if self.log_to_file and self.log_file_name:
+            os.makedirs(self.debug_output_dir, exist_ok=True)
+            handlers.append(logging.FileHandler(os.path.join(self.debug_output_dir, self.log_file_name)))
+        if self.log_to_console:
             handlers.append(logging.StreamHandler())
 
         if handlers:
@@ -125,14 +117,11 @@ class ConfigManager:
             logging.disable(logging.CRITICAL)
 
     def setup_debugging(self) -> None:
-        debug_cfg: Dict[str, Any] = self.get("debug", {})
-        debug_enabled: bool = debug_cfg.get("enabled", False)
-        debug_logging: bool = debug_cfg.get("logging", False) if "logging" in debug_cfg else False
-        debug_visualization: bool = debug_cfg.get("visualization", False) if "visualization" in debug_cfg else False
 
-        self.visualization_enabled = debug_enabled and debug_visualization
+        if self.debug_visualization:
+            os.makedirs(self.debug_output_dir, exist_ok=True)
 
-        if debug_enabled and debug_logging:
+        if self.debug_logging:
             self.setup_logging()
             self.logger: logging.Logger = logging.getLogger()
         else:
@@ -173,3 +162,24 @@ class ConfigManager:
         """Enable debug logging."""
         debug_cfg = self.get("debug", {})
         return debug_cfg.get("logging", False) if "logging" in debug_cfg and self.debug_enabled else False
+
+    # Log options (from "logging" group)
+    @property
+    def log_to_file(self) -> bool:
+        """Enable logging to file."""
+        return self.get("logging", {}).get("log_to_file", False)
+
+    @property
+    def log_to_console(self) -> bool:
+        """Enable logging to console."""
+        return self.get("logging", {}).get("log_to_console", False)
+
+    @property
+    def log_file_name(self) -> str:
+        """File name for logging."""
+        return self.get("logging", {}).get("log_file_name", "")
+
+    @property
+    def log_level(self) -> str:
+        """Logging level."""
+        return self.get("logging", {}).get("log_level", "INFO")
