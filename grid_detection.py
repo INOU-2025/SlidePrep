@@ -31,10 +31,9 @@ def compute_min_required_ratio(area: float) -> float:
         return 0.96
     return 0.96 - 0.11 * ((area - 2000) / 7500)
 
-def border_touch_ratio(box: np.ndarray, orientation: str, shape: Tuple[int, int], margin: int) -> Tuple[int, float]:
+def border_touch_ratio(rotated_box: np.ndarray, orientation: str, shape: Tuple[int, int], margin: int) -> Tuple[int, float]:
     h, w = shape
-    rect = cv2.minAreaRect(np.array(box, dtype=np.float32))
-    pts = cv2.boxPoints(rect)
+    pts = rotated_box
     edges = [(pts[i], pts[(i + 1) % 4]) for i in range(4)]
     long_edges = sorted(edges, key=lambda e: -np.linalg.norm(e[0] - e[1]))[:2]
 
@@ -80,7 +79,7 @@ def draw_and_analyze_contour(
     min_ratio = compute_min_required_ratio(area)
     (_, _), (w, h), raw_angle = rotated_rect
     angle = raw_angle + 90 if w < h else raw_angle
-    angle = angle - 180 if angle > 90 else angle + 180 if angle < -90 else angle
+    angle = ((angle + 180) % 180) - 90
     length = max(w, h)
     angle_valid = (-4 <= angle <= 4) or (86 <= abs(angle) <= 94)
 
