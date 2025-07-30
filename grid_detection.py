@@ -12,291 +12,173 @@ from core.app_config_manager import AppConfigManager
 from core.logger import Logger
 from core.debugger import Debugger
 
+def initialize_environment(config_path: str):
+    cfg = AppConfigManager.get_instance()
+    cfg.initialize(config_path)
 
-# Initialize global config and tools
-cfg = AppConfigManager.get_instance()
-cfg.initialize("/Users/irconde/Desktop/ashlar-conversion/config/init_config.json")
+    logger = Logger.get_instance()
+    logger.initialize(cfg.logging_config, enabled=cfg.logger_active)
 
-logger = Logger.get_instance()
-logger.initialize(cfg.logging_config, enabled=cfg.logger_active)
+    debugger = Debugger.get_instance()
+    debugger.initialize(cfg.debug_config)
 
-debugger = Debugger.get_instance()
-debugger.initialize(cfg.debug_config)
-
-# Constants from config
-gd: GridDetectionConfig = cfg.grid_detection_config
-ANGLE_DEG = gd.angle_deg
-MARGIN = gd.margin
-PERCENTILE_THRESH = gd.percentile_thresh
-HORIZONTAL_AREA_THRESHOLD = gd.horizontal_area_threshold
-VERTICAL_AREA_THRESHOLD = gd.vertical_area_threshold
-LINE_LENGTH = gd.line_length
-LINE_THICKNESS = gd.line_thickness
+    return cfg, logger, debugger
 
 def compute_min_required_ratio(area: float) -> float:
     if area >= 9500:
-        base_ratio =  0.85
-    elif area <= 2000:
-        base_ratio = 0.96
-    else:
-        base_ratio = 0.96 - 0.11 * ((area - 2000) / 7500)
-    return base_ratio
+        return 0.85
+    if area <= 2000:
+        return 0.96
+    return 0.96 - 0.11 * ((area - 2000) / 7500)
 
-def is_edge_aligned(
-    box: np.ndarray, 
-    key: str, 
-    image_shape: Tuple[int, int], 
-    margin: int = MARGIN
-) -> bool:
-    img_h, img_w = image_shape
-    box_x = box[:, 0]
-    box_y = box[:, 1]
-    near_left   = np.any(box_x < margin)
-    near_right  = np.any(box_x > img_w - margin)
-    near_top    = np.any(box_y < margin)
-    near_bottom = np.any(box_y > img_h - margin)
-    return (
-        (key == "vertical" and (near_left or near_right)) or
-        (key == "horizontal" and (near_top or near_bottom))
-    )
-
-def border_touch_ratio(
-    rotated_box: np.ndarray, 
-    orientation: str, 
-    image_shape: Tuple[int, int], 
-    margin: int = MARGIN
-) -> Tuple[int, float]:
-    h, w = image_shape
-    box = np.array(rotated_box, dtype=np.float32)
-    rect = cv2.minAreaRect(box)
+def border_touch_ratio(box: np.ndarray, orientation: str, shape: Tuple[int, int], margin: int) -> Tuple[int, float]:
+    h, w = shape
+    rect = cv2.minAreaRect(np.array(box, dtype=np.float32))
     pts = cv2.boxPoints(rect)
     edges = [(pts[i], pts[(i + 1) % 4]) for i in range(4)]
-    edge_lengths = [np.linalg.norm(p1 - p2) for p1, p2 in edges]
-    long_edges = sorted([(i, l) for i, l in enumerate(edge_lengths)], key=lambda x: -x[1])[:2]
-    total_length = long_edges[0][1]
+    long_edges = sorted(edges, key=lambda e: -np.linalg.norm(e[0] - e[1]))[:2]
+
     max_overlap = 0.0
-    num_samples = 0
-    for i, _ in long_edges:
-        p1, p2 = edges[i]
+    for p1, p2 in long_edges:
         num_samples = int(np.linalg.norm(p1 - p2))
         if num_samples == 0:
             continue
         xs = np.linspace(p1[0], p2[0], num_samples)
         ys = np.linspace(p1[1], p2[1], num_samples)
+
         if orientation == "horizontal":
-            near_top = np.abs(ys) < margin
-            near_bottom = np.abs(ys - h) < margin
-            match = near_top | near_bottom
+            match = (np.abs(ys) < margin) | (np.abs(ys - h) < margin)
         elif orientation == "vertical":
-            near_left = np.abs(xs) < margin
-            near_right = np.abs(xs - w) < margin
-            match = near_left | near_right
+            match = (np.abs(xs) < margin) | (np.abs(xs - w) < margin)
         else:
             continue
-        overlap_length = np.sum(match)
-        if overlap_length > max_overlap:
-            max_overlap = overlap_length
-    ratio = max_overlap / num_samples if num_samples > 0 else 0.0
-    touches = int(ratio > 0)
-    return touches, ratio
 
-def log_detection(
-    fname: str, 
-    area: float, 
-    dark_ratio: float, 
-    contour_dark_ratio: float, 
-    min_required_ratio: float,
-    length: float, 
-    orientation_type: str, 
-    angle: float, 
-    decision: str, 
-    touches_margin: int, 
-    touch_ratio: float
-) -> None:
-    log_msg = (
-        f"{fname},{area:.1f},{dark_ratio:.3f},{contour_dark_ratio:.3f},{min_required_ratio:.3f},"
-        f"{length:.1f},{orientation_type},{angle:.2f},{decision},{int(touches_margin)},{touch_ratio:.2f}"
+        max_overlap = max(max_overlap, np.sum(match))
+
+    return int(max_overlap > 0), max_overlap / num_samples if num_samples > 0 else 0.0
+
+def draw_and_analyze_contour(
+    cnt, gray, key, offset, thresholds, drawer, fname, margin, logger
+) -> Tuple[int, int, int]:
+    cnt += offset
+    area = cv2.contourArea(cnt)
+    if area == 0:
+        return 0, 0, 0
+
+    rotated_rect = cv2.minAreaRect(cnt)
+    rotated_box = cv2.boxPoints(rotated_rect).astype(np.intp)
+    drawer.draw_box(rotated_box, color=(0, 255, 255), thickness=1)
+
+    mask = np.zeros_like(gray, dtype=np.uint8)
+    cv2.fillPoly(mask, [rotated_box], 1)
+    dark_ratio = np.count_nonzero((gray == 0) & (mask == 1)) / max(np.count_nonzero(mask), 1)
+
+    contour_mask = np.zeros_like(gray, dtype=np.uint8)
+    cv2.drawContours(contour_mask, [cnt], -1, 1, -1)
+    contour_dark_ratio = np.count_nonzero((gray == 0) & (contour_mask == 1)) / max(np.count_nonzero(contour_mask), 1)
+
+    min_ratio = compute_min_required_ratio(area)
+    (_, _), (w, h), raw_angle = rotated_rect
+    angle = raw_angle + 90 if w < h else raw_angle
+    angle = angle - 180 if angle > 90 else angle + 180 if angle < -90 else angle
+    length = max(w, h)
+    angle_valid = (-4 <= angle <= 4) or (86 <= abs(angle) <= 94)
+
+    accepted, maybe, decision = False, False, "REJECT"
+    touches, ratio = -1, -1.0  # <- Initialize early
+
+    if dark_ratio >= 0.93:
+        accepted, decision = True, "ACCEPT (high confidence)"
+    elif dark_ratio < 0.73:
+        decision = "REJECT (low confidence)"
+    else:
+        maybe = True
+        decision = "MAYBE (edge case)"
+        if length >= thresholds['length']:
+            accepted, maybe, decision = True, False, "ACCEPT (length override)"
+        elif not angle_valid:
+            maybe, decision = False, "REJECT (angle out of bounds)"
+
+    if maybe:
+        maybe = False
+        touches, ratio = border_touch_ratio(rotated_box, key, gray.shape, margin)
+        if contour_dark_ratio > 0.96 and dark_ratio >= 0.83:
+            accepted, decision = True, "ACCEPT (contour ratio override)"
+        elif contour_dark_ratio < 0.85 and dark_ratio < 0.80:
+            decision = "REJECT (contour ratio override)"
+        elif contour_dark_ratio >= 0.80 and dark_ratio >= 0.70 and touches and ratio > 0.9:
+            accepted, decision = True, "ACCEPT (relaxed contour-touch override)"
+        else:
+            # TODO. This is a fallback decision. We need to revisit this logic. Perhaps some detections might be marked as maybe to be reviewed later further.
+            accepted, decision = False, "REJECT (not enough evidences)"
+
+    drawer.draw_contour(cnt, accepted=accepted, maybe=maybe)
+    logger.debug(
+        f"{fname},{area:.1f},{dark_ratio:.3f},{contour_dark_ratio:.3f},{min_ratio:.3f},"
+        f"{length:.1f},{key},{angle:.2f},{decision},{int(touches)},{ratio:.2f}"
     )
-    logger.debug(log_msg)
 
-def process_image(
-    image_path: str,
-    templates: Dict[str, np.ndarray], 
-    percentile_thresh: int = PERCENTILE_THRESH
-) -> None:
-    start_time = time.time()
-    logger.info(f"Processing image: {image_path}")
-    gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    return int(accepted), int(not accepted and not maybe), int(maybe)
+
+def process_image(path: str, templates: Dict[str, np.ndarray], gd: GridDetectionConfig, logger, debugger):
+    fname = os.path.basename(path)
+    logger.info(f"Processing image: {fname}")
+    gray = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
     if gray is None:
-        logger.error(f"Cannot read {image_path}")
+        logger.error(f"Cannot read {fname}")
         return
+
     inverted = cv2.bitwise_not(gray)
-    overlay = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
-    drawer = debugger.create_drawer(overlay)
-
-    area_thresholds = {
-        "horizontal": HORIZONTAL_AREA_THRESHOLD,
-        "vertical": VERTICAL_AREA_THRESHOLD
+    drawer = debugger.create_drawer(cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR))
+    thresholds = {
+        "horizontal": gd.horizontal_area_threshold,
+        "vertical": gd.vertical_area_threshold,
+        "length": 0.55 * max(gray.shape)
     }
-    fname = os.path.basename(image_path)
-    img_h, img_w = gray.shape
 
-    n_accept, n_reject, n_maybe = 0, 0, 0
-
+    stats = {"accept": 0, "reject": 0, "maybe": 0}
     for key, tmpl in templates.items():
         t_h, t_w = tmpl.shape
-        offset = np.array([t_w // 2, t_h // 2])
-        pad_y, pad_x = t_h // 2, t_w // 2
-        padded = cv2.copyMakeBorder(inverted, pad_y, pad_y, pad_x, pad_x, cv2.BORDER_CONSTANT, value=0)
+        pad = (t_h // 2, t_w // 2)
+        padded = cv2.copyMakeBorder(inverted, *pad, *pad[::-1], cv2.BORDER_CONSTANT, value=0)
         result = cv2.matchTemplate(padded, tmpl, cv2.TM_SQDIFF_NORMED)
-        threshold = np.percentile(result, percentile_thresh)
-        length_threshold = 0.55 * (img_w if key == "horizontal" else img_h)
-        mask = (result < threshold).astype(np.uint8) * 255
+        mask = (result < np.percentile(result, gd.percentile_thresh)).astype(np.uint8) * 255
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        batch_log_messages = []  # Collect log messages here
+        for cnt in contours:
+            if cv2.contourArea(cnt) >= thresholds[key]:
+                a, r, m = draw_and_analyze_contour(
+                    cnt, gray, key, np.array([t_w // 2, t_h // 2]) - [pad[1], pad[0]],
+                    thresholds, drawer, fname, gd.margin, logger
+                )
+                stats["accept"] += a
+                stats["reject"] += r
+                stats["maybe"] += m
 
-        for i, cnt in enumerate(contours):
-            if cv2.contourArea(cnt) < area_thresholds[key]:
-                continue
-
-            cnt += offset - [pad_x, pad_y]
-            area = cv2.contourArea(cnt)
-            if area == 0:
-                continue
-            box = cv2.approxPolyDP(cnt, epsilon=1.0, closed=True).reshape(-1, 2)
-
-            rotated_rect = cv2.minAreaRect(cnt)
-            rotated_box = cv2.boxPoints(rotated_rect).astype(np.intp)
-            drawer.draw_box(rotated_box, color=(0, 255, 255), thickness=1)
-
-            rotated_mask = np.zeros_like(gray, dtype=np.uint8)
-            cv2.fillPoly(rotated_mask, [rotated_box], 1)
-            rotated_black_pixels = np.count_nonzero((gray == 0) & (rotated_mask == 1))
-            rotated_total_pixels = np.count_nonzero(rotated_mask == 1)
-            if rotated_total_pixels == 0:
-                continue
-            dark_ratio = rotated_black_pixels / rotated_total_pixels
-
-            contour_mask = np.zeros_like(gray, dtype=np.uint8)
-            cv2.drawContours(contour_mask, [cnt], -1, 1, thickness=-1)
-            contour_black_pixels = np.count_nonzero((gray == 0) & (contour_mask == 1))
-            contour_total_pixels = np.count_nonzero(contour_mask == 1)
-            if contour_total_pixels == 0:
-                continue
-            contour_dark_ratio = contour_black_pixels / contour_total_pixels
-
-            min_required_ratio = compute_min_required_ratio(area)
-
-            (_, _), (w, h), raw_angle = rotated_rect
-            angle = raw_angle + 90 if w < h else raw_angle
-
-            if angle > 90:
-                angle -= 180
-            elif angle < -90:
-                angle += 180
-
-            length = max(w, h)
-            orientation_type = key
-            touches_margin, touch_ratio = -1, -1
-            angle_valid = (-4 <= angle <= 4) or (86 <= abs(angle) <= 94)
-
-            # Set defaults once
-            accepted = False
-            maybe = False
-            decision = "REJECT (default)"
-
-            if dark_ratio >= 0.93:
-                accepted = True
-                decision = "ACCEPT (high confidence)"
-                n_accept += 1
-            elif dark_ratio < 0.73:
-                decision = "REJECT (low confidence)"
-                n_reject += 1
-            else:
-                maybe = True
-                decision = "MAYBE (edge case)"
-
-                if length >= length_threshold:
-                    accepted = True
-                    maybe = False
-                    decision = "ACCEPT (length override)"
-                    n_accept += 1
-
-                elif not angle_valid:
-                    maybe = False
-                    accepted = False
-                    decision = "REJECT (angle out of bounds)"
-                    n_reject += 1
-
-            if maybe:
-                touches_margin, touch_ratio = border_touch_ratio(rotated_box, orientation_type, gray.shape)
-                if contour_dark_ratio > 0.96 and dark_ratio >= 0.83:
-                    accepted = True
-                    maybe = False
-                    decision = "ACCEPT (contour ratio override)"
-                    n_accept += 1
-                elif contour_dark_ratio < 0.85 and dark_ratio < 0.80:
-                    accepted = False
-                    maybe = False
-                    decision = "REJECT (contour ratio override)"
-                    n_reject += 1
-                elif (
-                    contour_dark_ratio >= 0.80 and
-                    dark_ratio >= 0.70 and
-                    touches_margin == 1 and
-                    touch_ratio > 0.9
-                ):
-                    accepted = True
-                    maybe = False
-                    decision = "ACCEPT (relaxed contour-touch override)"
-                    n_accept += 1
-                else:
-                    accepted = False
-                    maybe = False
-                    decision = "REJECT (not enough evidences to accept segment)"
-                    n_reject += 1
-                    # TODO: REVIEW THIS LAST BLOCK. IT SHOULD BE MAYBE
-                    # n_maybe += 1
-
-            drawer.draw_contour(box, accepted=accepted, maybe=maybe)
-
-            # Collect log message instead of logging immediately
-            log_msg = (
-                f"{fname},{area:.1f},{dark_ratio:.3f},{contour_dark_ratio:.3f},{min_required_ratio:.3f},"
-                f"{length:.1f},{orientation_type},{angle:.2f},{decision},{int(touches_margin)},{touch_ratio:.2f}"
-            )
-            batch_log_messages.append(log_msg)
-
-        # Log all messages at once after the loop
-        for msg in batch_log_messages:
-            logger.debug(msg)
-
-    fname = os.path.basename(image_path)
     drawer.save(fname)
-    elapsed = time.time() - start_time
-    logger.info(f"Image processed in {elapsed:.2f} seconds. Accepted: {n_accept}, Rejected: {n_reject}, Maybe: {n_maybe}")
+    logger.info(
+        f"Processed {fname}. Accept: {stats['accept']}, Reject: {stats['reject']}, Maybe: {stats['maybe']}"
+    )
 
-def batch_process(input_dir: str) -> None:
-    images: list[str] = glob(os.path.join(input_dir, "*.png"))
+def batch_process(input_dir: str, gd: GridDetectionConfig, logger, debugger):
+    images = glob(os.path.join(input_dir, "*.png"))
     logger.info(f"Found {len(images)} images in {input_dir}")
-    factory: LineTemplateFactory = LineTemplateFactory(length=LINE_LENGTH, thickness=LINE_THICKNESS, angle_deg=ANGLE_DEG)
-    templates: Dict[str, np.ndarray] = {
-        "horizontal": factory.create(orientation='horizontal'),
-        "vertical": factory.create(orientation='vertical')
-    }
-    start_time: float = time.time()
-    for img_path in images:
+    factory = LineTemplateFactory(length=gd.line_length, thickness=gd.line_thickness, angle_deg=gd.angle_deg)
+    templates = {"horizontal": factory.create("horizontal"), "vertical": factory.create("vertical")}
+    start = time.time()
+    for path in images:
         try:
-            process_image(img_path, templates)
-        except Exception as e:
-            logger.exception(f"Exception occurred while processing {img_path}")
-    elapsed: float = time.time() - start_time
-    logger.info(f"Batch processing completed in {elapsed:.2f} seconds for {len(images)} images.")
+            process_image(path, templates, gd, logger, debugger)
+        except Exception:
+            logger.exception(f"Error processing {path}")
+    logger.info(f"Batch completed in {time.time() - start:.2f}s")
 
 if __name__ == "__main__":
     import argparse
-    parser: argparse.ArgumentParser = argparse.ArgumentParser()
-    parser.add_argument("--input", required=True, help="Input folder with PNG images")
-    args: argparse.Namespace = parser.parse_args()
-    batch_process(args.input)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input", required=True)
+    parser.add_argument("--config", default="config/init_config.json")
+    args = parser.parse_args()
+
+    cfg, logger, debugger = initialize_environment(args.config)
+    batch_process(args.input, cfg.grid_detection_config, logger, debugger)
