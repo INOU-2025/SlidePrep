@@ -1,4 +1,4 @@
-# 🧬 Microscopy Image Stitching Pipeline
+# 🧬 SlidePrep. Microscopy Image Stitching Pipeline
 
 This project implements a modular image processing pipeline to generate a high-quality Whole Slide Image (WSI) from a collection of microscopy image tiles. Many microscopy systems include a visible grid during tile capture, which can interfere with downstream stitching. This pipeline automatically detects and removes grid lines before reconstructing the full slide using Ashlar.
 
