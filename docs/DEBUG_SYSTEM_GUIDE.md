@@ -6,22 +6,47 @@ The SlidePrep pipeline includes a comprehensive debug visualization system. Each
 
 ## 🏗️ Architecture
 
-### Base Classes
+### Registry-Based Factory Pattern
+
+The debug system uses a registry-based factory pattern for extensible drawer creation:
 
 - **`BaseDrawer`**: Abstract base class that all drawers inherit from
-- **`BinarizationDrawer`**: Specialized for binarization step debugging
-- **`GridDetectionDrawer`**: Specialized for grid detection step debugging
+- **`Debugger`**: Registry-based factory for creating step-specific drawers
+- **Dynamic Registration**: New drawer types can be registered at runtime
+
+**Benefits:**
+- **Extensibility**: Add new drawer types without modifying core classes
+- **Decoupling**: Drawer implementations are independent of the factory
+- **Consistency**: Single, uniform interface for all drawer creation
+- **Dynamic Discovery**: Create drawers by name for flexible configuration
+
+### Built-in Drawer Types
+
+The debug system includes specialized drawers for different pipeline steps, each organized in its own module:
+
+- **`BaseDrawer`** (`utils/debug/base_drawer.py`): Abstract base class for all drawers
+- **`BinarizationDrawer`** (`utils/debug/binarization_drawer.py`): Specialized for binarization step debugging  
+- **`GridDetectionDrawer`** (`utils/debug/grid_detection_drawer.py`): Specialized for grid detection step debugging
+
+**Import Structure:**
+```python
+# Import from individual modules (recommended)
+from utils.debug.base_drawer import BaseDrawer
+from utils.debug.binarization_drawer import BinarizationDrawer
+from utils.debug.grid_detection_drawer import GridDetectionDrawer
+
+# Or import from the debug package (convenience)
+from utils.debug import BaseDrawer, BinarizationDrawer, GridDetectionDrawer
+```
 
 ### Debugger Integration
 
-The `Debugger` class provides factory methods to create appropriate drawers for each step:
+The `Debugger` class provides registry-based drawer creation:
 
 ```python
-# For binarization step
-drawer = debugger.create_binarization_drawer(original_image)
-
-# For grid detection step  
-drawer = debugger.create_grid_detection_drawer(overlay_image)
+# Generic registry-based creation
+drawer = debugger.create_drawer("grid_detection", image)
+drawer = debugger.create_drawer("binarization", image)
 ```
 
 ## BinarizationDrawer
@@ -37,10 +62,13 @@ Creates side-by-side comparisons of original grayscale images and their binarize
 
 ### Usage
 ```python
+**Usage:**
+```python
 # In binarization step
-drawer = debugger.create_binarization_drawer(gray_image)
+drawer = debugger.create_drawer("binarization", gray_image)
 drawer.set_binarized_image(binary_result, method_info="adaptive/gaussian")
 drawer.save("image_binarization_debug.png")
+```
 ```
 
 ### Output Format
@@ -62,12 +90,14 @@ Visualizes grid line detection results by drawing contours, bounding boxes, and 
 
 ### Usage
 ```python
+**Usage:**
+```python
 # In grid detection step
-drawer = debugger.create_grid_detection_drawer(bgr_image)
-drawer.draw_contour(contour, accepted=True)
-drawer.draw_box(bounding_box, color=(0, 255, 0))
-drawer.add_text("Grid line detected", (10, 30))
-drawer.save("image_grid_detection_debug.png")
+drawer = debugger.create_drawer("grid_detection", image)
+drawer.set_horizontal_lines(h_lines)
+drawer.set_vertical_lines(v_lines)
+drawer.save("grid_detection_debug.png")
+```
 ```
 
 ### Methods
@@ -86,40 +116,70 @@ drawer.save("image_grid_detection_debug.png")
 #### `add_text(text, position, color=(255,255,255))`
 - Add text annotation at specified position
 
-## Adding New Drawers
+## Creating Custom Drawers
 
-To create a drawer for a new processing step:
+The debug system uses a registry-based factory pattern that allows you to easily add new drawer types for custom analysis steps.
 
-### 1. Create Drawer Class
+#### 1. Implement BaseDrawer Interface
 ```python
-class NewStepDrawer(BaseDrawer):
-    def __init__(self, input_data, enabled=True, output_dir=None):
+from utils.debug.base_drawer import BaseDrawer
+from typing import Optional
+import numpy as np
+import cv2
+
+class CustomAnalysisDrawer(BaseDrawer):
+    def __init__(self, input_image: np.ndarray, enabled: bool = True, output_dir: Optional[str] = None):
         super().__init__(enabled, output_dir)
-        self.input_data = input_data
-        
-    def save(self, filename):
-        if not self.enabled:
-            return
-        # Create visualization
-        # Save using self._get_output_path(filename)
-```
-
-### 2. Add Factory Method to Debugger
-```python
-def create_new_step_drawer(self, input_data):
-    return NewStepDrawer(input_data, enabled=self._visualization_active, output_dir=self._output_dir)
-```
-
-### 3. Use in Processing Step
-```python
-def run(self, ctx):
-    # ... processing logic ...
+        self.input_image = input_image
+        self.analysis_result = None
+        self.confidence_score = None
     
-    if self.debugger and self.debugger.is_enabled():
-        drawer = self.debugger.create_new_step_drawer(input_data)
-        # ... add visualizations ...
-        drawer.save(f"{filename}_debug.png")
+    def set_analysis_result(self, result: dict, confidence: float = 0.0):
+        """Set the analysis result and confidence score."""
+        self.analysis_result = result
+        self.confidence_score = confidence
+    
+    def save(self, filename: str):
+        """Create and save the debug visualization."""
+        if not self.enabled or self.analysis_result is None:
+            return
+            
+        try:
+            # Create composite image with analysis visualization
+            composite = self._create_composite_image()
+            output_path = self._get_output_path(filename)
+            cv2.imwrite(output_path, composite)
+        except Exception as e:
+            # Silently fail to avoid disrupting the main pipeline
+            pass
+    
+    def _create_composite_image(self) -> np.ndarray:
+        """Create the composite debug image."""
+        # Implementation specific to your analysis visualization
+        # Return composite image with original + analysis overlays
+        return self.input_image  # Placeholder implementation
 ```
+
+### 2. Register the Custom Drawer
+```python
+from core.debugger import Debugger
+
+# Register your custom drawer with the global registry
+Debugger.register_drawer("custom_analysis", CustomAnalysisDrawer)
+
+# Now you can use it anywhere in your code
+drawer = debugger.create_drawer("custom_analysis", image)
+drawer.set_analysis_result(results, confidence=0.95)
+drawer.save("custom_analysis_debug.png")
+```
+
+### Best Practices
+
+1. **Follow BaseDrawer Contract**: Always inherit from `BaseDrawer` and implement required methods
+2. **Use Descriptive Names**: Choose clear, descriptive names for your drawer types in the registry
+3. **Handle Edge Cases**: Ensure your drawer handles invalid inputs gracefully
+4. **Consistent Output**: Follow established naming conventions for debug output files
+5. **Documentation**: Add docstrings explaining the purpose and usage of your custom drawer
 
 ## Configuration
 
