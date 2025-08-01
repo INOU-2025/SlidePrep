@@ -30,6 +30,7 @@ class GridDetectionConfig:
 class DebugConfig:
     """Configuration for debugging and visualization."""
     output_dir: str = "debug"
+    save_composite: bool = False
 
 @dataclass
 class LogConfig:

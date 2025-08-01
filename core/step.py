@@ -30,8 +30,3 @@ class PipelineStep(ABC):
     def set_debugger(self, debugger: Debugger) -> None:
         """Set the debugger instance."""
         self.debugger = debugger
-
-    def save_debug_image(self, name: str, image):
-        if self.debugger:
-            drawer = self.debugger.create_drawer(image)
-            drawer.save(name)

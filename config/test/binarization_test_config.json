@@ -18,6 +18,7 @@
     "output_dir": "logs"
   },
   "debug": {
-    "output_dir": "debug_output/test_binarization"
+    "output_dir": "debug_output/test_binarization",
+    "save_composite": false
   }
 }

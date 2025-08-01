@@ -25,6 +25,7 @@
     "output_dir": "logs"
   },
   "debug": {
-    "output_dir": "debug_output/test_grid_detection"
+    "output_dir": "debug_output/test_grid_detection",
+    "save_composite": false
   }
 }

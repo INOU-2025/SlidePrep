@@ -30,15 +30,70 @@ class Debugger:
     def initialize(self, debug_config: DebugConfig, debug_enabled: bool = True) -> None:
         if self._initialized:
             return
-        self._visualization_active = debug_enabled
+        self._enabled = debug_enabled
+        self._save_composite = debug_config.save_composite
         self._output_dir = debug_config.output_dir
-        if self._visualization_active and self._output_dir:
+        if self._enabled and self._output_dir:
             os.makedirs(self._output_dir, exist_ok=True)
         self._initialized = True
 
     def is_enabled(self) -> bool:
         """Check if debugging is enabled."""
-        return self._visualization_active
+        return self._enabled
+    
+
+    def save_image(self, filename: str, image: np.ndarray, original: Optional[np.ndarray] = None) -> None:
+        """
+        Save an image directly to the configured debug output directory.
+
+        This provides a simple way for steps to persist intermediate
+        results without needing a specialized drawer.  If visualization is
+        disabled or the image is ``None`` the call is a no-op.
+
+        Parameters
+        ----------
+        filename:
+            Name of the file to create.  It will be placed inside the
+            configured ``output_dir`` if one was provided during
+            initialization.
+        image:
+            Image data in ``numpy`` array format suitable for ``cv2.imwrite``.
+        """
+        if not self._enabled or image is None:
+            return
+
+        try:
+            output_path = (
+                os.path.join(self._output_dir, filename)
+                if self._output_dir
+                else filename
+            )
+
+            # Optionally compose the result with the original image for
+            # easier visual comparison.  This behaviour is controlled by the
+            # ``save_composite`` debug configuration or by providing an
+            # ``original`` image explicitly.
+            if original is not None and self._save_composite:
+                base = original
+                result = image
+                # Ensure both images are in BGR format and have the same
+                # dimensions before stacking them side by side.
+                if len(base.shape) == 2:
+                    base = cv2.cvtColor(base, cv2.COLOR_GRAY2BGR)
+                if len(result.shape) == 2:
+                    result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
+                if base.shape != result.shape:
+                    result = cv2.resize(result, (base.shape[1], base.shape[0]))
+                image_to_save = np.hstack((base, result))
+            else:
+                image_to_save = image
+
+            cv2.imwrite(output_path, image_to_save)
+        except Exception:
+            # Debug saving should never raise exceptions that would
+            # interfere with the main processing pipeline.  Any failure is
+            # therefore silently ignored.
+            pass
 
     @classmethod
     def register_drawer(cls, key: str, drawer_cls: Type[BaseDrawer]) -> None:
@@ -75,7 +130,7 @@ class Debugger:
             raise KeyError(f"Drawer '{key}' not registered. Available: {list(self._registry.keys())}")
         
         drawer_cls = self._registry[key]
-        return drawer_cls(image, enabled=self._visualization_active, output_dir=self._output_dir, **kwargs)
+        return drawer_cls(image, enabled=self._enabled, output_dir=self._output_dir, **kwargs)
 
 
 # Register default drawers
