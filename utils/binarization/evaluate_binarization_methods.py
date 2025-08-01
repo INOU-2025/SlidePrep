@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
 """
-Standalone Binarization Testing Script
+Binarization Method Evaluation Script
 
-Tests the binarization step in isolation using dedicated test configurations.
-This allows validation of binarization methods independently from the full pipeline.
+Comprehensive evaluation tool for different binarization methods.
+Tests multiple binarization approaches on batches of images and generates
+detailed statistics and comparative analysis.
+
+This script processes all images in a specified folder, applies different
+binarization methods, and provides:
+- Success/failure statistics per method
+- Pixel distribution analysis
+- Output image generation with organized folder structure
+- Detailed processing reports
 
 Uses config/test/binarization_test_config.json by default for test-specific settings.
 """
@@ -28,8 +36,8 @@ from utils.image_utils import get_supported_image_patterns, filter_images_by_suf
 from glob import glob
 
 
-def test_binarization_methods(config_path: str):
-    """Test different binarization methods on all images in a folder."""
+def evaluate_binarization_methods(config_path: str):
+    """Evaluate different binarization methods on all images in a folder."""
     
     # Initialize basic components first to get config
     cfg = AppConfigManager.get_instance()
@@ -77,7 +85,8 @@ def test_binarization_methods(config_path: str):
 
     # Get output directory from config
     output_base_dir = cfg.general_config.output_path
-    output_base_dir = cfg.debug_config.output_dir or "debug_output"
+    if not output_base_dir:
+        output_base_dir = cfg.debug_config.output_dir or "debug_output"
     print(f"Output will be saved to: {output_base_dir}")
 
     # Test the current production method
@@ -187,8 +196,8 @@ def test_binarization_methods(config_path: str):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Test binarization methods on a batch of images")
+    parser = argparse.ArgumentParser(description="Evaluate binarization methods on a batch of images")
     parser.add_argument("config", nargs="?", default="config/test/binarization_test_config.json", help="Path to test config file")
     args = parser.parse_args()
 
-    test_binarization_methods(args.config)
+    evaluate_binarization_methods(args.config)
