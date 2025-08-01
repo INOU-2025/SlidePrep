@@ -4,7 +4,9 @@ from typing import Optional, Dict
 
 @dataclass
 class PipelineContext:
-    input_path: Optional[str] = None 
+    input_image: Optional[np.ndarray] = None
+    image_path: Optional[str] = None
+    image_name: Optional[str] = None
     gray_image: Optional[np.ndarray] = None
     binarized_image: Optional[np.ndarray] = None
     grid_lines: Optional[list] = None

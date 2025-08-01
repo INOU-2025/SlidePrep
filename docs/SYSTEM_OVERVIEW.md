@@ -119,7 +119,7 @@ The `PipelineContext` manages shared state between processing steps:
 ```python
 from core.context import PipelineContext
 
-ctx = PipelineContext(image_path="input.png")
+ctx = PipelineContext(input_image=image, image_path="input.png")
 
 # Steps automatically populate context
 ctx.gray_image       # ← Populated by grayscale conversion
