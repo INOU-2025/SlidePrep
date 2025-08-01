@@ -1,20 +1,29 @@
 import os
 import cv2
 from glob import glob
-from core.bootstrap import bootstrap, get_config, get_logger
-from steps.binarization import BinarizationStep
-from steps.grid_detection import GridDetectionStep
-from utils.image_utils import get_supported_image_patterns, filter_images_by_suffix
+from core import bootstrap, get_config, get_logger
+from steps import BinarizationStep, GridDetectionStep
+from utils import get_supported_image_patterns, filter_images_by_suffix
 # Future: from steps.mask_creation import MaskCreationStep, etc.
 
 
 def run_pipeline(config_path: str):
-    # Bootstrap the application with all services
-    bootstrap(config_path)
+    """
+    Run the complete image processing pipeline.
     
-    # Get services from container
-    cfg = get_config()
-    logger = get_logger()
+    Args:
+        config_path: Path to the configuration file
+    """
+    try:
+        # Bootstrap the application with all services
+        bootstrap(config_path)
+        
+        # Get services from container
+        cfg = get_config()
+        logger = get_logger()
+    except Exception as e:
+        print(f"Failed to initialize application: {e}")
+        return False
 
     # Get input folder and suffix filter from config
     input_folder = cfg.general_config.input_path
@@ -22,14 +31,23 @@ def run_pipeline(config_path: str):
     
     if not input_folder:
         logger.error("input_path must be specified in the general config section")
-        return
+        return False
+        
+    if not os.path.exists(input_folder):
+        logger.error(f"Input folder does not exist: {input_folder}")
+        return False
 
     # Set up pipeline steps - binarization first, then grid detection
-    steps = [
-        BinarizationStep(cfg.binarization_config),
-        GridDetectionStep(cfg.grid_detection_config),
-        # Future: MaskCreationStep(...), etc.
-    ]
+    try:
+        steps = [
+            BinarizationStep(cfg.binarization_config),
+            GridDetectionStep(cfg.grid_detection_config),
+            # Future: MaskCreationStep(...), etc.
+        ]
+        logger.info(f"Initialized {len(steps)} pipeline steps")
+    except Exception as e:
+        logger.error(f"Failed to initialize pipeline steps: {e}")
+        return False
 
     # Support common image formats
     image_extensions = get_supported_image_patterns()
@@ -43,8 +61,13 @@ def run_pipeline(config_path: str):
     if suffix_filter:
         logger.info(f"Suffix filter '{suffix_filter}' applied")
     
+    if not images:
+        logger.warning(f"No images found in {input_folder}")
+        return False
+    
     logger.info(f"Found {len(images)} images to process in {input_folder}")
 
+    successful_count = 0
     for image_path in images:
         fname = os.path.basename(image_path)
         logger.info(f"Processing {fname}")
@@ -74,11 +97,35 @@ def run_pipeline(config_path: str):
             except Exception as e:
                 logger.exception(f"Error in step {step.name} for {fname}: {e}")
                 break
+        else:
+            # This executes only if the loop completed without breaking
+            successful_count += 1
+            logger.info(f"Successfully processed {fname}")
+
+    logger.info(f"Pipeline completed. Processed {successful_count}/{len(images)} images successfully")
+    return successful_count > 0
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("config", nargs="?", default="config/init_config.json", help="Path to config file")
+    import sys
+    
+    parser = argparse.ArgumentParser(
+        description="SlidePrep: Image processing pipeline for slide preparation"
+    )
+    parser.add_argument(
+        "config", 
+        nargs="?", 
+        default="config/init_config.json", 
+        help="Path to config file (default: config/init_config.json)"
+    )
     args = parser.parse_args()
 
-    run_pipeline(args.config)
+    try:
+        success = run_pipeline(args.config)
+        sys.exit(0 if success else 1)
+    except KeyboardInterrupt:
+        print("\nProcessing interrupted by user")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        sys.exit(1)

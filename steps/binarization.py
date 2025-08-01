@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from typing import Optional
 
 from core.step import PipelineStep
 from config.config_schema import BinarizationConfig
@@ -7,7 +8,7 @@ from utils.binarization.binarization_methods import BinarizationMethods
 
 
 class BinarizationStep(PipelineStep):
-    def __init__(self, config: BinarizationConfig, **kwargs):
+    def __init__(self, config: BinarizationConfig, **kwargs) -> None:
         super().__init__(name="Binarization", **kwargs)
         self.config = config
         
@@ -19,21 +20,36 @@ class BinarizationStep(PipelineStep):
         Apply binarization to a grayscale image.
         
         Args:
-            data: Input grayscale image as numpy array
+            data: Grayscale image as numpy array
             
         Returns:
             Binarized image as numpy array
+            
+        Raises:
+            ValueError: If input data is None or invalid
+            TypeError: If input data is not a numpy array
         """
-        self.log(f"Starting binarization with method: {self.config.threshold_method}")
+        if data is None:
+            raise ValueError("Input image is required for binarization")
         
-        gray = data  # Input is already grayscale
+        if not isinstance(data, np.ndarray):
+            raise TypeError("Input data must be a numpy array")
         
-        # Apply binarization
-        binary_image = self.methods.apply_binarization(
-            gray, 
-            self.config.threshold_method, 
-            self.config.threshold_value
-        )
+        if data.size == 0:
+            raise ValueError("Input image cannot be empty")
+
+        gray = data
+        self.log(f"Starting binarization using {self.config.threshold_method} method")
+        
+        # Apply the configured binarization method
+        try:
+            if self.config.threshold_method == "combined_differential":
+                binary_image = self.methods.apply_combined_differential_threshold(gray)
+            else:
+                raise ValueError(f"Unknown threshold method: {self.config.threshold_method}")
+        except Exception as e:
+            self.log(f"Binarization failed: {e}")
+            raise
         
         # Debug visualization if enabled
         if self.debugger and self.debugger.is_enabled():
@@ -44,6 +60,10 @@ class BinarizationStep(PipelineStep):
 
     def _debug_visualize(self, gray: np.ndarray, binary: np.ndarray) -> None:
         """Create debug visualization using the specialized binarization drawer."""
+        if not isinstance(gray, np.ndarray) or not isinstance(binary, np.ndarray):
+            self.debug("Invalid input arrays for debug visualization")
+            return
+            
         try:
             # Create specialized binarization drawer
             drawer = self.debugger.create_drawer("binarization", gray)
@@ -59,18 +79,3 @@ class BinarizationStep(PipelineStep):
             
         except Exception as e:
             self.debug(f"Failed to create debug visualization: {e}")
-
-    @property
-    def logger(self):
-        """Get the logger from the container."""
-        from core.container import Container
-        return Container.resolve("logger")
-
-    @property
-    def debugger(self):
-        """Get the debugger from the container."""
-        from core.container import Container
-        try:
-            return Container.resolve("debugger")
-        except KeyError:
-            return None
