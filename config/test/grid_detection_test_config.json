@@ -1,4 +1,10 @@
 {
+  "general": {
+    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/masks",
+    "output_path": "output",
+    "suffix_filter": "",
+    "output_suffix": "_detection"
+  },
   "grid_detection": {
     "angle_deg": 2.0,
     "margin": 5,

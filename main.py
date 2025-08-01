@@ -22,8 +22,16 @@ def initialize_environment(config_path: str):
 
     return cfg, logger, debugger
 
-def run_pipeline(input_folder: str, config_path: str, suffix_filter: str = None):
+def run_pipeline(config_path: str):
     cfg, logger, debugger = initialize_environment(config_path)
+
+    # Get input folder and suffix filter from config
+    input_folder = cfg.general_config.input_path
+    suffix_filter = cfg.general_config.suffix_filter
+    
+    if not input_folder:
+        logger.error("input_path must be specified in the general config section")
+        return
 
     # Set up pipeline steps - binarization first, then grid detection
     steps = [
@@ -71,9 +79,7 @@ def run_pipeline(input_folder: str, config_path: str, suffix_filter: str = None)
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", required=True, help="Input folder with image files (supports PNG, JPG, JPEG, TIF, TIFF, BMP, WEBP)")
-    parser.add_argument("--config", default="config/init_config.json", help="Path to config file")
-    parser.add_argument("--suffix", help="Only process files where the filename (without extension) ends with this suffix (e.g., '_ch00', '_processed')")
+    parser.add_argument("config", nargs="?", default="config/init_config.json", help="Path to config file")
     args = parser.parse_args()
 
-    run_pipeline(args.input, args.config, args.suffix)
+    run_pipeline(args.config)

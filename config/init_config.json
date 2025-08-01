@@ -1,4 +1,10 @@
 {
+  "general": {
+    "input_path": "",
+    "output_path": "output", 
+    "suffix_filter": "",
+    "output_suffix": ""
+  },
   "binarization": {
     "threshold_method": "combined_differential"
   },

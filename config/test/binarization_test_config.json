@@ -1,4 +1,10 @@
 {
+  "general": {
+    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225",
+    "output_path": "output", 
+    "suffix_filter": "_ch00",
+    "output_suffix": "_mask"
+  },
   "binarization": {
     "threshold_method": "combined_differential"
   },

@@ -6,6 +6,7 @@ class GeneralConfig:
     input_path: str = ""
     output_path: str = "output"
     suffix_filter: str = ""  # Only process files with this suffix (e.g., '_ch00', '_processed')
+    output_suffix: str = ""  # Suffix to add to output files (e.g., '_mask', '_detection')
 
 @dataclass
 class BinarizationConfig:
