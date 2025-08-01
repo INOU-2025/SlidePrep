@@ -7,6 +7,7 @@ class NoOpLogger:
     def error(self, *args, **kwargs) -> None: pass
     def exception(self, *args, **kwargs) -> None: pass
     def debug(self, *args, **kwargs) -> None: pass
+    def warning(self, *args, **kwargs) -> None: pass
 
 class Logger:
     _instance = None
@@ -20,6 +21,7 @@ class Logger:
             cls._instance = super(Logger, cls).__new__(cls)
             cls._instance._initialized = False
             cls._instance._enabled = False
+            cls._instance.logger = NoOpLogger()  # Default to NoOp until initialized
         return cls._instance
 
     @property
@@ -64,13 +66,36 @@ class Logger:
             self.logger.addHandler(console_handler)
 
     def info(self, *args, **kwargs) -> None:
+        if not self._initialized:
+            self._auto_initialize()
         self.logger.info(*args, **kwargs)
 
     def error(self, *args, **kwargs) -> None:
+        if not self._initialized:
+            self._auto_initialize()
         self.logger.error(*args, **kwargs)
 
     def exception(self, *args, **kwargs) -> None:
+        if not self._initialized:
+            self._auto_initialize()
         self.logger.exception(*args, **kwargs)
 
     def debug(self, *args, **kwargs) -> None:
+        if not self._initialized:
+            self._auto_initialize()
         self.logger.debug(*args, **kwargs)
+    
+    def warning(self, *args, **kwargs) -> None:
+        if not self._initialized:
+            self._auto_initialize()
+        self.logger.warning(*args, **kwargs)
+    
+    def _auto_initialize(self) -> None:
+        """Auto-initialize with basic console logging if not manually initialized."""
+        if not self._initialized:
+            basic_config = LogConfig(
+                log_to_console=True,
+                log_to_file=False,
+                log_level="INFO"
+            )
+            self.initialize(basic_config, enabled=True)
