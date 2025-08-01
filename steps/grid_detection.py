@@ -25,19 +25,33 @@ class GridDetectionStep(PipelineStep):
         }
 
     def run(self, ctx: PipelineContext) -> None:
-        if ctx.gray_image is None:
-            raise ValueError("gray_image is required for grid detection")
+        if ctx.binarized_image is None:
+            raise ValueError("binarized_image is required for grid detection. Run binarization step first.")
 
-        gray = ctx.gray_image
+        working_image = ctx.binarized_image
+        self.log(f"Grid detection using binarized image ({working_image.shape[1]}x{working_image.shape[0]})")
+        
+        # Gray image is optional, only needed for debugging visualization
+        gray = ctx.gray_image if ctx.gray_image is not None else ctx.binarized_image
         fname = ctx.image_name or "unnamed"
-        drawer = self.debugger.create_drawer(cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)) if self.debugger else None
+        drawer = self.debugger.create_drawer("grid_detection", cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)) if self.debugger else None
 
-        inverted = cv2.bitwise_not(gray)
+        # For grid detection, we work with the binarized image
+        # Ensure lines are white for template matching
+        mean_val = np.mean(working_image)
+        if mean_val < 127:  # Most pixels are dark, likely lines are black
+            inverted = cv2.bitwise_not(working_image)
+            self.debug(f"Inverted binary image for template matching (mean={mean_val:.1f})")
+        else:
+            inverted = working_image
+            self.debug(f"Using binary image as-is for template matching (mean={mean_val:.1f})")
+        
         thresholds = {
             "horizontal": self.config.horizontal_area_threshold,
             "vertical": self.config.vertical_area_threshold,
-            "length": 0.55 * max(gray.shape)
+            "length": self.config.length_threshold_factor * max(working_image.shape)  # Configurable factor
         }
+        self.debug(f"Length threshold: {thresholds['length']:.1f} (factor: {self.config.length_threshold_factor})")
 
         stats = {"accept": 0, "reject": 0, "maybe": 0}
         for key, tmpl in self.templates.items():
