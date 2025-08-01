@@ -6,7 +6,8 @@
     "horizontal_area_threshold": 2000,
     "vertical_area_threshold": 2000,
     "line_length": 40,
-    "line_thickness": 21
+    "line_thickness": 21,
+    "length_threshold_factor": 0.55
   },
   "logging": {
     "log_to_file": true,
