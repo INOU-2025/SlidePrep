@@ -28,7 +28,7 @@ class GridDetectionDrawer(BaseDrawer):
     def draw_box(
         self, 
         box: np.ndarray, 
-        color: tuple[int, int, int] = (0, 255, 255), 
+        color: tuple[int, int, int] = (255, 0, 0), # Blue
         thickness: int = 1
     ) -> None:
         """Draw a bounding box on the overlay."""
@@ -53,27 +53,6 @@ class GridDetectionDrawer(BaseDrawer):
             color = (0, 0, 255)  # Red for rejected
             
         cv2.drawContours(self.overlay, [contour], 0, color, 2)
-
-    def draw_line(
-        self, 
-        pt1: tuple[int, int], 
-        pt2: tuple[int, int], 
-        color: tuple[int, int, int] = (255, 0, 0), 
-        thickness: int = 2
-    ) -> None:
-        """Draw a line on the overlay."""
-        if self.enabled and self.overlay is not None:
-            cv2.line(self.overlay, pt1, pt2, color, thickness)
-
-    def add_text(
-        self, 
-        text: str, 
-        position: tuple[int, int], 
-        color: tuple[int, int, int] = (255, 255, 255)
-    ) -> None:
-        """Add text annotation to the overlay."""
-        if self.enabled and self.overlay is not None:
-            cv2.putText(self.overlay, text, position, cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 1)
 
     def save(self, filename: str) -> None:
         """Save the overlay image with all drawn elements."""

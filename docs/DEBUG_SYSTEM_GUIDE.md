@@ -110,12 +110,6 @@ drawer.save("grid_detection_debug.png")
 #### `draw_box(box, color=(0,255,255), thickness=1)`
 - Draw bounding box around detected regions
 
-#### `draw_line(pt1, pt2, color=(255,0,0), thickness=2)`
-- Draw line between two points
-
-#### `add_text(text, position, color=(255,255,255))`
-- Add text annotation at specified position
-
 ## Creating Custom Drawers
 
 The debug system uses a registry-based factory pattern that allows you to easily add new drawer types for custom analysis steps.

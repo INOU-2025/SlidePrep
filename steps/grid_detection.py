@@ -7,7 +7,7 @@ from core.step import PipelineStep
 from core.context import PipelineContext
 from config.config_schema import GridDetectionConfig
 from utils.detection.line_template_factory import LineTemplateFactory
-from utils.detection.grid_detection_drawer import GridDetectionDrawer
+from utils.debug.grid_detection_drawer import GridDetectionDrawer
 from utils.detection.analysis import draw_and_analyze_contour
 from core.logger import Logger
 from core.debugger import Debugger
