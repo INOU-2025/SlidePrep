@@ -1,22 +1,18 @@
 import cv2
 import numpy as np
 import os
-from typing import Dict
+from typing import Dict, Tuple
 
 from core.step import PipelineStep
-from core.context import PipelineContext
 from config.config_schema import GridDetectionConfig
 from utils.detection.line_template_factory import LineTemplateFactory
 from utils.debug.grid_detection_drawer import GridDetectionDrawer
 from utils.detection.analysis import draw_and_analyze_contour
-from core.logger import Logger
-from core.debugger import Debugger
-from typing import Optional
 
 
 class GridDetectionStep(PipelineStep):
-    def __init__(self, config: GridDetectionConfig, logger: Optional[Logger] = None, debugger: Optional[Debugger] = None, **kwargs):
-        super().__init__(name="GridDetection", logger=logger, debugger=debugger, **kwargs)
+    def __init__(self, config: GridDetectionConfig, **kwargs):
+        super().__init__(name="GridDetection", **kwargs)
         self.config = config
         factory = LineTemplateFactory(length=config.line_length, thickness=config.line_thickness, angle_deg=config.angle_deg)
         self.templates = {
@@ -24,19 +20,32 @@ class GridDetectionStep(PipelineStep):
             "vertical": factory.create("vertical")
         }
 
-    def run(self, ctx: PipelineContext) -> None:
-        if ctx.binarized_image is None:
-            raise ValueError("binarized_image is required for grid detection. Run binarization step first.")
+    def run(self, data: np.ndarray) -> Tuple[np.ndarray, Dict[str, int]]:
+        """
+        Apply grid detection to a binarized image.
+        
+        Args:
+            data: Binarized image as numpy array
+            
+        Returns:
+            Tuple of (processed_image, statistics_dict)
+        """
+        if data is None:
+            raise ValueError("Binarized image is required for grid detection")
 
-        working_image = ctx.binarized_image
+        working_image = data
         self.log(f"Grid detection using binarized image ({working_image.shape[1]}x{working_image.shape[0]})")
         
-        # Gray image is optional, only needed for debugging visualization
-        gray = ctx.gray_image if ctx.gray_image is not None else ctx.binarized_image
-        fname = ctx.image_name or "unnamed"
-        drawer = self.debugger.create_drawer("grid_detection", cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)) if self.debugger else None
+        # Create output image for visualization (copy of input)
+        output_image = working_image.copy()
+        
+        # Create drawer for debug visualization if enabled
+        drawer = None
+        if self.debugger and self.debugger.is_enabled():
+            # Convert to BGR for visualization
+            visualization_base = cv2.cvtColor(working_image, cv2.COLOR_GRAY2BGR)
+            drawer = self.debugger.create_drawer("grid_detection", visualization_base)
 
-        # For grid detection, we work with the binarized image
         # Ensure lines are white for template matching
         mean_val = np.mean(working_image)
         if mean_val < 127:  # Most pixels are dark, likely lines are black
@@ -49,7 +58,7 @@ class GridDetectionStep(PipelineStep):
         thresholds = {
             "horizontal": self.config.horizontal_area_threshold,
             "vertical": self.config.vertical_area_threshold,
-            "length": self.config.length_threshold_factor * max(working_image.shape)  # Configurable factor
+            "length": self.config.length_threshold_factor * max(working_image.shape)
         }
         self.debug(f"Length threshold: {thresholds['length']:.1f} (factor: {self.config.length_threshold_factor})")
 
@@ -65,13 +74,16 @@ class GridDetectionStep(PipelineStep):
             for cnt in contours:
                 if cv2.contourArea(cnt) >= thresholds[key]:
                     a, r, m = draw_and_analyze_contour(
-                        cnt, gray, key, np.array([t_w // 2, t_h // 2]) - [pad[1], pad[0]],
-                        thresholds, drawer, fname, self.config.margin, self.logger
+                        cnt, working_image, key, np.array([t_w // 2, t_h // 2]) - [pad[1], pad[0]],
+                        thresholds, drawer, "grid_detection", self.config.margin, self.logger
                     )
                     stats["accept"] += a
                     stats["reject"] += r
                     stats["maybe"] += m
 
         if drawer:
-            drawer.save(fname)
-        self.log(f"Processed {fname}. Accept: {stats['accept']}, Reject: {stats['reject']}, Maybe: {stats['maybe']}")
+            drawer.save("grid_detection")
+            
+        self.log(f"Grid detection completed. Accept: {stats['accept']}, Reject: {stats['reject']}, Maybe: {stats['maybe']}")
+        
+        return output_image, stats

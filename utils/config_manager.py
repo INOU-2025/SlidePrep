@@ -4,26 +4,10 @@ from abc import ABC, abstractmethod
 
 class ConfigManager(ABC):
     
-    _instances = {}
-
-    def __new__(cls, *args, **kwargs):
-        raise RuntimeError("Use 'get_instance()' instead.")
-
-    @classmethod
-    def get_instance(cls) -> "ConfigManager":
-        if cls not in cls._instances:
-            instance = super().__new__(cls)
-            instance._initialized = False
-            cls._instances[cls] = instance
-        return cls._instances[cls]
-
-    def initialize(self, config_path: str) -> None:
-        if self._initialized:
-            return
+    def __init__(self, config_path: str):
         self._path = config_path
         self._config = self._load_config(config_path)
         self._extract_config_values()
-        self._initialized = True
 
     def _load_config(self, path: str) -> Dict[str, Any]:
         with open(path, "r") as f:

@@ -1,29 +1,20 @@
 import os
 import cv2
 from glob import glob
-from core.app_config_manager import AppConfigManager
-from core.logger import Logger
-from core.debugger import Debugger
-from core.context import PipelineContext
+from core.bootstrap import bootstrap, get_config, get_logger
 from steps.binarization import BinarizationStep
 from steps.grid_detection import GridDetectionStep
 from utils.image_utils import get_supported_image_patterns, filter_images_by_suffix
 # Future: from steps.mask_creation import MaskCreationStep, etc.
 
-def initialize_environment(config_path: str):
-    cfg = AppConfigManager.get_instance()
-    cfg.initialize(config_path)
-
-    logger = Logger.get_instance()
-    logger.initialize(cfg.log_config, enabled=cfg.logger_active, output_dir=cfg.debug_config.output_dir)
-
-    debugger = Debugger.get_instance()
-    debugger.initialize(cfg.debug_config, cfg.debug_active)
-
-    return cfg, logger, debugger
 
 def run_pipeline(config_path: str):
-    cfg, logger, debugger = initialize_environment(config_path)
+    # Bootstrap the application with all services
+    bootstrap(config_path)
+    
+    # Get services from container
+    cfg = get_config()
+    logger = get_logger()
 
     # Get input folder and suffix filter from config
     input_folder = cfg.general_config.input_path
@@ -35,8 +26,8 @@ def run_pipeline(config_path: str):
 
     # Set up pipeline steps - binarization first, then grid detection
     steps = [
-        BinarizationStep(cfg.binarization_config, logger=logger, debugger=debugger),
-        GridDetectionStep(cfg.grid_detection_config, logger=logger, debugger=debugger),
+        BinarizationStep(cfg.binarization_config),
+        GridDetectionStep(cfg.grid_detection_config),
         # Future: MaskCreationStep(...), etc.
     ]
 
@@ -62,16 +53,24 @@ def run_pipeline(config_path: str):
             logger.error(f"Could not read {fname}")
             continue
 
-        ctx = PipelineContext(
-            input_image=gray,
-            image_path=image_path, 
-            image_name=fname,
-            gray_image=gray
-        )
-
+        # Use direct function chaining - each step takes input and returns output
+        current_data = gray
+        
         for step in steps:
             try:
-                step.run(ctx)
+                # Run step with current data (services injected via container)
+                result = step.run(current_data)
+                
+                # Handle different return types
+                if isinstance(result, tuple):
+                    # For steps that return (image, metadata) like grid detection
+                    current_data, metadata = result
+                    logger.info(f"Step {step.name} completed with metadata: {metadata}")
+                else:
+                    # For steps that return just an image like binarization
+                    current_data = result
+                    logger.info(f"Step {step.name} completed")
+                    
             except Exception as e:
                 logger.exception(f"Error in step {step.name} for {fname}: {e}")
                 break

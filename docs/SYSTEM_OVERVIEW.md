@@ -112,22 +112,34 @@ Default settings stored in JSON with schema validation:
 }
 ```
 
-## 🔧 Pipeline Context
+## 🔧 Pipeline Architecture
 
-The `PipelineContext` manages shared state between processing steps:
+The pipeline uses a **direct input-output function chaining** approach with **dependency injection**:
 
 ```python
-from core.context import PipelineContext
+from core.bootstrap import bootstrap
+from steps.binarization import BinarizationStep
+from steps.grid_detection import GridDetectionStep
 
-ctx = PipelineContext(input_image=image, image_path="input.png")
+# Initialize services once at startup
+bootstrap(config_path)
 
-# Steps automatically populate context
-ctx.gray_image       # ← Populated by grayscale conversion
-ctx.binarized_image  # ← Populated by binarization step  
-ctx.grid_mask        # ← Populated by grid detection
-ctx.cleaned_image    # ← Populated by grid removal
+# Create pipeline steps (services auto-injected via container)
+steps = [
+    BinarizationStep(config.binarization_config),
+    GridDetectionStep(config.grid_detection_config)
+]
 
-# Each step can access previous results and add new ones
+# Process data through pipeline - simple function chaining
+current_data = input_image
+for step in steps:
+    result = step.run(current_data)
+    
+    # Handle different return types
+    if isinstance(result, tuple):
+        current_data, metadata = result  # e.g., grid detection returns (image, stats)
+    else:
+        current_data = result  # e.g., binarization returns just the image
 ```
 
 ## 🐛 Debug and Visualization
@@ -189,23 +201,37 @@ python scripts/run_grid_detection.py \
 
 ### Basic Pipeline Usage
 ```python
-from main import SlidePrep
-from config.config_schema import PipelineConfig
+from core.bootstrap import bootstrap, get_config
+from steps.binarization import BinarizationStep
+from steps.grid_detection import GridDetectionStep
 
-# Complete pipeline
-config = PipelineConfig()
-pipeline = SlidePrep(config)
-results = pipeline.process_directory("/path/to/tiles")
+# Initialize application services
+bootstrap(config_path)
+config = get_config()
+
+# Create and run pipeline
+steps = [
+    BinarizationStep(config.binarization_config),
+    GridDetectionStep(config.grid_detection_config)
+]
+
+# Process image through pipeline
+current_data = input_image
+for step in steps:
+    current_data = step.run(current_data)
 ```
 
 ### Individual Step Usage
 ```python
+from core.bootstrap import bootstrap
 from steps.binarization import BinarizationStep
-from core.context import PipelineContext
 
-# Use individual steps
-ctx = PipelineContext(image_path="test.png")
-binarization_step = BinarizationStep(config)
+# Initialize services first
+bootstrap(config_path)
+
+# Use individual steps (services auto-injected)
+step = BinarizationStep(config.binarization_config)
+result = step.run(input_image)
 binarization_step.run(ctx)
 
 # Result available in ctx.binarized_image

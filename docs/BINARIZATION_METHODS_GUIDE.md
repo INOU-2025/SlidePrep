@@ -250,18 +250,24 @@ step.run(ctx)  # ctx.binarized_image will contain the result
 If you need to use a different method in a production-like context:
 
 ```python
-from utils.binarization_methods import BinarizationMethods
-from core.context import PipelineContext
+from utils.binarization.binarization_methods import BinarizationMethods
+from core.bootstrap import bootstrap
+from steps.binarization import BinarizationStep
+from config.config_schema import BinarizationConfig
 
-# Create context with your image
-ctx = PipelineContext()
-ctx.gray_image = your_image
+# Initialize services
+bootstrap(config_path)
 
-# Use a different method
+# Create configuration for desired method
+config = BinarizationConfig(threshold_method="otsu")  # or other method
+
+# Use the step with your method
+step = BinarizationStep(config)
+result_image = step.run(your_image)
+
+# Or use methods directly
 methods = BinarizationMethods()
-ctx.binarized_image = methods.apply_otsu_threshold(your_image)
-
-# Continue with the rest of your pipeline...
+result_image = methods.apply_otsu_threshold(your_image)
 ```
 
 ## Best Practices

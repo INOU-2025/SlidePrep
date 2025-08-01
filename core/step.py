@@ -1,32 +1,55 @@
 from abc import ABC, abstractmethod
-from typing import Optional
-from core.logger import Logger
-from core.debugger import Debugger
-from core.context import PipelineContext
+from typing import Any, Optional
+from core.container import Container
+
 
 class PipelineStep(ABC):
-    def __init__(self, name: str, logger: Optional[Logger] = None, debugger: Optional[Debugger] = None):
+    def __init__(self, name: str, **kwargs):
         self.name = name
-        self.logger = logger
-        self.debugger = debugger
 
     @abstractmethod
-    def run(self, ctx: PipelineContext) -> None:
-        """Perform the operation and update the context."""
+    def run(self, data: Any) -> Any:
+        """Process input data and return output data."""
         pass
 
     def log(self, message: str) -> None:
-        if self.logger:
-            self.logger.info(f"[{self.name}] {message}")
+        """Log an info message with step prefix."""
+        try:
+            logger = Container.resolve("logger")
+            logger.info(f"[{self.name}] {message}")
+        except KeyError:
+            # Fallback if logger not available
+            print(f"[{self.name}] {message}")
 
     def debug(self, message: str) -> None:
-        if self.logger:
-            self.logger.debug(f"[{self.name}] {message}")
+        """Log a debug message with step prefix."""
+        try:
+            logger = Container.resolve("logger")
+            logger.debug(f"[{self.name}] {message}")
+        except KeyError:
+            # Fallback if logger not available
+            print(f"[{self.name}] DEBUG: {message}")
 
-    def set_logger(self, logger: Logger) -> None:
-        """Set the logger instance."""
-        self.logger = logger
+    @property
+    def logger(self):
+        """Get the logger from the container."""
+        try:
+            return Container.resolve("logger")
+        except KeyError:
+            return None
 
-    def set_debugger(self, debugger: Debugger) -> None:
-        """Set the debugger instance."""
-        self.debugger = debugger
+    @property
+    def debugger(self):
+        """Get the debugger from the container."""
+        try:
+            return Container.resolve("debugger")
+        except KeyError:
+            return None
+
+    @property
+    def config_manager(self):
+        """Get the config manager from the container."""
+        try:
+            return Container.resolve("config")
+        except KeyError:
+            return None

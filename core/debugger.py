@@ -14,28 +14,14 @@ class Debugger:
     Registry-based debugger with dynamic drawer creation.
     Supports extensible drawer registration for different pipeline steps.
     """
-    _instance = None
     _registry: Dict[str, Type[BaseDrawer]] = {}
 
-    def __new__(cls, *args, **kwargs):
-        raise RuntimeError("Use 'Debugger.get_instance()' to access the Debugger instance.")
-
-    @classmethod
-    def get_instance(cls) -> "Debugger":
-        if not cls._instance:
-            cls._instance = super(Debugger, cls).__new__(cls)
-            cls._instance._initialized = False
-        return cls._instance
-
-    def initialize(self, debug_config: DebugConfig, debug_enabled: bool = True) -> None:
-        if self._initialized:
-            return
+    def __init__(self, debug_config: DebugConfig, debug_enabled: bool = True):
         self._enabled = debug_enabled
         self._save_composite = debug_config.save_composite
         self._output_dir = debug_config.output_dir
         if self._enabled and self._output_dir:
             os.makedirs(self._output_dir, exist_ok=True)
-        self._initialized = True
 
     def is_enabled(self) -> bool:
         """Check if debugging is enabled."""

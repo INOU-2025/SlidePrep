@@ -1,11 +1,14 @@
 {
   "general": {
-    "input_path": "",
+    "input_path": "test_images",
     "output_path": "output",
     "suffix_filter": "",
     "output_suffix": "",
     "log": true,
     "debug": true
+  },
+  "binarization": {
+    "threshold_method": "OTSU"
   },
   "grid_detection": {
     "angle_deg": 2.0,

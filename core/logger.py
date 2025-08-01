@@ -10,19 +10,21 @@ class NoOpLogger:
     def warning(self, *args, **kwargs) -> None: pass
 
 class Logger:
-    _instance = None
-
-    def __new__(cls, *args, **kwargs):
-        raise RuntimeError("Use 'Logger.get_instance()' to access the Logger instance.")
-
-    @classmethod
-    def get_instance(cls) -> "Logger":
-        if not cls._instance:
-            cls._instance = super(Logger, cls).__new__(cls)
-            cls._instance._initialized = False
-            cls._instance._enabled = False
-            cls._instance.logger = NoOpLogger()  # Default to NoOp until initialized
-        return cls._instance
+    def __init__(self, log_config: LogConfig, enabled: bool = True):
+        """
+        Initialize the Logger instance with the given configuration.
+        
+        Args:
+            log_config: Logging configuration
+            enabled: Whether logging is enabled
+        """
+        self._enabled = enabled
+        if not self._enabled:
+            self.logger = NoOpLogger()
+        else:
+            self.logger = logging.getLogger(__name__)
+            self.logger.setLevel(getattr(logging, log_config.log_level.upper(), logging.INFO))
+            self._setup_handlers(log_config)
 
     @property
     def enabled(self) -> bool:
@@ -31,27 +33,7 @@ class Logger:
         """
         return self._enabled
 
-    def initialize(self, log_config: LogConfig, enabled: bool = True, output_dir: str = None) -> None:
-        """
-        Initialize the Logger instance with the given configuration.
-        
-        Args:
-            log_config: Logging configuration
-            enabled: Whether logging is enabled
-            output_dir: Directory for log files (if None, uses current directory)
-        """
-        if self._initialized:
-            return
-        self._enabled = enabled
-        if not self._enabled:
-            self.logger = NoOpLogger()
-        else:
-            self.logger = logging.getLogger(__name__)
-            self.logger.setLevel(getattr(logging, log_config.log_level.upper(), logging.INFO))
-            self._setup_handlers(log_config, output_dir or ".")
-        self._initialized = True
-
-    def _setup_handlers(self, log_config: LogConfig, output_dir: str) -> None:
+    def _setup_handlers(self, log_config: LogConfig) -> None:
         # Remove existing handlers
         for handler in self.logger.handlers[:]:
             self.logger.removeHandler(handler)
@@ -60,6 +42,7 @@ class Logger:
         formatter = logging.Formatter(log_format)
 
         if log_config.log_to_file and log_config.log_file_name:
+            output_dir = log_config.output_dir or "."
             os.makedirs(output_dir, exist_ok=True)
             file_handler = logging.FileHandler(os.path.join(output_dir, log_config.log_file_name), mode='w')
             file_handler.setFormatter(formatter)
@@ -71,36 +54,16 @@ class Logger:
             self.logger.addHandler(console_handler)
 
     def info(self, *args, **kwargs) -> None:
-        if not self._initialized:
-            self._auto_initialize()
         self.logger.info(*args, **kwargs)
 
     def error(self, *args, **kwargs) -> None:
-        if not self._initialized:
-            self._auto_initialize()
         self.logger.error(*args, **kwargs)
 
     def exception(self, *args, **kwargs) -> None:
-        if not self._initialized:
-            self._auto_initialize()
         self.logger.exception(*args, **kwargs)
 
     def debug(self, *args, **kwargs) -> None:
-        if not self._initialized:
-            self._auto_initialize()
         self.logger.debug(*args, **kwargs)
     
     def warning(self, *args, **kwargs) -> None:
-        if not self._initialized:
-            self._auto_initialize()
         self.logger.warning(*args, **kwargs)
-    
-    def _auto_initialize(self) -> None:
-        """Auto-initialize with basic console logging if not manually initialized."""
-        if not self._initialized:
-            basic_config = LogConfig(
-                log_to_console=True,
-                log_to_file=False,
-                log_level="INFO"
-            )
-            self.initialize(basic_config, enabled=True)

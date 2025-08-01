@@ -27,10 +27,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.app_config_manager import AppConfigManager
-from core.logger import Logger
-from core.debugger import Debugger
-from core.context import PipelineContext
+from core.bootstrap import bootstrap, get_config, get_logger, get_debugger
 from steps.binarization import BinarizationStep
 from utils.image_utils import get_supported_image_patterns, filter_images_by_suffix
 from glob import glob
@@ -39,9 +36,13 @@ from glob import glob
 def evaluate_binarization_methods(config_path: str):
     """Evaluate different binarization methods on all images in a folder."""
     
-    # Initialize basic components first to get config
-    cfg = AppConfigManager.get_instance()
-    cfg.initialize(config_path)
+    # Bootstrap the application with all services
+    bootstrap(config_path)
+    
+    # Get services from container
+    cfg = get_config()
+    logger = get_logger()
+    debugger = get_debugger()
 
     # Get input folder from config
     input_folder = cfg.general_config.input_path
@@ -76,12 +77,6 @@ def evaluate_binarization_methods(config_path: str):
         return
     
     print(f"Found {len(images)} images to process in {input_folder}")
-    
-    logger = Logger.get_instance()
-    logger.initialize(cfg.log_config, enabled=cfg.logger_active, output_dir=cfg.debug_config.output_dir)
-
-    debugger = Debugger.get_instance()
-    debugger.initialize(cfg.debug_config, cfg.debug_active)
 
     # Get output directory from config
     output_base_dir = cfg.general_config.output_path
@@ -136,34 +131,26 @@ def evaluate_binarization_methods(config_path: str):
                 from config.config_schema import BinarizationConfig
                 config = BinarizationConfig(**method['config'])
                 
-                # Create step
-                step = BinarizationStep(config, logger=logger, debugger=debugger)
+                # Create step (services injected via container)
+                step = BinarizationStep(config)
                 
-                # Create context
-                ctx = PipelineContext(
-                    input_image=gray.copy(),
-                    image_path=image_path, 
-                    image_name=f"{fname}_{method_safe_name}",
-                    gray_image=gray.copy()
-                )
+                # Run binarization directly on image data
+                result_image = step.run(gray.copy())
                 
-                # Run binarization
-                step.run(ctx)
-                
-                if ctx.binarized_image is not None:
+                if result_image is not None:
                     # Save the binarized result
                     output_filename = f"{base_name}_binarized.png"
                     output_path = os.path.join(method_dirs[method_safe_name], output_filename)
                     
-                    cv2.imwrite(output_path, ctx.binarized_image)
+                    cv2.imwrite(output_path, result_image)
                     
                     # Update statistics
                     method_stats[method_name]['success'] += 1
                     method_stats[method_name]['files'].append(output_path)
                     
                     # Calculate pixel statistics
-                    white_pixels = np.sum(ctx.binarized_image == 255)
-                    total_pixels = ctx.binarized_image.size
+                    white_pixels = np.sum(result_image == 255)
+                    total_pixels = result_image.size
                     white_percent = 100 * white_pixels / total_pixels
                     
                     print(f"  ✓ {method_name}: {white_percent:.1f}% white pixels → {output_path}")

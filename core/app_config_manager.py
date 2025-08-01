@@ -2,6 +2,8 @@ from config.config_schema import GeneralConfig, GridDetectionConfig, Binarizatio
 from utils.config_manager import ConfigManager
 
 class AppConfigManager(ConfigManager):
+    def __init__(self, config_path: str):
+        super().__init__(config_path)
 
     def _extract_config_values(self):
         try:
