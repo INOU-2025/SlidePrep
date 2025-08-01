@@ -15,7 +15,7 @@ def initialize_environment(config_path: str):
     cfg.initialize(config_path)
 
     logger = Logger.get_instance()
-    logger.initialize(cfg.logging_config, enabled=cfg.logger_active)
+    logger.initialize(cfg.logging_config, enabled=cfg.logger_active, output_dir=cfg.debug_config.output_dir)
 
     debugger = Debugger.get_instance()
     debugger.initialize(cfg.debug_config)

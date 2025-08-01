@@ -1,15 +1,19 @@
 from dataclasses import dataclass
 
 @dataclass
+class GeneralConfig:
+    """General configuration properties that apply to all scripts."""
+    input_path: str = ""
+    output_path: str = "output"
+    suffix_filter: str = ""  # Only process files with this suffix (e.g., '_ch00', '_processed')
+
+@dataclass
 class BinarizationConfig:
-    """
-    Configuration for the Combined Differential binarization method.
-    This is the production-ready method optimized for thick grid line detection.
-    """
-    threshold_method: str = "combined_differential"  # Fixed: only combined_differential supported
+    threshold_method: str
 
 @dataclass
 class GridDetectionConfig:
+    """Configuration for grid detection step."""
     angle_deg: float
     margin: int
     percentile_thresh: int
@@ -17,10 +21,11 @@ class GridDetectionConfig:
     vertical_area_threshold: int
     line_length: int
     line_thickness: int
-    length_threshold_factor: float = 0.55  # Factor for minimum line length (relative to image dimension)
+    length_threshold_factor: float
 
 @dataclass
 class DebugConfig:
+    """Configuration for debugging and visualization."""
     enabled: bool = False
     visualization: bool = False
     logging: bool = True
@@ -28,8 +33,8 @@ class DebugConfig:
 
 @dataclass
 class LogConfig:
-    log_to_file: bool = True
+    """Configuration for logging."""
+    log_to_file: bool = False
     log_to_console: bool = True
     log_file_name: str = ""
-    log_level: str = "DEBUG"
-    output_dir: str = ""
+    log_level: str = "INFO"

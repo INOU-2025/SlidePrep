@@ -31,9 +31,14 @@ class Logger:
         """
         return self._enabled
 
-    def initialize(self, log_config: LogConfig, enabled: bool = True) -> None:
+    def initialize(self, log_config: LogConfig, enabled: bool = True, output_dir: str = None) -> None:
         """
         Initialize the Logger instance with the given configuration.
+        
+        Args:
+            log_config: Logging configuration
+            enabled: Whether logging is enabled
+            output_dir: Directory for log files (if None, uses current directory)
         """
         if self._initialized:
             return
@@ -43,10 +48,10 @@ class Logger:
         else:
             self.logger = logging.getLogger(__name__)
             self.logger.setLevel(getattr(logging, log_config.log_level.upper(), logging.INFO))
-            self._setup_handlers(log_config)
+            self._setup_handlers(log_config, output_dir or ".")
         self._initialized = True
 
-    def _setup_handlers(self, log_config: LogConfig) -> None:
+    def _setup_handlers(self, log_config: LogConfig, output_dir: str) -> None:
         # Remove existing handlers
         for handler in self.logger.handlers[:]:
             self.logger.removeHandler(handler)
@@ -55,8 +60,8 @@ class Logger:
         formatter = logging.Formatter(log_format)
 
         if log_config.log_to_file and log_config.log_file_name:
-            os.makedirs(log_config.output_dir, exist_ok=True)
-            file_handler = logging.FileHandler(os.path.join(log_config.output_dir, log_config.log_file_name), mode='w')
+            os.makedirs(output_dir, exist_ok=True)
+            file_handler = logging.FileHandler(os.path.join(output_dir, log_config.log_file_name), mode='w')
             file_handler.setFormatter(formatter)
             self.logger.addHandler(file_handler)
 
