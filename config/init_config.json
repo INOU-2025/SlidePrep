@@ -3,7 +3,16 @@
     "input_path": "",
     "output_path": "output", 
     "suffix_filter": "",
-    "output_suffix": ""
+    "output_suffix": "",
+    "log": true,
+    "debug": true
+  },
+  "log": {
+    "log_to_file": true,
+    "log_to_console": false,
+    "log_file_name": "app.log",
+    "log_level": "INFO",
+    "output_dir": "logs"
   },
   "binarization": {
     "threshold_method": "combined_differential"
@@ -18,16 +27,7 @@
     "line_thickness": 21,
     "length_threshold_factor": 0.55
   },
-  "logging": {
-    "log_to_file": true,
-    "log_to_console": false,
-    "log_file_name": "detection.log",
-    "log_level": "INFO"
-  },
   "debug": {
-    "enabled": true,
-    "visualization": false,
-    "logging": true,
     "output_dir": "/Users/irconde/Downloads/V2_170225_exp250225/output_masks"
   }
 }

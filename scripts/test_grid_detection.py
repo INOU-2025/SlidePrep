@@ -40,10 +40,10 @@ def main(config_path: str):
     cfg.initialize(config_path)
 
     logger = Logger.get_instance()
-    logger.initialize(cfg.logging_config, enabled=cfg.logger_active, output_dir=cfg.debug_config.output_dir)
+    logger.initialize(cfg.log_config, enabled=cfg.logger_active, output_dir=cfg.debug_config.output_dir)
 
     debugger = Debugger.get_instance()
-    debugger.initialize(cfg.debug_config)
+    debugger.initialize(cfg.debug_config, cfg.debug_active)
 
     # Set up the pipeline step with logger and debugger
     step = GridDetectionStep(config=cfg.grid_detection_config, logger=logger, debugger=debugger)

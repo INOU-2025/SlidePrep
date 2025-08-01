@@ -27,10 +27,10 @@ class Debugger:
             cls._instance._initialized = False
         return cls._instance
 
-    def initialize(self, debug_config: DebugConfig) -> None:
+    def initialize(self, debug_config: DebugConfig, debug_enabled: bool = True) -> None:
         if self._initialized:
             return
-        self._visualization_active = debug_config.enabled and debug_config.visualization
+        self._visualization_active = debug_enabled
         self._output_dir = debug_config.output_dir
         if self._visualization_active and self._output_dir:
             os.makedirs(self._output_dir, exist_ok=True)

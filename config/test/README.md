@@ -61,23 +61,35 @@ Test configurations should only include sections relevant to the step being test
 **For Binarization Testing:**
 ```json
 {
+  "general": {
+    "log": true,
+    "debug": false
+  },
   "binarization": {
     "threshold_method": "combined_differential"
   },
-  "logging": { ... },
-  "debug": { ... }
+  "log": { ... },
+  "debug": {
+    "output_dir": "debug_output/test_binarization"
+  }
 }
 ```
 
 **For Grid Detection Testing:**
 ```json
 {
+  "general": {
+    "log": true,
+    "debug": true
+  },
   "grid_detection": {
     "angle_deg": 2.0,
     // ... other grid detection parameters
   },
-  "logging": { ... },
-  "debug": { ... }
+  "log": { ... },
+  "debug": {
+    "output_dir": "debug_output/test_grid_detection"
+  }
 }
 ```
 

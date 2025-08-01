@@ -70,10 +70,10 @@ def test_binarization_methods(config_path: str):
     print(f"Found {len(images)} images to process in {input_folder}")
     
     logger = Logger.get_instance()
-    logger.initialize(cfg.logging_config, enabled=cfg.logger_active, output_dir=cfg.debug_config.output_dir)
+    logger.initialize(cfg.log_config, enabled=cfg.logger_active, output_dir=cfg.debug_config.output_dir)
 
     debugger = Debugger.get_instance()
-    debugger.initialize(cfg.debug_config)
+    debugger.initialize(cfg.debug_config, cfg.debug_active)
 
     # Get output directory from config
     output_base_dir = cfg.general_config.output_path

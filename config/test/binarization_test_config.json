@@ -1,23 +1,23 @@
 {
   "general": {
-    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225",
-    "output_path": "output", 
-    "suffix_filter": "_ch00",
-    "output_suffix": "_mask"
+    "input_path": "",
+    "output_path": "output",
+    "suffix_filter": "",
+    "output_suffix": "",
+    "log": true,
+    "debug": false
   },
   "binarization": {
     "threshold_method": "combined_differential"
   },
-  "logging": {
+  "log": {
     "log_to_file": false,
     "log_to_console": true,
     "log_file_name": "binarization_test.log",
-    "log_level": "INFO"
+    "log_level": "INFO",
+    "output_dir": "logs"
   },
   "debug": {
-    "enabled": true,
-    "visualization": true,
-    "logging": true,
     "output_dir": "debug_output/test_binarization"
   }
 }

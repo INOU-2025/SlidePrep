@@ -7,6 +7,8 @@ class GeneralConfig:
     output_path: str = "output"
     suffix_filter: str = ""  # Only process files with this suffix (e.g., '_ch00', '_processed')
     output_suffix: str = ""  # Suffix to add to output files (e.g., '_mask', '_detection')
+    log: bool = True  # Enable/disable logging
+    debug: bool = False  # Enable/disable debugging
 
 @dataclass
 class BinarizationConfig:
@@ -27,9 +29,6 @@ class GridDetectionConfig:
 @dataclass
 class DebugConfig:
     """Configuration for debugging and visualization."""
-    enabled: bool = False
-    visualization: bool = False
-    logging: bool = True
     output_dir: str = "debug"
 
 @dataclass
@@ -39,3 +38,4 @@ class LogConfig:
     log_to_console: bool = True
     log_file_name: str = ""
     log_level: str = "INFO"
+    output_dir: str = "logs"

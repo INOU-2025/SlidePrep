@@ -8,12 +8,16 @@ class AppConfigManager(ConfigManager):
             self.general_config = GeneralConfig(**self.get("general", {}))
             self.binarization_config = BinarizationConfig(**self.get("binarization", {}))
             self.grid_detection_config = GridDetectionConfig(**self.get("grid_detection", {}))
-            self.logging_config = LogConfig(**self.get("logging", {}))
+            self.log_config = LogConfig(**self.get("log", {}))
             self.debug_config = DebugConfig(**self.get("debug", {}))
         except TypeError as e:
             raise ValueError("Error extracting config values. Malformed or incomplete configuration") from e
 
     @property
     def logger_active(self) -> bool:
-        return self.debug_config.enabled and self.debug_config.logging
+        return self.general_config.log
+
+    @property
+    def debug_active(self) -> bool:
+        return self.general_config.debug
 
