@@ -33,12 +33,6 @@ class BinarizationDrawer(BaseDrawer):
             self.binarized_image = binarized_image
             self.method_info = method_info
 
-    def add_comparison_text(self, original_text: str, binary_text: str) -> None:
-        """Add custom text labels to the comparison."""
-        if self.enabled:
-            self.original_text = original_text
-            self.binary_text = binary_text
-
     def save(self, filename: str) -> None:
         """Save side-by-side comparison of original and binarized images."""
         if not self.enabled or self.binarized_image is None:
