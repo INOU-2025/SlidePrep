@@ -5,9 +5,10 @@ from core.app_config_manager import AppConfigManager
 from core.logger import Logger
 from core.debugger import Debugger
 from core.context import PipelineContext
+from steps.binarization import BinarizationStep
 from steps.grid_detection import GridDetectionStep
 from utils.image_utils import get_supported_image_patterns, filter_images_by_suffix
-# Future: from steps.binarization import BinarizationStep, etc.
+# Future: from steps.mask_creation import MaskCreationStep, etc.
 
 def initialize_environment(config_path: str):
     cfg = AppConfigManager.get_instance()
@@ -24,10 +25,11 @@ def initialize_environment(config_path: str):
 def run_pipeline(input_folder: str, config_path: str, suffix_filter: str = None):
     cfg, logger, debugger = initialize_environment(config_path)
 
-    # Set up pipeline steps (just grid detection for now)
+    # Set up pipeline steps - binarization first, then grid detection
     steps = [
+        BinarizationStep(cfg.binarization_config, logger=logger, debugger=debugger),
         GridDetectionStep(cfg.grid_detection_config, logger=logger, debugger=debugger),
-        # Future: BinarizationStep(...), MaskCreationStep(...), etc.
+        # Future: MaskCreationStep(...), etc.
     ]
 
     # Support common image formats
@@ -52,8 +54,12 @@ def run_pipeline(input_folder: str, config_path: str, suffix_filter: str = None)
             logger.error(f"Could not read {fname}")
             continue
 
-        ctx = PipelineContext(image_path=image_path, image_name=fname)
-        ctx.gray_image = gray
+        ctx = PipelineContext(
+            input_image=gray,
+            image_path=image_path, 
+            image_name=fname,
+            gray_image=gray
+        )
 
         for step in steps:
             try:
