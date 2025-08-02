@@ -51,7 +51,7 @@ class BinarizationStep(PipelineStep):
         else:
             gray = data
 
-        self.log(
+        self.debug(
             f"Starting binarization using {self.config.threshold_method} method")
 
         try:
@@ -62,8 +62,8 @@ class BinarizationStep(PipelineStep):
                 raise ValueError(
                     f"Unknown threshold method: {self.config.threshold_method}")
         except Exception as e:
-            self.log(f"Binarization failed: {e}")
+            self.error(f"Binarization failed: {e}")
             raise
 
-        self.log(f"Binarization completed")
+        self.debug(f"Binarization completed successfully")
         return binary_image

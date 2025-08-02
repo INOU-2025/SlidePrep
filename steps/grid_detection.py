@@ -75,8 +75,8 @@ class GridDetectionStep(PipelineStep):
         self._validate_image_input(data)
 
         working_image = data
-        self.log(
-            f"Grid detection using binarized image ({working_image.shape[1]}x{working_image.shape[0]})")
+        self.debug(
+            f"Starting grid detection on {working_image.shape[1]}x{working_image.shape[0]} binary image")
 
         detections = []
 
@@ -135,9 +135,9 @@ class GridDetectionStep(PipelineStep):
                         stats["maybe"] += 1
 
         self.log(
-            f"Grid detection completed. Accept: {stats['accept']}, Reject: {stats['reject']}, Maybe: {stats['maybe']}")
+            f"Grid detection completed: {stats['accept']} accepted, {stats['reject']} rejected, {stats['maybe']} uncertain")
 
-        return GridDetectionResult(detections=detections, summary=stats)
+        return GridDetectionResult(detections=detections, stats=stats)
 
     def _analyze_contour(self, contour: np.ndarray, gray_image: np.ndarray,
                          line_orientation: str, detection_thresholds: Dict[str, float]) -> Tuple[DetectionStatus, np.ndarray]:

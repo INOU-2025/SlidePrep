@@ -93,7 +93,7 @@ class StepTestRunner:
             return
 
         self._logger.info(
-            f"Processing {len(image_files)} images from {input_dir}")
+            f"Starting batch processing of {len(image_files)} images from {input_dir}")
 
         # Process each image
         processed = 0
@@ -110,7 +110,7 @@ class StepTestRunner:
                     continue
 
                 base_name = os.path.splitext(fname)[0]
-                self._logger.info(f"Processing {fname}")
+                self._logger.debug(f"Processing {fname}")
 
                 # Run the step
                 result = step.run(image)
@@ -119,11 +119,11 @@ class StepTestRunner:
                 debug_filename = f"{base_name}_{output_suffix}.png"
                 self._debugger.save_debug_image(debug_filename, image, result)
 
-                self._logger.info(f"Processed {fname}")
+                self._logger.debug(f"Successfully processed {fname}")
                 processed += 1
 
             except Exception as e:
                 self._logger.error(f"Error processing {fname}: {e}")
 
         self._logger.info(
-            f"Completed: {processed}/{len(image_files)} images processed successfully")
+            f"Batch processing completed: {processed}/{len(image_files)} images processed successfully")

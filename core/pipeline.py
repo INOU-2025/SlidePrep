@@ -52,10 +52,11 @@ class Pipeline:
             try:
                 current_data = step.run(current_data)
                 if self.logger:
-                    self.logger.info(f"Step {step.name} completed")
+                    self.logger.debug(f"Step {step.name} completed successfully")
             except Exception as e:
                 if self.logger:
-                    self.logger.exception(f"Error in step {step.name}: {e}")
+                    self.logger.error(f"Pipeline failed at step {step.name}: {e}")
+                    self.logger.exception("Full exception details:")
                 else:
                     print(f"Error in step {step.name}: {e}")
                 return None

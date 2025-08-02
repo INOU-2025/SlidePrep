@@ -63,6 +63,45 @@ class PipelineStep(ABC):
         except KeyError:
             print(f"[{self.name}] DEBUG: {message}")
 
+    def warning(self, message: str) -> None:
+        """
+        Log a warning message with step prefix.
+
+        Args:
+            message: Message to log
+        """
+        try:
+            logger = Container.resolve("logger")
+            logger.warning(f"[{self.name}] {message}")
+        except KeyError:
+            print(f"[{self.name}] WARNING: {message}")
+
+    def error(self, message: str) -> None:
+        """
+        Log an error message with step prefix.
+
+        Args:
+            message: Message to log
+        """
+        try:
+            logger = Container.resolve("logger")
+            logger.error(f"[{self.name}] {message}")
+        except KeyError:
+            print(f"[{self.name}] ERROR: {message}")
+
+    def critical(self, message: str) -> None:
+        """
+        Log a critical message with step prefix.
+
+        Args:
+            message: Message to log
+        """
+        try:
+            logger = Container.resolve("logger")
+            logger.critical(f"[{self.name}] {message}")
+        except KeyError:
+            print(f"[{self.name}] CRITICAL: {message}")
+
     @property
     def logger(self):
         """Get the logger from the container."""

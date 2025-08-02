@@ -34,6 +34,10 @@ class NoOpLogger:
         """No-op warning logging method."""
         pass
 
+    def critical(self, *args: Any, **kwargs: Any) -> None:
+        """No-op critical logging method."""
+        pass
+
 
 class Logger:
     """
@@ -134,3 +138,7 @@ class Logger:
     def warning(self, *args: Any, **kwargs: Any) -> None:
         """Log a warning message for potentially problematic situations."""
         self.logger.warning(*args, **kwargs)
+
+    def critical(self, *args: Any, **kwargs: Any) -> None:
+        """Log a critical message for fatal errors that prevent operation."""
+        self.logger.critical(*args, **kwargs)

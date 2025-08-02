@@ -33,12 +33,12 @@ def run_pipeline(config_path: str):
     suffix_filter = cfg.general_config.suffix_filter
 
     if not input_folder:
-        logger.error(
+        logger.critical(
             "input_path must be specified in the general config section")
         return False
 
     if not os.path.exists(input_folder):
-        logger.error(f"Input folder does not exist: {input_folder}")
+        logger.critical(f"Input folder does not exist: {input_folder}")
         return False
 
     try:
@@ -47,9 +47,9 @@ def run_pipeline(config_path: str):
             GridDetectionStep(cfg.grid_detection_config),
         ]
         pipeline = Pipeline(steps)
-        logger.info(f"Initialized {len(steps)} pipeline steps")
+        logger.info(f"Pipeline initialized with {len(steps)} steps")
     except Exception as e:
-        logger.error(f"Failed to initialize pipeline steps: {e}")
+        logger.critical(f"Failed to initialize pipeline steps: {e}")
         return False
 
     image_extensions = get_supported_image_patterns()
@@ -60,18 +60,18 @@ def run_pipeline(config_path: str):
 
     images = filter_images_by_suffix(images, suffix_filter)
     if suffix_filter:
-        logger.info(f"Suffix filter '{suffix_filter}' applied")
+        logger.debug(f"Applied suffix filter '{suffix_filter}', found {len(images)} matching images")
 
     if not images:
         logger.warning(f"No images found in {input_folder}")
         return False
 
-    logger.info(f"Found {len(images)} images to process in {input_folder}")
+    logger.info(f"Starting batch processing of {len(images)} images")
 
     successful_count = 0
     for image_path in images:
         fname = os.path.basename(image_path)
-        logger.info(f"Processing {fname}")
+        logger.debug(f"Loading image: {fname}")
         gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
         if gray is None:
             logger.error(f"Could not read {fname}")
@@ -80,10 +80,10 @@ def run_pipeline(config_path: str):
         result = pipeline.run(gray)
         if result is not None:
             successful_count += 1
-            logger.info(f"Successfully processed {fname}")
+            logger.debug(f"Successfully processed {fname}")
 
     logger.info(
-        f"Pipeline completed. Processed {successful_count}/{len(images)} images successfully")
+        f"Batch processing completed: {successful_count}/{len(images)} images processed successfully")
     return successful_count > 0
 
 
