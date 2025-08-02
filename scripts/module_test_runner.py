@@ -79,8 +79,6 @@ class StepTestRunner:
             return
 
         self.logger.info(f"Processing {len(image_files)} images from {input_dir}")
-        if self.debugger.is_enabled():
-            self.logger.info(f"Debug output: {self.debugger.output_dir}")
 
         # Process each image
         processed = 0
@@ -102,9 +100,8 @@ class StepTestRunner:
                 result = step.run(image)
 
                 # Save debug output - debugger handles everything automatically
-                if self.debugger.is_enabled():
-                    debug_filename = f"{base_name}_{output_suffix}.png"
-                    self.debugger.save_debug_image(step_key, debug_filename, image, result)
+                debug_filename = f"{base_name}_{output_suffix}.png"
+                self.debugger.save_debug_image(step_key, debug_filename, image, result)
                     
                 self.logger.info(f"Processed {fname}")
                 processed += 1

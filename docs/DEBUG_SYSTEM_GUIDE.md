@@ -25,18 +25,16 @@ The debug system uses a registry-based factory pattern for extensible drawer cre
 The debug system includes specialized drawers for different pipeline steps, each organized in its own module:
 
 - **`BaseDrawer`** (`utils/debug/base_drawer.py`): Abstract base class for all drawers
-- **`BinarizationDrawer`** (`utils/debug/binarization_drawer.py`): Specialized for binarization step debugging  
 - **`GridDetectionDrawer`** (`utils/debug/grid_detection_drawer.py`): Specialized for grid detection step debugging
 
 **Import Structure:**
 ```python
 # Import from individual modules (recommended)
 from utils.debug.base_drawer import BaseDrawer
-from utils.debug.binarization_drawer import BinarizationDrawer
 from utils.debug.grid_detection_drawer import GridDetectionDrawer
 
 # Or import from the debug package (convenience)
-from utils.debug import BaseDrawer, BinarizationDrawer, GridDetectionDrawer
+from utils.debug import BaseDrawer, GridDetectionDrawer
 ```
 
 ### Debugger Integration
@@ -53,33 +51,6 @@ enhanced_image = drawer.draw(image, results, metadata)
 if enhanced_image is not None:
     # Save manually if needed
     cv2.imwrite("output.png", enhanced_image)
-```
-
-## BinarizationDrawer
-
-### Purpose
-Creates side-by-side comparisons of original grayscale images and their binarized results.
-
-### Features
-- **Side-by-side comparison**: Original and binarized images displayed together
-- **Method information**: Shows which binarization method was used
-- **Pixel statistics**: Displays percentage of white/black pixels
-- **Automatic scaling**: Font size adapts to image dimensions
-
-### Usage
-```python
-# Automatic integration (recommended)
-debugger.save_debug_image("binarization", "output.png", gray_image, binary_result, {"method": "adaptive"})
-
-# Manual usage (advanced)
-drawer = debugger.create_drawer("binarization")
-result_image = drawer.draw(gray_image, binary_result, {"method": "adaptive"})
-```
-
-### Output Format
-```
-[Original Image] | [Binarized Image (method)]
-                 | White: 45.2% | Black: 54.8%
 ```
 
 ## GridDetectionDrawer
@@ -144,7 +115,7 @@ class CustomAnalysisDrawer(BaseDrawer):
         Returns:
             Enhanced image with analysis visualizations
         """
-        if not self.enabled or results is None:
+        if results is None:
             return None
             
         try:
@@ -179,9 +150,8 @@ debugger.save_debug_image("custom_analysis", "output.png", image, analysis_resul
 1. **Follow BaseDrawer Contract**: Always inherit from `BaseDrawer` and implement the `draw()` method
 2. **Use Descriptive Names**: Choose clear, descriptive names for your drawer types in the registry
 3. **Handle Edge Cases**: Ensure your drawer handles invalid inputs gracefully
-4. **Return None When Disabled**: Always check `self.enabled` and return `None` if disabled
-5. **Fail Gracefully**: Wrap drawing code in try-except to avoid disrupting the main pipeline
-6. **Use Debugger Integration**: Prefer `debugger.save_debug_image()` over manual drawer usage
+4. **Fail Gracefully**: Wrap drawing code in try-except to avoid disrupting the main pipeline
+5. **Use Debugger Integration**: Prefer `debugger.save_debug_image()` over manual drawer usage
 
 ## Configuration
 
@@ -212,14 +182,13 @@ class MyStep(PipelineStep):
         result = self.process(data)
         
         # Debug output - automatic drawer integration
-        if self.debugger.is_enabled():
-            self.debugger.save_debug_image(
-                "my_step", 
-                f"{filename}_my_step.png", 
-                data, 
-                result, 
-                {"processing_time": elapsed_time}
-            )
+        self.debugger.save_debug_image(
+            "my_step", 
+            f"{filename}_my_step.png", 
+            data, 
+            result, 
+            {"processing_time": elapsed_time}
+        )
         
         return result
 ```
@@ -248,9 +217,9 @@ def draw(self, image, results=None, metadata=None):
 ```
 
 ### Performance
-- Only create visualizations when `enabled=True`
-- Use `if self.enabled:` checks in drawer `draw()` methods
-- Return `None` from `draw()` when debugging is disabled
+- Debugger controls when drawers are used based on debug configuration
+- Return `None` from `draw()` when there's nothing to visualize
+- Use efficient drawing operations in `draw()` methods
 - Use automatic debugger integration to avoid manual file handling
 
 ### File Naming

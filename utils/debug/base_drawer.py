@@ -6,15 +6,6 @@ from typing import Optional, Any
 class BaseDrawer(ABC):
     """Base class for all step-specific debug visualization drawers."""
 
-    def __init__(self, enabled: bool = True) -> None:
-        """
-        Initialize base drawer.
-        
-        Args:
-            enabled: Whether visualization is enabled
-        """
-        self.enabled = enabled
-
     @abstractmethod
     def draw(self, image: np.ndarray, results: Any = None, metadata: Any = None) -> Optional[np.ndarray]:
         """
@@ -26,10 +17,7 @@ class BaseDrawer(ABC):
             metadata: Additional metadata for visualization
             
         Returns:
-            Image with drawn visualizations, or None if disabled
+            Image with drawn visualizations, or None if nothing to draw
         """
         pass
 
-    def is_enabled(self) -> bool:
-        """Check if the drawer is enabled."""
-        return self.enabled

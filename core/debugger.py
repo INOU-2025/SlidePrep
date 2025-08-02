@@ -19,17 +19,9 @@ class Debugger:
         self._enabled = debug_enabled
         self._save_composite = debug_config.save_composite
         self._output_dir = debug_config.output_dir
+        self._drawer_instances: Dict[str, BaseDrawer] = {}  # Cache drawer instances
         if self._enabled and self._output_dir:
             os.makedirs(self._output_dir, exist_ok=True)
-
-    def is_enabled(self) -> bool:
-        """Check if debugging is enabled."""
-        return self._enabled
-
-    @property
-    def output_dir(self) -> Optional[str]:
-        """Get the debug output directory."""
-        return self._output_dir
 
     def _save_image(self, filename: str, image: np.ndarray, original: Optional[np.ndarray] = None) -> None:
         """Save an image to the debug output directory."""
@@ -79,7 +71,18 @@ class Debugger:
             raise KeyError(f"Drawer '{key}' not registered. Available: {list(self._registry.keys())}")
         
         drawer_cls = self._registry[key]
-        return drawer_cls(enabled=self._enabled, **kwargs)
+        return drawer_cls(**kwargs)
+
+    def _get_drawer(self, step_key: str) -> Optional[BaseDrawer]:
+        """Get or create a cached drawer instance for the specified step."""
+        if step_key not in self._registry:
+            return None
+            
+        # Reuse cached instance if available
+        if step_key not in self._drawer_instances:
+            self._drawer_instances[step_key] = self.create_drawer(step_key)
+            
+        return self._drawer_instances[step_key]
 
     def save_debug_image(self, step_key: str, filename: str, image: np.ndarray, results=None, metadata=None) -> None:
         """Save a debug image, using registered drawer if available."""
@@ -88,9 +91,9 @@ class Debugger:
             
         try:
             # Check if there's a registered drawer for this step
-            if step_key in self._registry:
+            drawer = self._get_drawer(step_key)
+            if drawer is not None:
                 # Use drawer to create enhanced visualization
-                drawer = self.create_drawer(step_key)
                 enhanced_image = drawer.draw(image, results, metadata)
                 if enhanced_image is not None:
                     self._save_image(filename, enhanced_image)

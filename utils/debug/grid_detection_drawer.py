@@ -24,9 +24,6 @@ class GridDetectionDrawer(BaseDrawer):
         Returns:
             Image with drawn grid detection visualizations
         """
-        if not self.enabled:
-            return None
-            
         if results is None or not isinstance(results, GridDetectionResult):
             return image.copy()
             
