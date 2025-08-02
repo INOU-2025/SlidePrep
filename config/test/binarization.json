@@ -1,8 +1,8 @@
 {
   "general": {
-    "input_path": "test_images",
+    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225",
     "output_path": "",
-    "suffix_filter": "_raw",
+    "suffix_filter": "_ch00",
     "output_suffix": "_binarized",
     "log": true,
     "debug": true
@@ -11,11 +11,11 @@
     "threshold_method": "combined_differential"
   },
   "log": {
-    "log_to_file": false,
-    "log_to_console": true,
+    "log_to_file": true,
+    "log_to_console": false,
     "log_file_name": "binarization_test.log",
-    "log_level": "INFO",
-    "output_dir": "logs"
+    "log_level": "DEBUG",
+    "output_dir": "debug_output/test_binarization"
   },
   "debug": {
     "output_dir": "debug_output/test_binarization",
