@@ -50,7 +50,7 @@ SlidePrep/
 │   ├── binarization.py         # 59 lines - Production binarization
 │   └── grid_detection.py       # Grid pattern detection
 ├── utils/                       # Utility modules
-│   ├── binarization_methods.py # 400+ lines - All 7 research methods
+│   ├── binarization/          # Thresholding methods package
 │   ├── image_utils.py          # Image processing utilities
 │   └── detection/              # Grid detection utilities
 ├── scripts/                     # Testing and validation
@@ -135,7 +135,7 @@ step = BinarizationStep(config)
 
 ### Research Configuration (Full Control)
 ```python
-from utils.binarization_methods import BinarizationMethods, ThresholdMethod
+from utils.binarization import BinarizationMethods, ThresholdMethod
 
 methods = BinarizationMethods()
 

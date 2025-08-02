@@ -29,7 +29,7 @@ step.run(ctx)  # ctx.binarized_image contains the result
 Use the binarization utilities for access to all 7 methods:
 
 ```python
-from utils.binarization_methods import BinarizationMethods, ThresholdMethod
+from utils.binarization import BinarizationMethods, ThresholdMethod
 
 methods = BinarizationMethods()
 binary = methods.apply_method(ThresholdMethod.MULTI_OTSU, image)

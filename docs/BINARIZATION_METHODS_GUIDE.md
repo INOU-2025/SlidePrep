@@ -2,14 +2,14 @@
 
 ## 🎯 Overview
 
-The `utils.binarization_methods` module provides a comprehensive collection of image binarization (thresholding) methods for research, experimentation, and specialized use cases. While the production system uses the Combined Differential method automatically, this utility gives you direct access to all available methods.
+The `utils.binarization` package provides a comprehensive collection of image binarization (thresholding) methods for research, experimentation, and specialized use cases. While the production system uses the Combined Differential method automatically, this utility gives you direct access to all available methods.
 
 ## 🚀 Quick Start
 
 ### Basic Usage
 
 ```python
-from utils.binarization_methods import BinarizationMethods, ThresholdMethod
+from utils.binarization import BinarizationMethods, ThresholdMethod
 import cv2
 
 # Load your image
@@ -250,7 +250,7 @@ step.run(ctx)  # ctx.binarized_image will contain the result
 If you need to use a different method in a production-like context:
 
 ```python
-from utils.binarization.binarization_methods import BinarizationMethods
+from utils.binarization import BinarizationMethods
 from core.bootstrap import bootstrap
 from steps.binarization import BinarizationStep
 from config.config_schema import BinarizationConfig
@@ -345,7 +345,7 @@ This will show:
 ```python
 import cv2
 import numpy as np
-from utils.binarization_methods import BinarizationMethods, ThresholdMethod
+from utils.binarization import BinarizationMethods, ThresholdMethod
 
 # Load your grid image
 image = cv2.imread('grid_image.png', cv2.IMREAD_GRAYSCALE)

@@ -31,7 +31,7 @@ SlidePrep/
 │   ├── binarization.py    # Binary conversion (59 lines, optimized)
 │   └── grid_detection.py  # Grid pattern detection
 ├── utils/                  # Utility modules
-│   ├── binarization_methods.py  # All 7 binarization methods (400+ lines)
+│   ├── binarization/          # Thresholding methods package
 │   ├── image_utils.py     # Image processing utilities
 │   └── detection/         # Grid detection utilities
 └── main.py                # Main pipeline entry point
@@ -62,7 +62,7 @@ step.run(ctx)  # Optimal results automatically
 Full access to all methods for experimentation:
 
 ```python
-from utils.binarization_methods import BinarizationMethods, ThresholdMethod
+from utils.binarization import BinarizationMethods, ThresholdMethod
 
 methods = BinarizationMethods()
 # Access all 7 methods: global, otsu, adaptive, multi_otsu, 
@@ -258,7 +258,7 @@ binarization_step.run(ctx)
 
 ### Method Research
 ```python
-from utils.binarization_methods import BinarizationMethods
+from utils.binarization import BinarizationMethods
 
 # Research different methods
 methods = BinarizationMethods()
@@ -283,7 +283,7 @@ for method_name in methods.get_available_methods():
 ## 🔮 Extensibility
 
 ### Adding New Binarization Methods
-1. Add method to `utils.binarization_methods.py`
+1. Add method to the `utils/binarization` package
 2. Update `ThresholdMethod` enum
 3. Add method info to discovery functions
 4. Update documentation

@@ -1,9 +1,8 @@
 import numpy as np
-from typing import Optional
 
 from core.step import PipelineStep
 from config.config_schema import BinarizationConfig
-from utils.binarization.binarization_methods import BinarizationMethods
+from utils.binarization import BinarizationMethods
 
 
 class BinarizationStep(PipelineStep):
