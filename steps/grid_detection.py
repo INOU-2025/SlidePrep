@@ -25,8 +25,7 @@ class GridDetectionStep(PipelineStep):
             config: Grid detection configuration
             **kwargs: Additional arguments passed to parent class
         """
-        super().__init__(name="GridDetection", **kwargs)
-        self.config = config
+        super().__init__(name="GridDetection", config=config, **kwargs)
         factory = LineTemplateFactory(length=config.line_length, thickness=config.line_thickness, angle_deg=config.angle_deg)
         self.templates = {
             "horizontal": factory.create("horizontal"),
@@ -42,12 +41,9 @@ class GridDetectionStep(PipelineStep):
             
         Returns:
             GridDetectionResult containing detections and summary statistics
-            
-        Raises:
-            ValueError: If input data is None
         """
-        if data is None:
-            raise ValueError("Binarized image is required for grid detection")
+        # Validate input image
+        self._validate_image_input(data)
 
         working_image = data
         self.log(f"Grid detection using binarized image ({working_image.shape[1]}x{working_image.shape[0]})")

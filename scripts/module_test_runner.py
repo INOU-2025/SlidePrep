@@ -27,17 +27,32 @@ from utils.image_utils import get_supported_image_formats
 class StepTestRunner:
     """Simple test runner for processing images with pipeline steps."""
 
-    config_path: str
-    drawer: Optional[BaseDrawer] = None
+    _config_path: str
+    _drawer: Optional[BaseDrawer] = None
 
     def __post_init__(self) -> None:
         # Bootstrap the application with basic services and optional drawer
-        bootstrap(self.config_path, self.drawer)
+        bootstrap(self._config_path, self._drawer)
         
         # Get services from container
-        self.cfg = get_config()
-        self.logger = get_logger()
-        self.debugger = get_debugger()  # Debugger already has the drawer attached
+        self._cfg = get_config()
+        self._logger = get_logger()
+        self._debugger = get_debugger()  # Debugger already has the drawer attached
+
+    @property
+    def cfg(self):
+        """Get configuration (read-only access)."""
+        return self._cfg
+
+    @property
+    def logger(self):
+        """Get logger (read-only access)."""
+        return self._logger
+
+    @property
+    def debugger(self):
+        """Get debugger (read-only access)."""
+        return self._debugger
 
     def run_on_directory(
         self,
@@ -56,13 +71,13 @@ class StepTestRunner:
         
         # Validate required parameters
         if not output_suffix:
-            self.logger.warning("output_suffix parameter is required but not provided")
+            self._logger.warning("output_suffix parameter is required but not provided")
             return
         
         # Get input directory from config
-        input_dir = self.cfg.general_config.input_path
+        input_dir = self._cfg.general_config.input_path
         if not input_dir or not os.path.exists(input_dir):
-            self.logger.error(f"Input directory not found or not specified: {input_dir}")
+            self._logger.error(f"Input directory not found or not specified: {input_dir}")
             return
 
         # Find all supported images
@@ -71,17 +86,17 @@ class StepTestRunner:
         for fname in sorted(os.listdir(input_dir)):
             if fname.lower().endswith(supported_formats):
                 # Apply suffix filter if specified
-                if self.cfg.general_config.suffix_filter:
+                if self._cfg.general_config.suffix_filter:
                     name_without_ext = os.path.splitext(fname)[0]
-                    if not name_without_ext.endswith(self.cfg.general_config.suffix_filter):
+                    if not name_without_ext.endswith(self._cfg.general_config.suffix_filter):
                         continue
                 image_files.append(fname)
 
         if not image_files:
-            self.logger.warning(f"No supported images found in {input_dir}")
+            self._logger.warning(f"No supported images found in {input_dir}")
             return
 
-        self.logger.info(f"Processing {len(image_files)} images from {input_dir}")
+        self._logger.info(f"Processing {len(image_files)} images from {input_dir}")
 
         # Process each image
         processed = 0
@@ -97,19 +112,19 @@ class StepTestRunner:
                     continue
 
                 base_name = os.path.splitext(fname)[0]
-                self.logger.info(f"Processing {fname}")
+                self._logger.info(f"Processing {fname}")
 
                 # Run the step
                 result = step.run(image)
 
                 # Save debug output - debugger handles everything automatically
                 debug_filename = f"{base_name}_{output_suffix}.png"
-                self.debugger.save_debug_image(debug_filename, image, result)
+                self._debugger.save_debug_image(debug_filename, image, result)
                     
-                self.logger.info(f"Processed {fname}")
+                self._logger.info(f"Processed {fname}")
                 processed += 1
 
             except Exception as e:
-                self.logger.error(f"Error processing {fname}: {e}")
+                self._logger.error(f"Error processing {fname}: {e}")
 
-        self.logger.info(f"Completed: {processed}/{len(image_files)} images processed successfully")
+        self._logger.info(f"Completed: {processed}/{len(image_files)} images processed successfully")

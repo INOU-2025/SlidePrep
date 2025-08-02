@@ -11,6 +11,12 @@ def run_pipeline(config_path: str):
     """
     Run the complete image processing pipeline.
     
+    This is the main production pipeline that processes images through configured steps:
+    1. Bootstrap initializes all services via dependency injection
+    2. Each step is instantiated with its specific configuration
+    3. Steps validate input and return processed results consistently
+    4. No drawer is attached for production runs (debug mode disabled)
+    
     Args:
         config_path: Path to the configuration file
     """

@@ -1,20 +1,28 @@
 from abc import ABC, abstractmethod
 from typing import Any
+import numpy as np
 from core.container import Container
 
 
 class PipelineStep(ABC):
-    """Base class for all pipeline processing steps."""
+    """
+    Base class for all pipeline processing steps.
     
-    def __init__(self, name: str, **kwargs):
+    All pipeline steps are initialized with a configuration object specific to their functionality.
+    This ensures consistent configuration management across the pipeline.
+    """
+    
+    def __init__(self, name: str, config=None, **kwargs):
         """
         Initialize pipeline step.
         
         Args:
             name: Name of the pipeline step
+            config: Configuration object specific to this step
             **kwargs: Additional arguments (unused but allows flexible inheritance)
         """
         self.name = name
+        self.config = config
 
     @abstractmethod
     def run(self, data: Any) -> Any:
@@ -70,3 +78,25 @@ class PipelineStep(ABC):
             return Container.resolve("debugger")
         except KeyError:
             return None
+
+    def _validate_image_input(self, data: Any) -> None:
+        """
+        Validate that input data is a well-formed image.
+        
+        All validation errors use the consistent message: "Input image must exist and must be a well-formed image"
+        
+        Args:
+            data: Input data to validate
+            
+        Raises:
+            ValueError: If input image must exist and must be a well-formed image
+            TypeError: If input image must exist and must be a well-formed image
+        """
+        if data is None:
+            raise ValueError("Input image must exist and must be a well-formed image")
+        
+        if not isinstance(data, np.ndarray):
+            raise TypeError("Input image must exist and must be a well-formed image")
+        
+        if data.size == 0:
+            raise ValueError("Input image must exist and must be a well-formed image")

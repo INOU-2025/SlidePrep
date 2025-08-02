@@ -8,8 +8,7 @@ from utils.binarization.binarization_methods import BinarizationMethods
 
 class BinarizationStep(PipelineStep):
     def __init__(self, config: BinarizationConfig, **kwargs) -> None:
-        super().__init__(name="Binarization", **kwargs)
-        self.config = config
+        super().__init__(name="Binarization", config=config, **kwargs)
         
         # Initialize binarization methods utility with debug callback
         self.methods = BinarizationMethods(debug_callback=self.debug)
@@ -23,21 +22,21 @@ class BinarizationStep(PipelineStep):
             
         Returns:
             Binarized image as numpy array
-            
-        Raises:
-            ValueError: If input data is None or invalid
-            TypeError: If input data is not a numpy array
         """
-        if data is None:
-            raise ValueError("Input image is required for binarization")
-        
-        if not isinstance(data, np.ndarray):
-            raise TypeError("Input data must be a numpy array")
-        
-        if data.size == 0:
-            raise ValueError("Input image cannot be empty")
+        # Validate input image
+        self._validate_image_input(data)
 
-        gray = data
+        # Convert to grayscale if needed
+        if len(data.shape) == 3:
+            if data.shape[2] == 3:  # RGB
+                gray = np.dot(data[...,:3], [0.2989, 0.5870, 0.1140]).astype(np.uint8)
+            elif data.shape[2] == 4:  # RGBA
+                gray = np.dot(data[...,:3], [0.2989, 0.5870, 0.1140]).astype(np.uint8)
+            else:  # Single channel 3D
+                gray = data.squeeze()
+        else:
+            gray = data
+        
         self.log(f"Starting binarization using {self.config.threshold_method} method")
         
         # Apply the configured binarization method
