@@ -145,19 +145,38 @@ for step in steps:
 ## 🐛 Debug and Visualization
 
 ### Debug System
-Integrated debug output for development and troubleshooting:
+Integrated debug output with automatic drawer integration:
 
 ```python
-from core.debugger import Debugger
+from core.bootstrap import bootstrap_application
 
-debugger = Debugger(output_folder="debug_output", enabled=True)
-step = BinarizationStep(config, debugger=debugger)
+container = bootstrap_application(config_path)
+step = BinarizationStep(
+    config=container.config.binarization_config,
+    debugger=container.debugger,
+    logger=container.logger
+)
 
-# Automatically saves intermediate results:
-# - Original input image
-# - Binarization result
-# - Any morphological operations
-# - Final processed output
+# Automatic debug output when enabled:
+result = step.run(image)
+# Debugger automatically detects registered drawers and creates visualizations
+```
+
+### Test Runner Integration
+Simplified testing with automatic debug output:
+
+```python
+from scripts.module_test_runner import StepTestRunner
+
+runner = StepTestRunner(config_path)
+step = GridDetectionStep(
+    config=runner.cfg.grid_detection_config,
+    debugger=runner.debugger,
+    logger=runner.logger
+)
+
+# Process entire directory with automatic debug visualization
+runner.run_on_directory(step, "grid_detection")
 ```
 
 ### Logging System
@@ -276,9 +295,10 @@ for method_name in methods.get_available_methods():
 4. Add to main pipeline
 
 ### Custom Debug Outputs
-1. Create custom drawer in `utils.debug.drawers.py`
-2. Register with debugger system
-3. Use in your pipeline step
+1. Create custom drawer inheriting from `BaseDrawer`
+2. Implement the `draw(image, results, metadata)` method
+3. Register with debugger: `Debugger.register_drawer("step_name", DrawerClass)`
+4. Use automatic integration: `debugger.save_debug_image("step_name", filename, image, results)`
 
 ---
 

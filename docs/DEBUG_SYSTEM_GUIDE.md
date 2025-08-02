@@ -41,12 +41,18 @@ from utils.debug import BaseDrawer, BinarizationDrawer, GridDetectionDrawer
 
 ### Debugger Integration
 
-The `Debugger` class provides registry-based drawer creation:
+The `Debugger` class provides automatic drawer integration:
 
 ```python
-# Generic registry-based creation
-drawer = debugger.create_drawer("grid_detection", image)
-drawer = debugger.create_drawer("binarization", image)
+# Automatic drawer integration - preferred approach
+debugger.save_debug_image("grid_detection", "output.png", image, results, metadata)
+
+# Manual drawer creation (for advanced use cases)
+drawer = debugger.create_drawer("grid_detection")
+enhanced_image = drawer.draw(image, results, metadata)
+if enhanced_image is not None:
+    # Save manually if needed
+    cv2.imwrite("output.png", enhanced_image)
 ```
 
 ## BinarizationDrawer
@@ -62,13 +68,12 @@ Creates side-by-side comparisons of original grayscale images and their binarize
 
 ### Usage
 ```python
-**Usage:**
-```python
-# In binarization step
-drawer = debugger.create_drawer("binarization", gray_image)
-drawer.set_binarized_image(binary_result, method_info="adaptive/gaussian")
-drawer.save("image_binarization_debug.png")
-```
+# Automatic integration (recommended)
+debugger.save_debug_image("binarization", "output.png", gray_image, binary_result, {"method": "adaptive"})
+
+# Manual usage (advanced)
+drawer = debugger.create_drawer("binarization")
+result_image = drawer.draw(gray_image, binary_result, {"method": "adaptive"})
 ```
 
 ### Output Format
@@ -84,31 +89,33 @@ Visualizes grid line detection results by drawing contours, bounding boxes, and 
 
 ### Features
 - **Contour visualization**: Color-coded contours (green=accepted, yellow=maybe, red=rejected)
-- **Bounding boxes**: Draw detection bounding boxes
-- **Line overlays**: Draw detected grid lines
-- **Text annotations**: Add custom labels and statistics
+- **Rotated bounding boxes**: Shows detected grid line boundaries
+- **Status-based coloring**: Automatic color assignment based on DetectionStatus
+- **Automatic integration**: Works seamlessly with debugger system
 
 ### Usage
 ```python
-**Usage:**
-```python
-# In grid detection step
-drawer = debugger.create_drawer("grid_detection", image)
-drawer.set_horizontal_lines(h_lines)
-drawer.set_vertical_lines(v_lines)
-drawer.save("grid_detection_debug.png")
-```
+# Automatic integration (recommended)
+debugger.save_debug_image("grid_detection", "output.png", image, grid_detection_result)
+
+# Manual usage (advanced)
+drawer = debugger.create_drawer("grid_detection")
+result_image = drawer.draw(image, grid_detection_result)
 ```
 
-### Methods
+### Input Data Format
+The GridDetectionDrawer expects a `GridDetectionResult` object containing:
+- `detections`: List of `Detection` objects with contour, rotated_box, status, and orientation
+- Each detection is automatically color-coded based on its `DetectionStatus`
 
-#### `draw_contour(contour, accepted=False, maybe=False)`
-- **Green**: `accepted=True` - Contour passes all criteria
-- **Yellow**: `maybe=True` - Contour partially matches criteria  
-- **Red**: Default - Contour rejected
+### Color Mapping
 
-#### `draw_box(box, color=(0,255,255), thickness=1)`
-- Draw bounding box around detected regions
+The GridDetectionDrawer automatically maps detection status to colors:
+- **Green**: `DetectionStatus.ACCEPT` - Contour passes all criteria
+- **Yellow**: `DetectionStatus.MAYBE` - Contour partially matches criteria  
+- **Red**: `DetectionStatus.REJECT` - Contour rejected
+
+This mapping is handled automatically by the `DetectionStatus.get_color()` utility method.
 
 ## Creating Custom Drawers
 
@@ -117,43 +124,45 @@ The debug system uses a registry-based factory pattern that allows you to easily
 #### 1. Implement BaseDrawer Interface
 ```python
 from utils.debug.base_drawer import BaseDrawer
-from typing import Optional
+from typing import Optional, Any
 import numpy as np
 import cv2
 
 class CustomAnalysisDrawer(BaseDrawer):
-    def __init__(self, input_image: np.ndarray, enabled: bool = True, output_dir: Optional[str] = None):
-        super().__init__(enabled, output_dir)
-        self.input_image = input_image
-        self.analysis_result = None
-        self.confidence_score = None
+    def __init__(self, enabled: bool = True):
+        super().__init__(enabled)
     
-    def set_analysis_result(self, result: dict, confidence: float = 0.0):
-        """Set the analysis result and confidence score."""
-        self.analysis_result = result
-        self.confidence_score = confidence
-    
-    def save(self, filename: str):
-        """Create and save the debug visualization."""
-        if not self.enabled or self.analysis_result is None:
-            return
+    def draw(self, image: np.ndarray, results: Any = None, metadata: Any = None) -> Optional[np.ndarray]:
+        """
+        Draw analysis results on the image.
+        
+        Args:
+            image: Base image to draw on
+            results: Analysis results to visualize
+            metadata: Additional metadata (e.g., confidence scores)
+            
+        Returns:
+            Enhanced image with analysis visualizations
+        """
+        if not self.enabled or results is None:
+            return None
             
         try:
-            # Create composite image with analysis visualization
-            composite = self._create_composite_image()
-            output_path = self._get_output_path(filename)
-            cv2.imwrite(output_path, composite)
-        except Exception as e:
-            # Silently fail to avoid disrupting the main pipeline
-            pass
-    
-    def _create_composite_image(self) -> np.ndarray:
-        """Create the composite debug image."""
-        # Implementation specific to your analysis visualization
-        # Return composite image with original + analysis overlays
-        return self.input_image  # Placeholder implementation
+            # Create working copy
+            overlay = image.copy()
+            
+            # Draw your analysis results
+            # Example: draw confidence score
+            if metadata and 'confidence' in metadata:
+                confidence = metadata['confidence']
+                cv2.putText(overlay, f"Confidence: {confidence:.2f}", 
+                           (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            
+            return overlay
+        except Exception:
+            # Always fail gracefully
+            return image.copy() if image is not None else None
 ```
-
 ### 2. Register the Custom Drawer
 ```python
 from core.debugger import Debugger
@@ -162,18 +171,17 @@ from core.debugger import Debugger
 Debugger.register_drawer("custom_analysis", CustomAnalysisDrawer)
 
 # Now you can use it anywhere in your code
-drawer = debugger.create_drawer("custom_analysis", image)
-drawer.set_analysis_result(results, confidence=0.95)
-drawer.save("custom_analysis_debug.png")
+debugger.save_debug_image("custom_analysis", "output.png", image, analysis_results, {"confidence": 0.95})
 ```
 
 ### Best Practices
 
-1. **Follow BaseDrawer Contract**: Always inherit from `BaseDrawer` and implement required methods
+1. **Follow BaseDrawer Contract**: Always inherit from `BaseDrawer` and implement the `draw()` method
 2. **Use Descriptive Names**: Choose clear, descriptive names for your drawer types in the registry
 3. **Handle Edge Cases**: Ensure your drawer handles invalid inputs gracefully
-4. **Consistent Output**: Follow established naming conventions for debug output files
-5. **Documentation**: Add docstrings explaining the purpose and usage of your custom drawer
+4. **Return None When Disabled**: Always check `self.enabled` and return `None` if disabled
+5. **Fail Gracefully**: Wrap drawing code in try-except to avoid disrupting the main pipeline
+6. **Use Debugger Integration**: Prefer `debugger.save_debug_image()` over manual drawer usage
 
 ## Configuration
 
@@ -183,15 +191,46 @@ Debug visualization is controlled by the debug configuration:
 {
   "debug": {
     "enabled": true,
-    "visualization": true,
+    "save_composite": false,
     "output_dir": "/path/to/debug/output"
   }
 }
 ```
 
 - **`enabled`**: Master switch for debugging features
-- **`visualization`**: Enable/disable debug image creation
+- **`save_composite`**: Create side-by-side comparisons when possible
 - **`output_dir`**: Directory where debug images are saved
+
+## Usage Patterns
+
+### Step Integration
+```python
+# In your pipeline step
+class MyStep(PipelineStep):
+    def run(self, data):
+        # Process data
+        result = self.process(data)
+        
+        # Debug output - automatic drawer integration
+        if self.debugger.is_enabled():
+            self.debugger.save_debug_image(
+                "my_step", 
+                f"{filename}_my_step.png", 
+                data, 
+                result, 
+                {"processing_time": elapsed_time}
+            )
+        
+        return result
+```
+
+### Test Runner Integration
+```python
+# Test runners automatically benefit from drawer system
+runner = StepTestRunner(config_path)
+step = MyStep(config=runner.cfg.my_config, debugger=runner.debugger, logger=runner.logger)
+runner.run_on_directory(step, "my_step_results")
+```
 
 ## Best Practices
 
@@ -199,47 +238,55 @@ Debug visualization is controlled by the debug configuration:
 All drawer methods should fail silently to avoid disrupting the main pipeline:
 
 ```python
-def save(self, filename):
+def draw(self, image, results=None, metadata=None):
     try:
         # visualization code
-    except Exception as e:
-        # Log error if logger available, but don't raise
-        pass
+        return enhanced_image
+    except Exception:
+        # Return copy of original image or None
+        return image.copy() if image is not None else None
 ```
 
 ### Performance
 - Only create visualizations when `enabled=True`
-- Use `if self.enabled:` checks before expensive operations
-- Avoid memory allocation when debugging is disabled
+- Use `if self.enabled:` checks in drawer `draw()` methods
+- Return `None` from `draw()` when debugging is disabled
+- Use automatic debugger integration to avoid manual file handling
 
 ### File Naming
 Use consistent naming patterns for debug files:
-- `{original_filename}_{step_name}_debug.png`
-- Example: `sample001.jpg_binarization_debug.png`
+- `{original_filename}_{step_name}.png`
+- Example: `sample001_grid_detection.png`
 
 ### Memory Management
-- Copy input images only when debugging is enabled
-- Clean up large arrays after saving
-- Use appropriate image formats (PNG for debug, JPEG for space)
+- Drawers should not store images as instance variables
+- Use `image.copy()` only when necessary for modifications
+- Return `None` from `draw()` when disabled to avoid memory allocation
 
 ## Troubleshooting
 
 ### Common Issues
 
 **Debug images not created**
-- Check `debug.enabled` and `debug.visualization` in config
+- Check `debug.enabled` in config
 - Verify `output_dir` exists and is writable
-- Check console/logs for error messages
+- Check that drawer is registered: `Debugger.get_registered_drawers()`
+- Ensure `debugger.save_debug_image()` is called with correct step key
+
+**No drawer integration**
+- Verify drawer is registered for the step: `Debugger.register_drawer("step_key", DrawerClass)`
+- Check step key matches between registration and `save_debug_image()` call
+- Images will save as plain images if no drawer is registered
 
 **Poor visualization quality**
-- Ensure input images are in correct format (BGR for color, grayscale for BinarizationDrawer)
-- Check font scaling for text readability
-- Verify color values are in correct range (0-255)
+- Ensure drawer `draw()` method handles image format correctly
+- Check that results/metadata match what drawer expects
+- Verify color values are in correct range (0-255 for uint8)
 
 **Performance issues**
-- Disable debugging in production: `debug.visualization: false`
-- Use smaller images for testing
-- Limit number of debug annotations per image
+- Disable debugging in production: `debug.enabled: false`
+- Ensure drawers return `None` when disabled
+- Use efficient drawing operations in `draw()` methods
 
 ---
 
