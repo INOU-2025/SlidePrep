@@ -1,12 +1,10 @@
 import cv2
 import numpy as np
-import os
 from typing import Dict, Tuple
 
 from core.step import PipelineStep
 from config.config_schema import GridDetectionConfig
 from utils.detection.line_template_factory import LineTemplateFactory
-from utils.debug.grid_detection_drawer import GridDetectionDrawer
 from utils.detection.analysis import draw_and_analyze_contour
 
 

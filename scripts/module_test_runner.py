@@ -54,11 +54,11 @@ class StepTestRunner:
         # Get input directory from config
         input_dir = self.cfg.general_config.input_path
         if not input_dir:
-            print("Error: input_path must be specified in the general config section")
+            self.logger.error("input_path must be specified in the general config section")
             return
         
         if not os.path.exists(input_dir):
-            print(f"Error: Input directory not found: {input_dir}")
+            self.logger.error(f"Input directory not found: {input_dir}")
             return
 
         # Get output directory
@@ -78,11 +78,11 @@ class StepTestRunner:
                 image_files.append(fname)
 
         if not image_files:
-            print(f"No supported images found in {input_dir}")
+            self.logger.warning(f"No supported images found in {input_dir}")
             return
 
-        print(f"Processing {len(image_files)} images from {input_dir}")
-        print(f"Output will be saved to: {output_dir}")
+        self.logger.info(f"Processing {len(image_files)} images from {input_dir}")
+        self.logger.info(f"Output will be saved to: {output_dir}")
 
         # Process each image (services injected via container)
         processed = 0
@@ -92,7 +92,7 @@ class StepTestRunner:
                 image_path = os.path.join(input_dir, fname)
                 image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
                 if image is None:
-                    print(f"⚠️  Could not load {fname}")
+                    self.logger.warning(f"Could not load {fname}")
                     continue
 
                 base_name = os.path.splitext(fname)[0]
@@ -105,11 +105,11 @@ class StepTestRunner:
                 if isinstance(result, tuple):
                     # For steps that return (image, metadata) like grid detection
                     result_image, metadata = result
-                    print(f"✓ Processed {fname} (metadata: {metadata})")
+                    self.logger.info(f"Processed {fname} (metadata: {metadata})")
                 else:
                     # For steps that return just an image like binarization
                     result_image = result
-                    print(f"✓ Processed {fname}")
+                    self.logger.info(f"Processed {fname}")
 
                 # Save result
                 config_suffix = self.cfg.general_config.output_suffix or ""
@@ -125,6 +125,6 @@ class StepTestRunner:
                 processed += 1
 
             except Exception as e:
-                print(f"✗ Error processing {fname}: {e}")
+                self.logger.error(f"Error processing {fname}: {e}")
 
-        print(f"\nCompleted: {processed}/{len(image_files)} images processed successfully")
+        self.logger.info(f"Completed: {processed}/{len(image_files)} images processed successfully")

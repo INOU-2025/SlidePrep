@@ -49,11 +49,11 @@ def evaluate_binarization_methods(config_path: str):
     suffix_filter = cfg.general_config.suffix_filter
     
     if not input_folder:
-        print("Error: input_path must be specified in the general config section")
+        logger.error("input_path must be specified in the general config section")
         return
     
     if not os.path.exists(input_folder):
-        print(f"Error: Input folder not found: {input_folder}")
+        logger.error(f"Input folder not found: {input_folder}")
         return
     
     # Get all supported images from the folder
@@ -66,23 +66,23 @@ def evaluate_binarization_methods(config_path: str):
     # Apply suffix filter if specified
     images = filter_images_by_suffix(images, suffix_filter)
     if suffix_filter:
-        print(f"Applied suffix filter: '{suffix_filter}'")
+        logger.info(f"Applied suffix filter: '{suffix_filter}'")
     
     if not images:
         if suffix_filter:
-            print(f"Error: No images found with suffix '{suffix_filter}' in {input_folder}")
+            logger.error(f"No images found with suffix '{suffix_filter}' in {input_folder}")
         else:
-            print(f"Error: No supported images found in {input_folder}")
-        print(f"Supported formats: {', '.join(image_extensions)}")
+            logger.error(f"No supported images found in {input_folder}")
+        logger.error(f"Supported formats: {', '.join(image_extensions)}")
         return
     
-    print(f"Found {len(images)} images to process in {input_folder}")
+    logger.info(f"Found {len(images)} images to process in {input_folder}")
 
     # Get output directory from config
     output_base_dir = cfg.general_config.output_path
     if not output_base_dir:
         output_base_dir = cfg.debug_config.output_dir or "debug_output"
-    print(f"Output will be saved to: {output_base_dir}")
+    logger.info(f"Output will be saved to: {output_base_dir}")
 
     # Test the current production method
     methods = [
@@ -101,7 +101,7 @@ def evaluate_binarization_methods(config_path: str):
         method_dir = os.path.join(output_base_dir, method_safe_name)
         os.makedirs(method_dir, exist_ok=True)
         method_dirs[method_safe_name] = method_dir
-        print(f"Created output directory: {method_dir}")
+        logger.info(f"Created output directory: {method_dir}")
 
     # Statistics tracking
     total_processed = 0
@@ -115,10 +115,10 @@ def evaluate_binarization_methods(config_path: str):
         # Load the image
         gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
         if gray is None:
-            print(f"⚠️  Could not load image: {fname}")
+            logger.warning(f"Could not load image: {fname}")
             continue
             
-        print(f"\nProcessing {fname} ({gray.shape[1]}x{gray.shape[0]})")
+        logger.info(f"\nProcessing {fname} ({gray.shape[1]}x{gray.shape[0]})")
         total_processed += 1
         
         # Test each method on this image
@@ -153,33 +153,33 @@ def evaluate_binarization_methods(config_path: str):
                     total_pixels = result_image.size
                     white_percent = 100 * white_pixels / total_pixels
                     
-                    print(f"  ✓ {method_name}: {white_percent:.1f}% white pixels → {output_path}")
+                    logger.info(f"  ✓ {method_name}: {white_percent:.1f}% white pixels → {output_path}")
                 else:
                     method_stats[method_name]['failed'] += 1
-                    print(f"  ✗ {method_name}: Failed to create binary image")
+                    logger.warning(f"  ✗ {method_name}: Failed to create binary image")
                     
             except Exception as e:
                 method_stats[method_name]['failed'] += 1
-                print(f"  ✗ {method_name}: Error - {e}")
+                logger.error(f"  ✗ {method_name}: Error - {e}")
     
     # Print final summary
-    print(f"\n{'='*60}")
-    print(f"BATCH PROCESSING SUMMARY")
-    print(f"{'='*60}")
-    print(f"Input folder: {input_folder}")
-    print(f"Output folder: {output_base_dir}")
-    print(f"Images processed: {total_processed}")
-    print(f"")
+    logger.info(f"\n{'='*60}")
+    logger.info(f"BATCH PROCESSING SUMMARY")
+    logger.info(f"{'='*60}")
+    logger.info(f"Input folder: {input_folder}")
+    logger.info(f"Output folder: {output_base_dir}")
+    logger.info(f"Images processed: {total_processed}")
+    logger.info(f"")
     
     for method_name, stats in method_stats.items():
         method_safe_name = method_name.replace(" ", "_").replace("(", "").replace(")", "").lower()
         success_rate = (stats['success'] / total_processed * 100) if total_processed > 0 else 0
-        print(f"{method_name}:")
-        print(f"  Success: {stats['success']}/{total_processed} ({success_rate:.1f}%)")
-        print(f"  Failed: {stats['failed']}")
-        print(f"  Output folder: {method_dirs[method_safe_name]}")
-        print(f"  Files generated: {len(stats['files'])}")
-        print(f"")
+        logger.info(f"{method_name}:")
+        logger.info(f"  Success: {stats['success']}/{total_processed} ({success_rate:.1f}%)")
+        logger.info(f"  Failed: {stats['failed']}")
+        logger.info(f"  Output folder: {method_dirs[method_safe_name]}")
+        logger.info(f"  Files generated: {len(stats['files'])}")
+        logger.info(f"")
 
 
 if __name__ == "__main__":

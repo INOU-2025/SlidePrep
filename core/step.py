@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 from core.container import Container
 
 
@@ -68,13 +68,5 @@ class PipelineStep(ABC):
         """Get the debugger from the container."""
         try:
             return Container.resolve("debugger")
-        except KeyError:
-            return None
-
-    @property
-    def config_manager(self):
-        """Get the config manager from the container."""
-        try:
-            return Container.resolve("config")
         except KeyError:
             return None

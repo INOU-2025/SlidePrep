@@ -1,5 +1,4 @@
 import numpy as np
-import cv2
 from typing import Tuple
 
 def compute_min_required_ratio(area: float) -> float:
