@@ -1,5 +1,3 @@
-"""Detection status constants and utilities."""
-
 from enum import Enum
 from typing import Tuple
 

@@ -1,5 +1,3 @@
-"""Data models for grid detection results."""
-
 import numpy as np
 from typing import Dict, List
 from dataclasses import dataclass
@@ -20,4 +18,5 @@ class Detection:
 class GridDetectionResult:
     """Results from grid detection analysis."""
     detections: List[Detection]
-    summary: Dict[str, int]  # {"accept": count, "reject": count, "maybe": count}
+    # {"accept": count, "reject": count, "maybe": count}
+    summary: Dict[str, int]

@@ -24,7 +24,7 @@ def run_pipeline(config_path: str):
     try:
         # Bootstrap the application with all services (no drawer for main pipeline)
         bootstrap(config_path)
-        
+
         # Get services from container
         cfg = get_config()
         logger = get_logger()
@@ -35,11 +35,12 @@ def run_pipeline(config_path: str):
     # Get input folder and suffix filter from config
     input_folder = cfg.general_config.input_path
     suffix_filter = cfg.general_config.suffix_filter
-    
+
     if not input_folder:
-        logger.error("input_path must be specified in the general config section")
+        logger.error(
+            "input_path must be specified in the general config section")
         return False
-        
+
     if not os.path.exists(input_folder):
         logger.error(f"Input folder does not exist: {input_folder}")
         return False
@@ -62,17 +63,18 @@ def run_pipeline(config_path: str):
     images = []
     for ext in image_extensions:
         images.extend(glob(os.path.join(input_folder, ext)))
-        images.extend(glob(os.path.join(input_folder, ext.upper())))  # Also check uppercase extensions
-    
+        # Also check uppercase extensions
+        images.extend(glob(os.path.join(input_folder, ext.upper())))
+
     # Apply suffix filter if specified
     images = filter_images_by_suffix(images, suffix_filter)
     if suffix_filter:
         logger.info(f"Suffix filter '{suffix_filter}' applied")
-    
+
     if not images:
         logger.warning(f"No images found in {input_folder}")
         return False
-    
+
     logger.info(f"Found {len(images)} images to process in {input_folder}")
 
     successful_count = 0
@@ -89,18 +91,20 @@ def run_pipeline(config_path: str):
             successful_count += 1
             logger.info(f"Successfully processed {fname}")
 
-    logger.info(f"Pipeline completed. Processed {successful_count}/{len(images)} images successfully")
+    logger.info(
+        f"Pipeline completed. Processed {successful_count}/{len(images)} images successfully")
     return successful_count > 0
+
 
 if __name__ == "__main__":
     import argparse
     import sys
-    
+
     parser = argparse.ArgumentParser(
         description="SlidePrep: Image processing pipeline for slide preparation"
     )
     parser.add_argument(
-        "config", 
+        "config",
         help="Path to config file"
     )
     args = parser.parse_args()

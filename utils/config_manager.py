@@ -2,13 +2,14 @@ import json
 from typing import Any, Dict
 from abc import ABC, abstractmethod
 
+
 class ConfigManager(ABC):
     """Abstract base class for configuration management."""
-    
+
     def __init__(self, config_path: str):
         """
         Initialize configuration manager.
-        
+
         Args:
             config_path: Path to the configuration file
         """
@@ -29,11 +30,11 @@ class ConfigManager(ABC):
     def get(self, key: str, default: Any = None) -> Any:
         """
         Get configuration value by key.
-        
+
         Args:
             key: Configuration key
             default: Default value if key not found
-            
+
         Returns:
             Configuration value or default
         """
@@ -42,7 +43,7 @@ class ConfigManager(ABC):
     def set(self, key: str, value: Any) -> None:
         """
         Set configuration value by key.
-        
+
         Args:
             key: Configuration key
             value: Value to set
@@ -53,5 +54,3 @@ class ConfigManager(ABC):
     def _extract_config_values(self) -> None:
         """Extract and validate configuration values. Must be implemented by subclasses."""
         pass
-
-    
