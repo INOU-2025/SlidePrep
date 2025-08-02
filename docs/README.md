@@ -2,15 +2,14 @@
 
 Welcome to the SlidePrep documentation. This folder contains essential guides for using and understanding the SlidePrep microscopy image processing pipeline.
 
-## 📚 Core Documentation
+## � Documentation Index
 
-### 🎯 **User Guides**
-- **[`BINARIZATION_METHODS_GUIDE.md`](BINARIZATION_METHODS_GUIDE.md)** - Complete guide to using binarization methods ⭐
-- **[`SYSTEM_OVERVIEW.md`](SYSTEM_OVERVIEW.md)** - High-level system architecture and usage
-
-### 🔧 **Technical Documentation**  
+### Core Guides
+- **[`SYSTEM_OVERVIEW.md`](SYSTEM_OVERVIEW.md)** - System architecture and development guide
+- **[`CONFIGURATION_GUIDE.md`](CONFIGURATION_GUIDE.md)** - Complete configuration reference
+- **[`BINARIZATION_METHODS_GUIDE.md`](BINARIZATION_METHODS_GUIDE.md)** - Binarization methods and optimization
 - **[`DEBUG_SYSTEM_GUIDE.md`](DEBUG_SYSTEM_GUIDE.md)** - Debug visualization system
-- **[`LOGGING_CONFIGURATION.md`](LOGGING_CONFIGURATION.md)** - Logging configuration
+- **[`LOGGING_CONFIGURATION.md`](LOGGING_CONFIGURATION.md)** - Logging setup and configuration
 
 ## 🚀 Quick Start
 
@@ -57,6 +56,11 @@ python demo_binarization_methods.py --image your_image.png
 - **Configuration system** and how components interact
 - **Development guidelines** for extending the system
 
+### CONFIGURATION_GUIDE.md
+- **Complete configuration reference** with all settings explained
+- **Validation and error handling** guide
+- **Best practices** for production and development
+- **Troubleshooting** common configuration issues
 ### DEBUG_SYSTEM_GUIDE.md
 - **Debug visualization** system for development
 - **Creating custom debug outputs** for new steps

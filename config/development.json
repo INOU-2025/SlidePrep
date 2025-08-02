@@ -1,14 +1,21 @@
 {
   "general": {
-    "input_path": "test_images",
-    "output_path": "output",
+    "input_path": "",
+    "output_path": "output", 
     "suffix_filter": "",
     "output_suffix": "",
     "log": true,
     "debug": true
   },
+  "log": {
+    "log_to_file": true,
+    "log_to_console": true,
+    "log_file_name": "dev.log",
+    "log_level": "DEBUG",
+    "output_dir": "logs"
+  },
   "binarization": {
-    "threshold_method": "OTSU"
+    "threshold_method": "combined_differential"
   },
   "grid_detection": {
     "angle_deg": 2.0,
@@ -20,15 +27,8 @@
     "line_thickness": 21,
     "length_threshold_factor": 0.55
   },
-  "log": {
-    "log_to_file": false,
-    "log_to_console": true,
-    "log_file_name": "grid_detection_test.log",
-    "log_level": "INFO",
-    "output_dir": "logs"
-  },
   "debug": {
-    "output_dir": "debug_output/test_grid_detection",
-    "save_composite": false
+    "output_dir": "debug_output/development",
+    "save_composite": true
   }
 }

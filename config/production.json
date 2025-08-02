@@ -1,0 +1,34 @@
+{
+  "general": {
+    "input_path": "",
+    "output_path": "output", 
+    "suffix_filter": "",
+    "output_suffix": "",
+    "log": true,
+    "debug": false
+  },
+  "log": {
+    "log_to_file": true,
+    "log_to_console": false,
+    "log_file_name": "slideprep.log",
+    "log_level": "WARNING",
+    "output_dir": "logs"
+  },
+  "binarization": {
+    "threshold_method": "combined_differential"
+  },
+  "grid_detection": {
+    "angle_deg": 2.0,
+    "margin": 5,
+    "percentile_thresh": 2,
+    "horizontal_area_threshold": 2000,
+    "vertical_area_threshold": 2000,
+    "line_length": 40,
+    "line_thickness": 21,
+    "length_threshold_factor": 0.55
+  },
+  "debug": {
+    "output_dir": "debug_output",
+    "save_composite": false
+  }
+}

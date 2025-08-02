@@ -28,7 +28,7 @@
     "length_threshold_factor": 0.55
   },
   "debug": {
-    "output_dir": "/Users/irconde/Downloads/V2_170225_exp250225/output_masks",
+    "output_dir": "debug_output",
     "save_composite": false
   }
 }

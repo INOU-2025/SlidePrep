@@ -15,35 +15,53 @@ These configurations are separate from the main pipeline configuration (`init_co
 
 ### Current Test Configurations
 
-- **`binarization_test_config.json`**: Configuration for testing binarization methods
-  - Contains only: `binarization`, `logging`, `debug` sections
-  - Optimized debug output directory: `debug_output/test_binarization`
-  - Production binarization method: `combined_differential`
+- **`binarization.json`**: Configuration for testing binarization methods
+  - Contains only: `general`, `binarization`, `log`, `debug` sections
+  - Input filter: `_raw` suffix (processes raw grayscale images)
+  - Output suffix: `_binarized` (generates binarized results)
+  - No output path defined (testing focuses on debug visualization)
+  - Debug and logging always enabled for analysis
+  - Debug output directory: `debug_output/test_binarization`
 
-- **`grid_detection_test_config.json`**: Configuration for testing grid detection algorithms
-  - Contains only: `grid_detection`, `logging`, `debug` sections
-  - Optimized debug output directory: `debug_output/test_grid_detection`
-  - Tuned parameters for line detection and grid analysis
+- **`grid_detection.json`**: Configuration for testing grid detection algorithms
+  - Contains only: `general`, `grid_detection`, `log`, `debug` sections
+  - Input filter: `_binarized` suffix (processes pre-binarized images)
+  - Output suffix: `_grid_detected` (generates detection results)
+  - No output path defined (testing focuses on debug visualization)
+  - Debug and logging always enabled for analysis
+  - Debug output directory: `debug_output/test_grid_detection`
+  - No binarization section - expects pre-binarized images
 
 ### Legacy Test Configurations
 
 - **`test_grid_detection_config.json`**: Original grid detection test config (moved from config/)
 - **`test_img_binarization.json`**: Original binarization test config (moved from config/)
 
-## Usage
+## Testing Philosophy
 
-Test scripts automatically use these configurations:
+Test configurations are designed for algorithm development and validation:
+
+- **No output paths**: Testing focuses on debug visualization, not file output
+- **Suffix filtering**: Process specific file types (e.g., `_raw` for grayscale, `_binarized` for binary)
+- **Debug always enabled**: Essential for understanding algorithm behavior
+- **Console logging**: Immediate feedback during testing
+- **Focused sections**: Only include configuration relevant to the step being tested
+
+## Typical Testing Workflow
 
 ```bash
-# Binarization testing (uses binarization_test_config.json by default)
-python scripts/test_binarization.py --input /path/to/images
+# 1. Test binarization on raw grayscale images
+python scripts/test_binarization.py config/test/binarization.json
+# Input: image001_raw.png → Debug: debug_output/test_binarization/image001_raw_binarized.png
+# Result suffix: _binarized
 
-# Grid detection testing (uses grid_detection_test_config.json by default)
-python scripts/test_grid_detection.py --input /path/to/images
-
-# Or specify a custom test config
-python scripts/test_binarization.py --input /path/to/images --config config/test/custom_config.json
+# 2. Test grid detection on pre-binarized images  
+python scripts/test_grid_detection.py config/test/grid_detection.json
+# Input: image001_binarized.png → Debug: debug_output/test_grid_detection/image001_binarized_grid_detected.png
+# Result suffix: _grid_detected
 ```
+
+This creates a clear pipeline: `raw` → `binarized` → `grid_detected`
 
 ## Adding New Test Configurations
 

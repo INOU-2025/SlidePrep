@@ -1,11 +1,11 @@
 {
   "general": {
-    "input_path": "",
-    "output_path": "output",
-    "suffix_filter": "",
-    "output_suffix": "",
+    "input_path": "test_images",
+    "output_path": "",
+    "suffix_filter": "_raw",
+    "output_suffix": "_binarized",
     "log": true,
-    "debug": false
+    "debug": true
   },
   "binarization": {
     "threshold_method": "combined_differential"
