@@ -2,6 +2,7 @@ import os
 import cv2
 from glob import glob
 from core import bootstrap, get_config, get_logger
+from core.pipeline import Pipeline
 from steps import BinarizationStep, GridDetectionStep
 from utils import get_supported_image_patterns, filter_images_by_suffix
 # Future: from steps.mask_creation import MaskCreationStep, etc.
@@ -50,6 +51,7 @@ def run_pipeline(config_path: str):
             GridDetectionStep(cfg.grid_detection_config),
             # Future: MaskCreationStep(...), etc.
         ]
+        pipeline = Pipeline(steps)
         logger.info(f"Initialized {len(steps)} pipeline steps")
     except Exception as e:
         logger.error(f"Failed to initialize pipeline steps: {e}")
@@ -82,23 +84,8 @@ def run_pipeline(config_path: str):
             logger.error(f"Could not read {fname}")
             continue
 
-        # Use direct function chaining - each step takes input and returns output
-        current_data = gray
-        
-        for step in steps:
-            try:
-                # Run step with current data (services accessed via container properties)
-                result = step.run(current_data)
-                
-                # Step returns processed data/image
-                current_data = result
-                logger.info(f"Step {step.name} completed")
-                    
-            except Exception as e:
-                logger.exception(f"Error in step {step.name} for {fname}: {e}")
-                break
-        else:
-            # This executes only if the loop completed without breaking
+        result = pipeline.run(gray)
+        if result is not None:
             successful_count += 1
             logger.info(f"Successfully processed {fname}")
 
