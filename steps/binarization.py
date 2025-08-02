@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Any
 
 from core.step import PipelineStep
 from config.config_schema import BinarizationConfig
@@ -6,47 +7,63 @@ from utils.binarization import BinarizationMethods
 
 
 class BinarizationStep(PipelineStep):
-    def __init__(self, config: BinarizationConfig, **kwargs) -> None:
-        super().__init__(name="Binarization", config=config, **kwargs)
+    """Pipeline step for converting grayscale images to binary using thresholding methods.
+    
+    Applies configurable binarization algorithms to separate foreground from background,
+    with automatic grayscale conversion for color inputs.
+    """
+    
+    def __init__(self, config: BinarizationConfig, **kwargs: Any) -> None:
+        """Initialize binarization step with configuration.
         
-        # Initialize binarization methods utility with debug callback
+        Args:
+            config: Binarization configuration specifying threshold method and parameters.
+            **kwargs: Additional arguments passed to parent class.
+        """
+        super().__init__(name="Binarization", config=config, **kwargs)
         self.methods = BinarizationMethods(debug_callback=self.debug)
 
     def run(self, data: np.ndarray) -> np.ndarray:
-        """
-        Apply binarization to a grayscale image.
+        """Convert grayscale image to binary using configured thresholding method.
+        
+        Automatically converts color images to grayscale before applying binarization.
+        Uses production-optimized algorithms for consistent results across image types.
         
         Args:
-            data: Grayscale image as numpy array
+            data: Input image as numpy array. Can be grayscale (2D) or color (3D).
             
         Returns:
-            Binarized image as numpy array
+            Binary image as uint8 numpy array with values 0 (background) and 255 (foreground).
+            
+        Raises:
+            ValueError: If threshold method is unknown or image validation fails.
+            TypeError: If input is not a numpy array.
         """
-        # Validate input image
         self._validate_image_input(data)
 
-        # Convert to grayscale if needed
         if len(data.shape) == 3:
-            if data.shape[2] == 3:  # RGB
+            if data.shape[2] == 3:
                 gray = np.dot(data[...,:3], [0.2989, 0.5870, 0.1140]).astype(np.uint8)
-            elif data.shape[2] == 4:  # RGBA
+            elif data.shape[2] == 4:
                 gray = np.dot(data[...,:3], [0.2989, 0.5870, 0.1140]).astype(np.uint8)
-            else:  # Single channel 3D
+            else:
                 gray = data.squeeze()
         else:
             gray = data
-        
-        self.log(f"Starting binarization using {self.config.threshold_method} method")
-        
-        # Apply the configured binarization method
+
+        self.log(
+            f"Starting binarization using {self.config.threshold_method} method")
+
         try:
             if self.config.threshold_method == "combined_differential":
-                binary_image = self.methods.apply_combined_differential_threshold(gray)
+                binary_image = self.methods.apply_combined_differential_threshold(
+                    gray)
             else:
-                raise ValueError(f"Unknown threshold method: {self.config.threshold_method}")
+                raise ValueError(
+                    f"Unknown threshold method: {self.config.threshold_method}")
         except Exception as e:
             self.log(f"Binarization failed: {e}")
             raise
-        
+
         self.log(f"Binarization completed")
         return binary_image

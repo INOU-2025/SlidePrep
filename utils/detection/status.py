@@ -22,8 +22,8 @@ class DetectionStatus(Enum):
     def get_color(cls, status: "DetectionStatus") -> Tuple[int, int, int]:
         """Get BGR color for visualization based on status."""
         mapping = {
-            cls.ACCEPT: (0, 255, 0),  # Green
-            cls.REJECT: (0, 0, 255),  # Red
-            cls.MAYBE: (0, 255, 255),  # Yellow
+            cls.ACCEPT: (0, 255, 0),
+            cls.REJECT: (0, 0, 255),
+            cls.MAYBE: (0, 255, 255),
         }
-        return mapping.get(status, (128, 128, 128))  # Gray for unknown
+        return mapping.get(status, (128, 128, 128))

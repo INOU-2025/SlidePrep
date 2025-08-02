@@ -1,29 +1,29 @@
+from scripts.module_test_runner import StepTestRunner
+from steps.binarization import BinarizationStep
 import argparse
 import sys
 from pathlib import Path
 
-# Add project root to path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
+import sys
+from pathlib import Path
 
-from steps.binarization import BinarizationStep
-from scripts.module_test_runner import StepTestRunner
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 def main(config_path: str):
-    # Initialize test runner without drawer (plain image saving for binarization)
-    runner = StepTestRunner(config_path)  # No drawer = plain images
-    
-    # Create binarization step
+    runner = StepTestRunner(config_path)
+
     step = BinarizationStep(
         config=runner.cfg.binarization_config,
         debugger=runner.debugger,
         logger=runner.logger
     )
-    
-    # Run the step on all images - debugger will save plain binarized images
-    runner.run_on_directory(step, "binarized")
-    
+
+    runner.run_on_directory(
+        step=step,
+        output_suffix="_binarized"
+    )
+
     runner.logger.info("Binarization testing completed")
 
 

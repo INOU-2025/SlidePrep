@@ -10,14 +10,14 @@ from utils.debug.base_drawer import BaseDrawer
 class Debugger:
     """
     Debugger with optional drawer for enhanced visualization.
-    
+
     """
 
     def __init__(self, debug_config: DebugConfig, debug_enabled: bool = True, drawer: Optional[BaseDrawer] = None):
         self._enabled = debug_enabled
         self._save_composite = debug_config.save_composite
         self._output_dir = debug_config.output_dir
-        self._drawer = drawer  # Single optional drawer instance
+        self._drawer = drawer
         if self._enabled and self._output_dir:
             os.makedirs(self._output_dir, exist_ok=True)
 
@@ -33,11 +33,9 @@ class Debugger:
                 else filename
             )
 
-            # Optionally compose with original for comparison
             if original is not None and self._save_composite:
                 base = original
                 result = image
-                # Ensure both images are in BGR format with same dimensions
                 if len(base.shape) == 2:
                     base = cv2.cvtColor(base, cv2.COLOR_GRAY2BGR)
                 if len(result.shape) == 2:
@@ -50,23 +48,19 @@ class Debugger:
 
             cv2.imwrite(output_path, image_to_save)
         except Exception:
-            # Debug saving should never interfere with main processing
             pass
 
     def save_debug_image(self, filename: str, image: np.ndarray, results=None, metadata=None) -> None:
         """Save a debug image, using drawer if available."""
         if not self._enabled:
             return
-            
+
         try:
             if self._drawer is not None:
-                # Use drawer to create enhanced visualization
                 enhanced_image = self._drawer.draw(image, results, metadata)
                 if enhanced_image is not None:
                     self._save_image(filename, enhanced_image)
             else:
-                # No drawer, save the plain image
                 self._save_image(filename, image)
         except Exception:
-            # Debug operations should never interfere with main processing
             pass

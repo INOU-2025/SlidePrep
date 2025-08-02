@@ -5,7 +5,6 @@ from core import bootstrap, get_config, get_logger
 from core.pipeline import Pipeline
 from steps import BinarizationStep, GridDetectionStep
 from utils import get_supported_image_patterns, filter_images_by_suffix
-# Future: from steps.mask_creation import MaskCreationStep, etc.
 
 
 def run_pipeline(config_path: str):
@@ -22,17 +21,14 @@ def run_pipeline(config_path: str):
         config_path: Path to the configuration file
     """
     try:
-        # Bootstrap the application with all services (no drawer for main pipeline)
         bootstrap(config_path)
-
-        # Get services from container
+        
         cfg = get_config()
         logger = get_logger()
     except Exception as e:
         print(f"Failed to initialize application: {e}")
         return False
 
-    # Get input folder and suffix filter from config
     input_folder = cfg.general_config.input_path
     suffix_filter = cfg.general_config.suffix_filter
 
@@ -45,12 +41,10 @@ def run_pipeline(config_path: str):
         logger.error(f"Input folder does not exist: {input_folder}")
         return False
 
-    # Set up pipeline steps - services are injected automatically via container
     try:
         steps = [
             BinarizationStep(cfg.binarization_config),
             GridDetectionStep(cfg.grid_detection_config),
-            # Future: MaskCreationStep(...), etc.
         ]
         pipeline = Pipeline(steps)
         logger.info(f"Initialized {len(steps)} pipeline steps")
@@ -58,15 +52,12 @@ def run_pipeline(config_path: str):
         logger.error(f"Failed to initialize pipeline steps: {e}")
         return False
 
-    # Support common image formats
     image_extensions = get_supported_image_patterns()
     images = []
     for ext in image_extensions:
         images.extend(glob(os.path.join(input_folder, ext)))
-        # Also check uppercase extensions
         images.extend(glob(os.path.join(input_folder, ext.upper())))
 
-    # Apply suffix filter if specified
     images = filter_images_by_suffix(images, suffix_filter)
     if suffix_filter:
         logger.info(f"Suffix filter '{suffix_filter}' applied")
