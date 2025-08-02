@@ -10,10 +10,7 @@ from utils.debug.binarization_drawer import BinarizationDrawer
 
 
 class Debugger:
-    """
-    Registry-based debugger with dynamic drawer creation.
-    Supports extensible drawer registration for different pipeline steps.
-    """
+    """Registry-based debugger with dynamic drawer creation."""
     _registry: Dict[str, Type[BaseDrawer]] = {}
 
     def __init__(self, debug_config: DebugConfig, debug_enabled: bool = True):
@@ -29,22 +26,7 @@ class Debugger:
     
 
     def save_image(self, filename: str, image: np.ndarray, original: Optional[np.ndarray] = None) -> None:
-        """
-        Save an image directly to the configured debug output directory.
-
-        This provides a simple way for steps to persist intermediate
-        results without needing a specialized drawer.  If visualization is
-        disabled or the image is ``None`` the call is a no-op.
-
-        Parameters
-        ----------
-        filename:
-            Name of the file to create.  It will be placed inside the
-            configured ``output_dir`` if one was provided during
-            initialization.
-        image:
-            Image data in ``numpy`` array format suitable for ``cv2.imwrite``.
-        """
+        """Save an image to the debug output directory."""
         if not self._enabled or image is None:
             return
 
@@ -55,15 +37,11 @@ class Debugger:
                 else filename
             )
 
-            # Optionally compose the result with the original image for
-            # easier visual comparison.  This behaviour is controlled by the
-            # ``save_composite`` debug configuration or by providing an
-            # ``original`` image explicitly.
+            # Optionally compose with original for comparison
             if original is not None and self._save_composite:
                 base = original
                 result = image
-                # Ensure both images are in BGR format and have the same
-                # dimensions before stacking them side by side.
+                # Ensure both images are in BGR format with same dimensions
                 if len(base.shape) == 2:
                     base = cv2.cvtColor(base, cv2.COLOR_GRAY2BGR)
                 if len(result.shape) == 2:
@@ -76,20 +54,12 @@ class Debugger:
 
             cv2.imwrite(output_path, image_to_save)
         except Exception:
-            # Debug saving should never raise exceptions that would
-            # interfere with the main processing pipeline.  Any failure is
-            # therefore silently ignored.
+            # Debug saving should never interfere with main processing
             pass
 
     @classmethod
     def register_drawer(cls, key: str, drawer_cls: Type[BaseDrawer]) -> None:
-        """
-        Register a drawer class for a specific step type.
-        
-        Args:
-            key: Step identifier (e.g., 'grid_detection', 'binarization')
-            drawer_cls: Drawer class that inherits from BaseDrawer
-        """
+        """Register a drawer class for a specific step type."""
         cls._registry[key] = drawer_cls
 
     @classmethod
@@ -98,20 +68,7 @@ class Debugger:
         return cls._registry.copy()
 
     def create_drawer(self, key: str, image: np.ndarray, **kwargs) -> BaseDrawer:
-        """
-        Create a drawer instance for the specified step type.
-        
-        Args:
-            key: Step identifier (e.g., 'grid_detection', 'binarization')
-            image: Image to use as the base for visualization
-            **kwargs: Additional arguments to pass to the drawer constructor
-            
-        Returns:
-            Drawer instance for the specified step type
-            
-        Raises:
-            KeyError: If the drawer type is not registered
-        """
+        """Create a drawer instance for the specified step type."""
         if key not in self._registry:
             raise KeyError(f"Drawer '{key}' not registered. Available: {list(self._registry.keys())}")
         

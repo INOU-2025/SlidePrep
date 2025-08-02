@@ -11,7 +11,16 @@ from utils.detection.analysis import draw_and_analyze_contour
 
 
 class GridDetectionStep(PipelineStep):
+    """Pipeline step for detecting grid patterns in binarized images."""
+    
     def __init__(self, config: GridDetectionConfig, **kwargs):
+        """
+        Initialize grid detection step.
+        
+        Args:
+            config: Grid detection configuration
+            **kwargs: Additional arguments passed to parent class
+        """
         super().__init__(name="GridDetection", **kwargs)
         self.config = config
         factory = LineTemplateFactory(length=config.line_length, thickness=config.line_thickness, angle_deg=config.angle_deg)
@@ -29,6 +38,9 @@ class GridDetectionStep(PipelineStep):
             
         Returns:
             Tuple of (processed_image, statistics_dict)
+            
+        Raises:
+            ValueError: If input data is None
         """
         if data is None:
             raise ValueError("Binarized image is required for grid detection")
@@ -36,19 +48,16 @@ class GridDetectionStep(PipelineStep):
         working_image = data
         self.log(f"Grid detection using binarized image ({working_image.shape[1]}x{working_image.shape[0]})")
         
-        # Create output image for visualization (copy of input)
         output_image = working_image.copy()
         
-        # Create drawer for debug visualization if enabled
         drawer = None
         if self.debugger and self.debugger.is_enabled():
-            # Convert to BGR for visualization
             visualization_base = cv2.cvtColor(working_image, cv2.COLOR_GRAY2BGR)
             drawer = self.debugger.create_drawer("grid_detection", visualization_base)
 
         # Ensure lines are white for template matching
         mean_val = np.mean(working_image)
-        if mean_val < 127:  # Most pixels are dark, likely lines are black
+        if mean_val < 127:
             inverted = cv2.bitwise_not(working_image)
             self.debug(f"Inverted binary image for template matching (mean={mean_val:.1f})")
         else:

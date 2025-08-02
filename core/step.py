@@ -4,30 +4,55 @@ from core.container import Container
 
 
 class PipelineStep(ABC):
+    """Base class for all pipeline processing steps."""
+    
     def __init__(self, name: str, **kwargs):
+        """
+        Initialize pipeline step.
+        
+        Args:
+            name: Name of the pipeline step
+            **kwargs: Additional arguments (unused but allows flexible inheritance)
+        """
         self.name = name
 
     @abstractmethod
     def run(self, data: Any) -> Any:
-        """Process input data and return output data."""
+        """
+        Process input data and return output data.
+        
+        Args:
+            data: Input data to process
+            
+        Returns:
+            Processed output data
+        """
         pass
 
     def log(self, message: str) -> None:
-        """Log an info message with step prefix."""
+        """
+        Log an info message with step prefix.
+        
+        Args:
+            message: Message to log
+        """
         try:
             logger = Container.resolve("logger")
             logger.info(f"[{self.name}] {message}")
         except KeyError:
-            # Fallback if logger not available
             print(f"[{self.name}] {message}")
 
     def debug(self, message: str) -> None:
-        """Log a debug message with step prefix."""
+        """
+        Log a debug message with step prefix.
+        
+        Args:
+            message: Message to log
+        """
         try:
             logger = Container.resolve("logger")
             logger.debug(f"[{self.name}] {message}")
         except KeyError:
-            # Fallback if logger not available
             print(f"[{self.name}] DEBUG: {message}")
 
     @property

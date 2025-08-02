@@ -2,10 +2,19 @@ from config.config_schema import GeneralConfig, GridDetectionConfig, Binarizatio
 from utils.config_manager import ConfigManager
 
 class AppConfigManager(ConfigManager):
+    """Application-specific configuration manager with typed config sections."""
+    
     def __init__(self, config_path: str):
+        """
+        Initialize application configuration manager.
+        
+        Args:
+            config_path: Path to the configuration file
+        """
         super().__init__(config_path)
 
     def _extract_config_values(self):
+        """Extract and validate configuration values into typed objects."""
         try:
             self.general_config = GeneralConfig(**self.get("general", {}))
             self.binarization_config = BinarizationConfig(**self.get("binarization", {}))
@@ -17,9 +26,11 @@ class AppConfigManager(ConfigManager):
 
     @property
     def logger_active(self) -> bool:
+        """Check if logging is enabled in general configuration."""
         return self.general_config.log
 
     @property
     def debug_active(self) -> bool:
+        """Check if debugging is enabled in general configuration."""
         return self.general_config.debug
 

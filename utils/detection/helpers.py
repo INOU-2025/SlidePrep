@@ -4,13 +4,13 @@ from typing import Tuple
 
 def compute_min_required_ratio(area: float) -> float:
     """
-    Computes the minimum required dark pixel ratio based on the area of the contour.
+    Compute the minimum required dark pixel ratio based on contour area.
 
     Args:
-        area (float): Area of the contour.
+        area: Area of the contour
 
     Returns:
-        float: Minimum acceptable ratio of dark pixels within the region.
+        Minimum acceptable ratio of dark pixels within the region
     """
     if area >= 9500:
         return 0.85
@@ -21,16 +21,16 @@ def compute_min_required_ratio(area: float) -> float:
 
 def border_touch_ratio(rotated_box: np.ndarray, orientation: str, shape: tuple[int, int], margin: int) -> tuple[int, float]:
     """
-    Computes whether a rotated bounding box touches the image border along its long edges.
+    Compute whether a rotated bounding box touches the image border along its long edges.
 
     Args:
-        rotated_box (np.ndarray): Array of 4 points defining the rotated rectangle.
-        orientation (str): 'horizontal' or 'vertical' key defining expected orientation.
-        shape (Tuple[int, int]): Shape of the image (height, width).
-        margin (int): Tolerance in pixels for considering an edge as touching the border.
+        rotated_box: Array of 4 points defining the rotated rectangle
+        orientation: 'horizontal' or 'vertical' key defining expected orientation
+        shape: Shape of the image (height, width)
+        margin: Tolerance in pixels for considering an edge as touching the border
 
     Returns:
-        Tuple[int, float]: (1 if any long edge touches the border, ratio of overlap samples that touch)
+        Tuple of (1 if any long edge touches border, ratio of overlap samples that touch)
     """
     h, w = shape
     pts = rotated_box

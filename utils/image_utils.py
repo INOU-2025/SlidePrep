@@ -40,10 +40,10 @@ def filter_images_by_suffix(image_paths: list[str], suffix: str) -> list[str]:
     
     Args:
         image_paths: List of image file paths
-        suffix: Suffix to filter by (e.g., '_ch00', '_processed') - applied to filename without extension
+        suffix: Suffix to filter by (e.g., '_ch00', '_processed')
         
     Returns:
-        Filtered list of image paths where the filename (without extension) ends with the specified suffix
+        Filtered list of image paths where filename ends with the specified suffix
         
     Example:
         filter_images_by_suffix(['sample_001_ch00.jpg', 'sample_001_ch01.jpg'], '_ch00')
@@ -55,7 +55,7 @@ def filter_images_by_suffix(image_paths: list[str], suffix: str) -> list[str]:
     filtered_paths = []
     for path in image_paths:
         filename = os.path.basename(path)
-        name_without_ext = os.path.splitext(filename)[0]  # Remove extension
+        name_without_ext = os.path.splitext(filename)[0]
         if name_without_ext.endswith(suffix):
             filtered_paths.append(path)
     

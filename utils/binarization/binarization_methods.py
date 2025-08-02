@@ -1,18 +1,15 @@
 """
 Binarization Utilities Module
 
-This module contains various binarization methods that were evaluated during development.
-While the production system uses Combined Differential method, these utilities preserve
-all the alternative approaches for research, experimentation, and special use cases.
+Contains various binarization methods for research, experimentation, and production use.
+Production system uses Combined Differential method, while other methods are available
+for special use cases and comparison.
 
 Available Methods:
-- Global thresholding (fixed and adaptive)
-- Otsu automatic thresholding  
+- Global thresholding, Otsu automatic thresholding  
 - Adaptive thresholding (mean and gaussian)
-- Multi-Otsu thresholding
-- Line-enhanced thresholding
-- Morphological operations
-- Combined differential (production method)
+- Multi-Otsu thresholding, Line-enhanced thresholding
+- Morphological operations, Combined differential (production method)
 
 Usage:
     from utils.binarization_methods import BinarizationMethods
@@ -20,7 +17,6 @@ Usage:
     methods = BinarizationMethods()
     binary_image = methods.apply_otsu(gray_image)
     binary_image = methods.apply_multi_otsu(gray_image)
-    # etc.
 """
 
 import cv2
@@ -41,12 +37,7 @@ class ThresholdMethod(Enum):
 
 
 class BinarizationMethods:
-    """
-    Collection of binarization methods for image processing.
-    
-    This class provides access to various thresholding techniques that can be
-    used for different types of images and analysis requirements.
-    """
+    """Collection of binarization methods for image processing."""
     
     def __init__(self, debug_callback: Optional[callable] = None):
         """

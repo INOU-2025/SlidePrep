@@ -3,6 +3,7 @@ import os
 from config.config_schema import LogConfig
 
 class NoOpLogger:
+    """No-operation logger for disabled logging scenarios."""
     def info(self, *args, **kwargs) -> None: pass
     def error(self, *args, **kwargs) -> None: pass
     def exception(self, *args, **kwargs) -> None: pass
@@ -10,6 +11,8 @@ class NoOpLogger:
     def warning(self, *args, **kwargs) -> None: pass
 
 class Logger:
+    """Logger wrapper with configurable handlers and output destinations."""
+    
     def __init__(self, log_config: LogConfig, enabled: bool = True):
         """
         Initialize the Logger instance with the given configuration.
@@ -28,13 +31,11 @@ class Logger:
 
     @property
     def enabled(self) -> bool:
-        """
-        Property to check if logging is enabled.
-        """
+        """Check if logging is enabled."""
         return self._enabled
 
     def _setup_handlers(self, log_config: LogConfig) -> None:
-        # Remove existing handlers
+        """Set up file and console handlers based on configuration."""
         for handler in self.logger.handlers[:]:
             self.logger.removeHandler(handler)
 
@@ -54,16 +55,21 @@ class Logger:
             self.logger.addHandler(console_handler)
 
     def info(self, *args, **kwargs) -> None:
+        """Log an info message."""
         self.logger.info(*args, **kwargs)
 
     def error(self, *args, **kwargs) -> None:
+        """Log an error message."""
         self.logger.error(*args, **kwargs)
 
     def exception(self, *args, **kwargs) -> None:
+        """Log an exception with traceback."""
         self.logger.exception(*args, **kwargs)
 
     def debug(self, *args, **kwargs) -> None:
+        """Log a debug message."""
         self.logger.debug(*args, **kwargs)
     
     def warning(self, *args, **kwargs) -> None:
+        """Log a warning message."""
         self.logger.warning(*args, **kwargs)

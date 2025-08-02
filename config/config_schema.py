@@ -5,13 +5,14 @@ class GeneralConfig:
     """General configuration properties that apply to all scripts."""
     input_path: str = ""
     output_path: str = "output"
-    suffix_filter: str = ""  # Only process files with this suffix (e.g., '_ch00', '_processed')
-    output_suffix: str = ""  # Suffix to add to output files (e.g., '_mask', '_detection')
-    log: bool = True  # Enable/disable logging
-    debug: bool = False  # Enable/disable debugging
+    suffix_filter: str = ""
+    output_suffix: str = ""
+    log: bool = True
+    debug: bool = False
 
 @dataclass
 class BinarizationConfig:
+    """Configuration for binarization step."""
     threshold_method: str
 
 @dataclass

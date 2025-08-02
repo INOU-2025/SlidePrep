@@ -2,7 +2,7 @@
 Dependency Injection Container
 
 Provides a centralized way to manage application services and dependencies.
-Supports both singleton (shared instances) and factory (new instance per call) patterns.
+Supports both singleton and factory patterns.
 """
 
 from typing import Any, Callable, Dict, Optional
@@ -16,7 +16,8 @@ class Container:
 
     @classmethod
     def register_factory(cls, name: str, factory: Callable) -> None:
-        """Register a factory function that creates a new instance each time it's resolved.
+        """
+        Register a factory function that creates a new instance each time.
         
         Args:
             name: Service name/key
@@ -26,7 +27,8 @@ class Container:
 
     @classmethod
     def register_singleton(cls, name: str, provider: Any) -> None:
-        """Register a singleton service that returns the same instance every time.
+        """
+        Register a singleton service that returns the same instance.
         
         Args:
             name: Service name/key  
@@ -36,7 +38,8 @@ class Container:
 
     @classmethod
     def resolve(cls, name: str) -> Any:
-        """Resolve a service by name.
+        """
+        Resolve a service by name.
         
         Args:
             name: Service name/key
@@ -56,7 +59,8 @@ class Container:
 
     @classmethod
     def is_registered(cls, name: str) -> bool:
-        """Check if a service is registered.
+        """
+        Check if a service is registered.
         
         Args:
             name: Service name/key
@@ -74,7 +78,8 @@ class Container:
 
     @classmethod
     def list_services(cls) -> Dict[str, str]:
-        """List all registered services and their types.
+        """
+        List all registered services and their types.
         
         Returns:
             Dictionary mapping service names to their types (singleton/factory)
