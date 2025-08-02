@@ -5,7 +5,7 @@ from .models import Detection, GridDetectionResult
 
 __all__ = [
     "compute_min_required_ratio",
-    "border_touch_ratio", 
+    "border_touch_ratio",
     "LineTemplateFactory",
     "DetectionStatus",
     "Detection",

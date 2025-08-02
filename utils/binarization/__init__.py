@@ -124,5 +124,6 @@ class BinarizationMethods:
             },
         }
         return method_info.get(
-            method, {"description": "Unknown method", "parameters": [], "use_case": "Unknown"}
+            method, {"description": "Unknown method",
+                     "parameters": [], "use_case": "Unknown"}
         )

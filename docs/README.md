@@ -19,10 +19,11 @@ The system uses the **Combined Differential** method by default - just use `Bina
 ```python
 from steps.binarization import BinarizationStep
 from config.config_schema import BinarizationConfig
+import numpy as np
 
 config = BinarizationConfig()  # Uses combined_differential by default
 step = BinarizationStep(config)
-step.run(ctx)  # ctx.binarized_image contains the result
+result: np.ndarray = step.run(image_array)  # Returns binary image directly
 ```
 
 ### For Research and Experimentation
@@ -48,6 +49,49 @@ python demo_binarization_methods.py --image your_image.png
 - **All 7 binarization methods** with working code examples
 - **Parameter explanations** and best practices
 - **Method selection guidelines** 
+
+### SYSTEM_OVERVIEW.md
+- **Complete architecture overview** with typed components
+- **Pipeline design patterns** and step interfaces
+- **Production vs research usage** with clear API examples
+
+### CONFIGURATION_GUIDE.md
+- **Full configuration reference** with type validation
+- **JSON schema documentation** and validation rules
+- **Environment-specific settings** for different deployments
+
+### DEBUG_SYSTEM_GUIDE.md
+- **Visualization system** for development and debugging
+- **Custom drawer creation** with type-safe interfaces
+- **Debug output management** and analysis tools
+
+## 📝 Code Quality Standards
+
+### Type Hints (PEP 484)
+All functions include comprehensive type annotations for better IDE support and static analysis:
+
+```python
+def run(self, data: np.ndarray) -> np.ndarray:
+    """Convert grayscale image to binary using configured method."""
+```
+
+### Documentation (PEP 257)
+Professional docstrings explain behavior and purpose rather than implementation:
+
+```python
+class BinarizationStep(PipelineStep):
+    """Pipeline step for converting grayscale images to binary using thresholding methods.
+    
+    Applies configurable binarization algorithms to separate foreground from background,
+    with automatic grayscale conversion for color inputs.
+    """
+```
+
+### API Design
+- **Direct array processing**: Functions return results directly, not through context objects
+- **Clear type contracts**: Every function signature includes input/output types
+- **Comprehensive validation**: Configuration classes validate parameters automatically
+- **Behavioral documentation**: Docstrings explain what functions do and why, not how 
 - **Troubleshooting** common issues
 - **Integration examples** for production and research
 

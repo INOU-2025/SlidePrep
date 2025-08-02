@@ -13,8 +13,10 @@ def apply_morphological_threshold(
     debug_callback: Optional[Callable] = None,
 ) -> np.ndarray:
     """Apply morphological operations after Otsu thresholding."""
-    binary = apply_otsu_threshold(gray, invert=invert, debug_callback=debug_callback)
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+    binary = apply_otsu_threshold(
+        gray, invert=invert, debug_callback=debug_callback)
+    kernel = cv2.getStructuringElement(
+        cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
     operation_map = {
         "open": cv2.MORPH_OPEN,
         "close": cv2.MORPH_CLOSE,
@@ -27,5 +29,6 @@ def apply_morphological_threshold(
     morph_op = operation_map[operation]
     result = cv2.morphologyEx(binary, morph_op, kernel)
     if debug_callback:
-        debug_callback(f"Applied morphological {operation}: kernel_size={kernel_size}")
+        debug_callback(
+            f"Applied morphological {operation}: kernel_size={kernel_size}")
     return result

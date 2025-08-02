@@ -1,13 +1,14 @@
 from config.config_schema import GeneralConfig, GridDetectionConfig, BinarizationConfig, LogConfig, DebugConfig
 from utils.config_manager import ConfigManager
 
+
 class AppConfigManager(ConfigManager):
     """Application-specific configuration manager with typed config sections."""
-    
+
     def __init__(self, config_path: str):
         """
         Initialize application configuration manager.
-        
+
         Args:
             config_path: Path to the configuration file
         """
@@ -17,12 +18,15 @@ class AppConfigManager(ConfigManager):
         """Extract and validate configuration values into typed objects."""
         try:
             self.general_config = GeneralConfig(**self.get("general", {}))
-            self.binarization_config = BinarizationConfig(**self.get("binarization", {}))
-            self.grid_detection_config = GridDetectionConfig(**self.get("grid_detection", {}))
+            self.binarization_config = BinarizationConfig(
+                **self.get("binarization", {}))
+            self.grid_detection_config = GridDetectionConfig(
+                **self.get("grid_detection", {}))
             self.log_config = LogConfig(**self.get("log", {}))
             self.debug_config = DebugConfig(**self.get("debug", {}))
         except TypeError as e:
-            raise ValueError("Error extracting config values. Malformed or incomplete configuration") from e
+            raise ValueError(
+                "Error extracting config values. Malformed or incomplete configuration") from e
 
     @property
     def logger_active(self) -> bool:
@@ -33,4 +37,3 @@ class AppConfigManager(ConfigManager):
     def debug_active(self) -> bool:
         """Check if debugging is enabled in general configuration."""
         return self.general_config.debug
-

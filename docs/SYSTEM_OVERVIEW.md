@@ -45,11 +45,12 @@ The system is optimized for production with sensible defaults:
 ```python
 from steps.binarization import BinarizationStep
 from config.config_schema import BinarizationConfig
+import numpy as np
 
 # Simple production usage
 config = BinarizationConfig()  # Uses combined_differential by default
 step = BinarizationStep(config)
-step.run(ctx)  # Optimal results automatically
+result: np.ndarray = step.run(image_array)  # Returns binary image directly
 ```
 
 **Key Features**:
@@ -75,6 +76,50 @@ binary = methods.apply_method(ThresholdMethod.MULTI_OTSU, image)
 - **Method comparison tools** (interactive demo)
 - **Debug callbacks** and detailed information
 - **Comprehensive documentation** with examples
+
+## 🔧 API Design Principles
+
+### Direct Array Processing
+Pipeline steps use direct numpy array processing for optimal performance and clarity:
+
+```python
+# Each step processes arrays directly and returns results
+binary_image: np.ndarray = binarization_step.run(grayscale_image)
+detections: GridDetectionResult = grid_detection_step.run(binary_image)
+```
+
+### Type Safety (PEP 484)
+All functions include comprehensive type hints for IDE support and static analysis:
+
+```python
+def run(self, data: np.ndarray) -> np.ndarray:
+    """Process input with clear type contracts and return guarantees."""
+```
+
+### Professional Documentation (PEP 257)
+Consistent docstring standards explain behavior and purpose:
+
+```python
+class BinarizationStep(PipelineStep):
+    """Pipeline step for converting grayscale images to binary using thresholding methods.
+    
+    Applies configurable binarization algorithms to separate foreground from background,
+    with automatic grayscale conversion for color inputs.
+    """
+```
+
+### Configuration Validation
+Automatic parameter validation with clear error messages:
+
+```python
+@dataclass
+class BinarizationConfig:
+    threshold_method: str = "combined_differential"
+    
+    def __post_init__(self) -> None:
+        """Validate binarization method selection."""
+        # Comprehensive validation runs automatically
+```
 
 ## ⚙️ Configuration System
 
@@ -244,16 +289,16 @@ for step in steps:
 ```python
 from core.bootstrap import bootstrap
 from steps.binarization import BinarizationStep
+import numpy as np
 
 # Initialize services first
 bootstrap(config_path)
 
 # Use individual steps (services auto-injected)
 step = BinarizationStep(config.binarization_config)
-result = step.run(input_image)
-binarization_step.run(ctx)
+result: np.ndarray = step.run(input_image)
 
-# Result available in ctx.binarized_image
+# Result is returned directly as binary image array
 ```
 
 ### Method Research

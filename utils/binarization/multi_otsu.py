@@ -21,12 +21,14 @@ def apply_multi_otsu_threshold(
             binary[gray <= thresholds[0]] = 255
         if debug_callback:
             debug_callback(
-                f"Applied multi-Otsu thresholds: {[f'{t:.1f}' for t in thresholds]} ({'inverted' if invert else 'normal'})"
+                f"Applied multi-Otsu thresholds: {[f'{t:.1f}' for t in thresholds]} ({
+                    'inverted' if invert else 'normal'})"
             )
         return binary
     except ImportError:
         if debug_callback:
-            debug_callback("scikit-image not available, falling back to regular Otsu")
+            debug_callback(
+                "scikit-image not available, falling back to regular Otsu")
         from .otsu_threshold import apply_otsu_threshold
 
         return apply_otsu_threshold(gray, invert=invert, debug_callback=debug_callback)

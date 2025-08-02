@@ -11,21 +11,25 @@ def apply_combined_differential_threshold(
 ) -> np.ndarray:
     """Apply combined differential thresholding (production method)."""
     if debug_callback:
-        debug_callback("Applying combined differential threshold (multi_otsu - spurious elements)")
-    multi_otsu_result = apply_multi_otsu_threshold(gray, debug_callback=debug_callback)
+        debug_callback(
+            "Applying combined differential threshold (multi_otsu - spurious elements)")
+    multi_otsu_result = apply_multi_otsu_threshold(
+        gray, debug_callback=debug_callback)
     total_black = np.sum(multi_otsu_result == 0)
     total_white = np.sum(multi_otsu_result == 255)
     if total_black > total_white:
         multi_otsu_result = cv2.bitwise_not(multi_otsu_result)
         if debug_callback:
             debug_callback("Applied polarity correction to multi_otsu")
-    spurious_elements = _detect_spurious_elements(gray, multi_otsu_result, debug_callback)
+    spurious_elements = _detect_spurious_elements(
+        gray, multi_otsu_result, debug_callback)
     multi_otsu_fg = multi_otsu_result == 0
     spurious_fg = spurious_elements == 0
     clean_foreground = multi_otsu_fg & ~spurious_fg
     final_binary = np.where(clean_foreground, 0, 255).astype(np.uint8)
     if debug_callback:
-        debug_callback(f"Multi-otsu foreground pixels: {np.sum(multi_otsu_fg)}")
+        debug_callback(
+            f"Multi-otsu foreground pixels: {np.sum(multi_otsu_fg)}")
         debug_callback(f"Spurious element pixels: {np.sum(spurious_fg)}")
         debug_callback(f"Clean foreground pixels: {np.sum(clean_foreground)}")
     return final_binary
@@ -49,7 +53,8 @@ def _detect_spurious_elements(
         area = stats[i, cv2.CC_STAT_AREA]
         bbox_width = stats[i, cv2.CC_STAT_WIDTH]
         bbox_height = stats[i, cv2.CC_STAT_HEIGHT]
-        aspect_ratio = max(bbox_width, bbox_height) / max(min(bbox_width, bbox_height), 1)
+        aspect_ratio = max(bbox_width, bbox_height) / \
+            max(min(bbox_width, bbox_height), 1)
         is_spurious = (
             min_spurious_area <= area <= max_spurious_area
             and aspect_ratio <= max_aspect_ratio

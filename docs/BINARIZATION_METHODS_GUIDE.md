@@ -239,11 +239,12 @@ The production system automatically uses Combined Differential:
 ```python
 from steps.binarization import BinarizationStep
 from config.config_schema import BinarizationConfig
+import numpy as np
 
 # This automatically uses Combined Differential
 config = BinarizationConfig()  # threshold_method="combined_differential" by default
 step = BinarizationStep(config)
-step.run(ctx)  # ctx.binarized_image will contain the result
+result: np.ndarray = step.run(image_array)  # Returns binary image directly
 ```
 
 ### Using Different Methods in Production Context
@@ -254,6 +255,7 @@ from utils.binarization import BinarizationMethods
 from core.bootstrap import bootstrap
 from steps.binarization import BinarizationStep
 from config.config_schema import BinarizationConfig
+import numpy as np
 
 # Initialize services
 bootstrap(config_path)
@@ -263,11 +265,11 @@ config = BinarizationConfig(threshold_method="otsu")  # or other method
 
 # Use the step with your method
 step = BinarizationStep(config)
-result_image = step.run(your_image)
+result_image: np.ndarray = step.run(your_image)
 
 # Or use methods directly
 methods = BinarizationMethods()
-result_image = methods.apply_otsu_threshold(your_image)
+result_image: np.ndarray = methods.apply_otsu_threshold(your_image)
 ```
 
 ## Best Practices

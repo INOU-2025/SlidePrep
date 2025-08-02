@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Tuple
 
+
 def compute_min_required_ratio(area: float) -> float:
     """
     Compute the minimum required dark pixel ratio based on contour area.
