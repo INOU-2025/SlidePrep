@@ -55,7 +55,6 @@ class StepTestRunner:
     def run_on_directory(
         self,
         step: PipelineStep,
-        output_suffix: str,
     ) -> None:
         """Process all images in the configured input directory.
 
@@ -63,14 +62,7 @@ class StepTestRunner:
         ----------
         step:
             Instantiated pipeline step to execute.
-        output_suffix:
-            Suffix to add to output filenames (e.g. "binarized", "grid_detected").
         """
-
-        if not output_suffix:
-            self._logger.warning(
-                "output_suffix parameter is required but not provided")
-            return
 
         input_dir = self._cfg.general_config.input_path
         if not input_dir or not os.path.exists(input_dir):
@@ -97,8 +89,7 @@ class StepTestRunner:
 
         # Process each image
         processed = 0
-        step_key = step.name.lower().replace(
-            " ", "_") if hasattr(step, 'name') else output_suffix
+        output_suffix = self._cfg.general_config.output_suffix or step.name.lower().replace(" ", "_")
 
         for fname in image_files:
             try:
@@ -116,7 +107,7 @@ class StepTestRunner:
                 result = step.run(image)
 
                 # Save debug output - debugger handles everything automatically
-                debug_filename = f"{base_name}_{output_suffix}.png"
+                debug_filename = f"{base_name}{output_suffix}.png"
                 self._debugger.save_debug_image(debug_filename, image, result)
 
                 self._logger.debug(f"Successfully processed {fname}")

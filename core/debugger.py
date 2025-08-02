@@ -61,6 +61,8 @@ class Debugger:
                 if enhanced_image is not None:
                     self._save_image(filename, enhanced_image)
             else:
-                self._save_image(filename, image)
+                # When no drawer, save the results (processed image) instead of original
+                image_to_save = results if results is not None else image
+                self._save_image(filename, image_to_save)
         except Exception:
             pass

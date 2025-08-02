@@ -19,10 +19,7 @@ def main(config_path: str):
         logger=runner.logger
     )
 
-    runner.run_on_directory(
-        step=step,
-        output_suffix="_binarized"
-    )
+    runner.run_on_directory(step=step)
 
     runner.logger.info("Binarization testing completed")
 
