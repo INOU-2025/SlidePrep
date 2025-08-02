@@ -58,20 +58,9 @@ class StepTestRunner:
         
         # Get input directory from config
         input_dir = self.cfg.general_config.input_path
-        if not input_dir:
-            self.logger.error("input_path must be specified in the general config section")
+        if not input_dir or not os.path.exists(input_dir):
+            self.logger.error(f"Input directory not found or not specified: {input_dir}")
             return
-        
-        if not os.path.exists(input_dir):
-            self.logger.error(f"Input directory not found: {input_dir}")
-            return
-
-        # Get output directory
-        output_dir = self.cfg.general_config.output_path
-        if not output_dir:
-            self.logger.warning("output_path must be specified in the general config section")
-            return
-        os.makedirs(output_dir, exist_ok=True)
 
         # Find all supported images
         supported_formats = get_supported_image_formats()
@@ -90,10 +79,13 @@ class StepTestRunner:
             return
 
         self.logger.info(f"Processing {len(image_files)} images from {input_dir}")
-        self.logger.info(f"Output will be saved to: {output_dir}")
+        if self.debugger.is_enabled():
+            self.logger.info(f"Debug output: {self.debugger.output_dir}")
 
-        # Process each image (services injected via container)
+        # Process each image
         processed = 0
+        step_key = step.name.lower().replace(" ", "_") if hasattr(step, 'name') else output_suffix
+        
         for fname in image_files:
             try:
                 # Load image
@@ -106,26 +98,15 @@ class StepTestRunner:
                 base_name = os.path.splitext(fname)[0]
                 self.logger.info(f"Processing {fname}")
 
-                # Run the step - simple input/output
+                # Run the step
                 result = step.run(image)
 
-                # Handle different return types
-                if isinstance(result, tuple):
-                    # For steps that return (image, metadata) like grid detection
-                    result_image, metadata = result
-                    self.logger.info(f"Processed {fname} (metadata: {metadata})")
-                else:
-                    # For steps that return just an image like binarization
-                    result_image = result
-                    self.logger.info(f"Processed {fname}")
-
-                # Save result only via debugger (if debug enabled)
-                if self.cfg.debug_active and result_image is not None:
+                # Save debug output - debugger handles everything automatically
+                if self.debugger.is_enabled():
                     debug_filename = f"{base_name}_{output_suffix}.png"
-                    self.debugger.save_image(debug_filename, result_image, image)
-                else:
-                    self.logger.warning(f"Debug not active - {fname} result not saved (enable debug to save results)")
-                
+                    self.debugger.save_debug_image(step_key, debug_filename, image, result)
+                    
+                self.logger.info(f"Processed {fname}")
                 processed += 1
 
             except Exception as e:

@@ -9,7 +9,10 @@ from utils.debug.grid_detection_drawer import GridDetectionDrawer
 
 
 class Debugger:
-    """Registry-based debugger with dynamic drawer creation."""
+    """
+    Registry-based debugger with automatic drawer integration.
+    
+    """
     _registry: Dict[str, Type[BaseDrawer]] = {}
 
     def __init__(self, debug_config: DebugConfig, debug_enabled: bool = True):
@@ -28,21 +31,7 @@ class Debugger:
         """Get the debug output directory."""
         return self._output_dir
 
-    def save_drawer_result(self, drawer: BaseDrawer, filename: str) -> None:
-        """Draw and save the result from a drawer."""
-        if not self._enabled:
-            return
-            
-        try:
-            result_image = drawer.draw()
-            if result_image is not None:
-                self.save_image(filename, result_image)
-        except Exception:
-            # Debug operations should never interfere with main processing
-            pass
-    
-
-    def save_image(self, filename: str, image: np.ndarray, original: Optional[np.ndarray] = None) -> None:
+    def _save_image(self, filename: str, image: np.ndarray, original: Optional[np.ndarray] = None) -> None:
         """Save an image to the debug output directory."""
         if not self._enabled or image is None:
             return
@@ -84,13 +73,33 @@ class Debugger:
         """Get all registered drawer types."""
         return cls._registry.copy()
 
-    def create_drawer(self, key: str, image: np.ndarray, **kwargs) -> BaseDrawer:
+    def create_drawer(self, key: str, **kwargs) -> BaseDrawer:
         """Create a drawer instance for the specified step type."""
         if key not in self._registry:
             raise KeyError(f"Drawer '{key}' not registered. Available: {list(self._registry.keys())}")
         
         drawer_cls = self._registry[key]
-        return drawer_cls(image, enabled=self._enabled, **kwargs)
+        return drawer_cls(enabled=self._enabled, **kwargs)
+
+    def save_debug_image(self, step_key: str, filename: str, image: np.ndarray, results=None, metadata=None) -> None:
+        """Save a debug image, using registered drawer if available."""
+        if not self._enabled:
+            return
+            
+        try:
+            # Check if there's a registered drawer for this step
+            if step_key in self._registry:
+                # Use drawer to create enhanced visualization
+                drawer = self.create_drawer(step_key)
+                enhanced_image = drawer.draw(image, results, metadata)
+                if enhanced_image is not None:
+                    self._save_image(filename, enhanced_image)
+            else:
+                # No drawer registered, save the plain image
+                self._save_image(filename, image)
+        except Exception:
+            # Debug operations should never interfere with main processing
+            pass
 
 
 # Register default drawers

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import numpy as np
-from typing import Optional
+from typing import Optional, Any
 
 
 class BaseDrawer(ABC):
@@ -16,12 +16,17 @@ class BaseDrawer(ABC):
         self.enabled = enabled
 
     @abstractmethod
-    def draw(self) -> Optional[np.ndarray]:
+    def draw(self, image: np.ndarray, results: Any = None, metadata: Any = None) -> Optional[np.ndarray]:
         """
-        Create the debug visualization.
+        Draw results/metadata on top of the given image.
         
+        Args:
+            image: Base image to draw on
+            results: Processing results to visualize
+            metadata: Additional metadata for visualization
+            
         Returns:
-            Debug visualization image as numpy array, or None if disabled
+            Image with drawn visualizations, or None if disabled
         """
         pass
 
