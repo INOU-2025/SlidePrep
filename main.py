@@ -15,7 +15,7 @@ def run_pipeline(config_path: str):
         config_path: Path to the configuration file
     """
     try:
-        # Bootstrap the application with all services
+        # Bootstrap the application with all services (no drawer for main pipeline)
         bootstrap(config_path)
         
         # Get services from container
@@ -37,7 +37,7 @@ def run_pipeline(config_path: str):
         logger.error(f"Input folder does not exist: {input_folder}")
         return False
 
-    # Set up pipeline steps - binarization first, then grid detection
+    # Set up pipeline steps - services are injected automatically via container
     try:
         steps = [
             BinarizationStep(cfg.binarization_config),
@@ -81,18 +81,12 @@ def run_pipeline(config_path: str):
         
         for step in steps:
             try:
-                # Run step with current data (services injected via container)
+                # Run step with current data (services accessed via container properties)
                 result = step.run(current_data)
                 
-                # Handle different return types
-                if isinstance(result, tuple):
-                    # For steps that return (image, metadata) like grid detection
-                    current_data, metadata = result
-                    logger.info(f"Step {step.name} completed with metadata: {metadata}")
-                else:
-                    # For steps that return just an image like binarization
-                    current_data = result
-                    logger.info(f"Step {step.name} completed")
+                # Step returns processed data/image
+                current_data = result
+                logger.info(f"Step {step.name} completed")
                     
             except Exception as e:
                 logger.exception(f"Error in step {step.name} for {fname}: {e}")
