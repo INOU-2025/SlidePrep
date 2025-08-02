@@ -39,7 +39,7 @@ class StepTestRunner:
     def run_on_directory(
         self,
         step: PipelineStep,
-        output_suffix: str = "result",
+        output_suffix: str,
     ) -> None:
         """Process all images in the configured input directory.
 
@@ -50,6 +50,11 @@ class StepTestRunner:
         output_suffix:
             Suffix to add to output filenames (e.g. "binarized", "grid_detected").
         """
+        
+        # Validate required parameters
+        if not output_suffix:
+            self.logger.warning("output_suffix parameter is required but not provided")
+            return
         
         # Get input directory from config
         input_dir = self.cfg.general_config.input_path
@@ -62,7 +67,10 @@ class StepTestRunner:
             return
 
         # Get output directory
-        output_dir = self.cfg.general_config.output_path or "output"
+        output_dir = self.cfg.general_config.output_path
+        if not output_dir:
+            self.logger.warning("output_path must be specified in the general config section")
+            return
         os.makedirs(output_dir, exist_ok=True)
 
         # Find all supported images
@@ -111,16 +119,12 @@ class StepTestRunner:
                     result_image = result
                     self.logger.info(f"Processed {fname}")
 
-                # Save result
-                config_suffix = self.cfg.general_config.output_suffix or ""
-                output_filename = f"{base_name}{config_suffix}_{output_suffix}.png"
-                output_path = os.path.join(output_dir, output_filename)
-                cv2.imwrite(output_path, result_image)
-                
-                # Also save via debugger for debug output (if debug enabled)
+                # Save result only via debugger (if debug enabled)
                 if self.cfg.debug_active and result_image is not None:
                     debug_filename = f"{base_name}_{output_suffix}.png"
                     self.debugger.save_image(debug_filename, result_image, image)
+                else:
+                    self.logger.warning(f"Debug not active - {fname} result not saved (enable debug to save results)")
                 
                 processed += 1
 

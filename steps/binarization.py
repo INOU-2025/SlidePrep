@@ -50,31 +50,5 @@ class BinarizationStep(PipelineStep):
             self.log(f"Binarization failed: {e}")
             raise
         
-        # Debug visualization if enabled
-        if self.debugger and self.debugger.is_enabled():
-            self._debug_visualize(gray, binary_image)
-        
         self.log(f"Binarization completed")
         return binary_image
-
-    def _debug_visualize(self, gray: np.ndarray, binary: np.ndarray) -> None:
-        """Create debug visualization using the specialized binarization drawer."""
-        if not isinstance(gray, np.ndarray) or not isinstance(binary, np.ndarray):
-            self.debug("Invalid input arrays for debug visualization")
-            return
-            
-        try:
-            # Create specialized binarization drawer
-            drawer = self.debugger.create_drawer("binarization", gray)
-            
-            # Set the binarized result with method information
-            method_info = self.config.threshold_method
-            drawer.set_binarized_image(binary, method_info)
-            
-            # Save debug image
-            debug_filename = f"binarization_{method_info}_debug.png"
-            drawer.save(debug_filename)
-            self.debug(f"Saved debug visualization: {debug_filename}")
-            
-        except Exception as e:
-            self.debug(f"Failed to create debug visualization: {e}")

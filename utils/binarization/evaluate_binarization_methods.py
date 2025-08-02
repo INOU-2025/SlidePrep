@@ -78,10 +78,13 @@ def evaluate_binarization_methods(config_path: str):
     
     logger.info(f"Found {len(images)} images to process in {input_folder}")
 
-    # Get output directory from config
-    output_base_dir = cfg.general_config.output_path
+    # Get output directory from debug config
+    output_base_dir = cfg.debug_config.output_dir
+    
     if not output_base_dir:
-        output_base_dir = cfg.debug_config.output_dir or "debug_output"
+        logger.error("debug_config.output_dir must be specified in config")
+        return
+        
     logger.info(f"Output will be saved to: {output_base_dir}")
 
     # Test the current production method
@@ -184,7 +187,7 @@ def evaluate_binarization_methods(config_path: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate binarization methods on a batch of images")
-    parser.add_argument("config", nargs="?", default="config/test/binarization_test_config.json", help="Path to test config file")
+    parser.add_argument("config", help="Path to test config file")
     args = parser.parse_args()
 
     evaluate_binarization_methods(args.config)

@@ -114,9 +114,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "config", 
-        nargs="?", 
-        default="config/init_config.json", 
-        help="Path to config file (default: config/init_config.json)"
+        help="Path to config file"
     )
     args = parser.parse_args()
 

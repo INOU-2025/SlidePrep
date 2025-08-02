@@ -6,7 +6,6 @@ import cv2
 from config.config_schema import DebugConfig
 from utils.debug.base_drawer import BaseDrawer
 from utils.debug.grid_detection_drawer import GridDetectionDrawer
-from utils.debug.binarization_drawer import BinarizationDrawer
 
 
 class Debugger:
@@ -23,6 +22,24 @@ class Debugger:
     def is_enabled(self) -> bool:
         """Check if debugging is enabled."""
         return self._enabled
+
+    @property
+    def output_dir(self) -> Optional[str]:
+        """Get the debug output directory."""
+        return self._output_dir
+
+    def save_drawer_result(self, drawer: BaseDrawer, filename: str) -> None:
+        """Draw and save the result from a drawer."""
+        if not self._enabled:
+            return
+            
+        try:
+            result_image = drawer.draw()
+            if result_image is not None:
+                self.save_image(filename, result_image)
+        except Exception:
+            # Debug operations should never interfere with main processing
+            pass
     
 
     def save_image(self, filename: str, image: np.ndarray, original: Optional[np.ndarray] = None) -> None:
@@ -73,9 +90,8 @@ class Debugger:
             raise KeyError(f"Drawer '{key}' not registered. Available: {list(self._registry.keys())}")
         
         drawer_cls = self._registry[key]
-        return drawer_cls(image, enabled=self._enabled, output_dir=self._output_dir, **kwargs)
+        return drawer_cls(image, enabled=self._enabled, **kwargs)
 
 
 # Register default drawers
 Debugger.register_drawer("grid_detection", GridDetectionDrawer)
-Debugger.register_drawer("binarization", BinarizationDrawer)

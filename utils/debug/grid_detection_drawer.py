@@ -11,7 +11,7 @@ class GridDetectionDrawer(BaseDrawer):
     Draws contours, bounding boxes, and detection results on the original image.
     """
 
-    def __init__(self, overlay: np.ndarray, enabled: bool = True, output_dir: Optional[str] = None) -> None:
+    def __init__(self, overlay: np.ndarray, enabled: bool = True) -> None:
         """
         Parameters
         ----------
@@ -19,10 +19,8 @@ class GridDetectionDrawer(BaseDrawer):
             The image overlay to draw on (should be BGR format).
         enabled : bool, optional
             Whether visualization is enabled (default: True).
-        output_dir : Optional[str], optional
-            Directory to save debug images (default: None).
         """
-        super().__init__(enabled, output_dir)
+        super().__init__(enabled)
         self.overlay = overlay.copy() if enabled else None
 
     def draw_box(
@@ -54,14 +52,9 @@ class GridDetectionDrawer(BaseDrawer):
             
         cv2.drawContours(self.overlay, [contour], 0, color, 2)
 
-    def save(self, filename: str) -> None:
-        """Save the overlay image with all drawn elements."""
+    def draw(self) -> Optional[np.ndarray]:
+        """Return the overlay image with all drawn elements."""
         if not self.enabled or self.overlay is None:
-            return
+            return None
 
-        try:
-            output_path = self._get_output_path(filename)
-            cv2.imwrite(output_path, self.overlay)
-        except Exception as e:
-            # Silently fail to avoid disrupting the main pipeline
-            pass
+        return self.overlay.copy()
