@@ -106,8 +106,8 @@ class GridDetectionStep(PipelineStep):
         
         return GridDetectionResult(detections=detections, summary=stats)
 
-    def _analyze_contour(self, contour: np.ndarray, gray_image: np.ndarray, 
-                        line_orientation: str, detection_thresholds: Dict[str, float]) -> Tuple[int, np.ndarray]:
+    def _analyze_contour(self, contour: np.ndarray, gray_image: np.ndarray,
+                        line_orientation: str, detection_thresholds: Dict[str, float]) -> Tuple[DetectionStatus, np.ndarray]:
         """
         Analyze a contour using comprehensive detection logic for grid pattern validation.
         
@@ -118,7 +118,7 @@ class GridDetectionStep(PipelineStep):
             detection_thresholds: Dictionary with thresholds
             
         Returns:
-            Tuple[int, np.ndarray]: (status, rotated_box)
+            Tuple[DetectionStatus, np.ndarray]: (status, rotated_box)
         """
         area = cv2.contourArea(contour)
         if area == 0:

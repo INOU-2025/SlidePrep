@@ -4,13 +4,15 @@ import numpy as np
 from typing import Dict, List
 from dataclasses import dataclass
 
+from .status import DetectionStatus
+
 
 @dataclass
 class Detection:
     """Represents a single grid detection."""
     contour: np.ndarray
     rotated_box: np.ndarray  # 4 corner points of the rotated bounding box
-    status: int  # DetectionStatus constant
+    status: DetectionStatus  # DetectionStatus constant
     orientation: str  # "horizontal", "vertical"
 
 
