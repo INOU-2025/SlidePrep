@@ -18,6 +18,8 @@ from pathlib import Path
 
 from core.bootstrap import bootstrap, get_config, get_logger, get_debugger
 from core.step import PipelineStep
+from core.debugger import Debugger
+from utils.debug.base_drawer import BaseDrawer
 from utils.image_utils import get_supported_image_formats
 
 
@@ -26,15 +28,16 @@ class StepTestRunner:
     """Simple test runner for processing images with pipeline steps."""
 
     config_path: str
+    drawer: Optional[BaseDrawer] = None
 
     def __post_init__(self) -> None:
-        # Bootstrap the application with all services
-        bootstrap(self.config_path)
+        # Bootstrap the application with basic services and optional drawer
+        bootstrap(self.config_path, self.drawer)
         
         # Get services from container
         self.cfg = get_config()
         self.logger = get_logger()
-        self.debugger = get_debugger()
+        self.debugger = get_debugger()  # Debugger already has the drawer attached
 
     def run_on_directory(
         self,
@@ -101,7 +104,7 @@ class StepTestRunner:
 
                 # Save debug output - debugger handles everything automatically
                 debug_filename = f"{base_name}_{output_suffix}.png"
-                self.debugger.save_debug_image(step_key, debug_filename, image, result)
+                self.debugger.save_debug_image(debug_filename, image, result)
                     
                 self.logger.info(f"Processed {fname}")
                 processed += 1

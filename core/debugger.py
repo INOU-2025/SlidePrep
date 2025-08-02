@@ -1,25 +1,23 @@
 import os
-from typing import Dict, Type, Optional
+from typing import Optional
 import numpy as np
 import cv2
 
 from config.config_schema import DebugConfig
 from utils.debug.base_drawer import BaseDrawer
-from utils.debug.grid_detection_drawer import GridDetectionDrawer
 
 
 class Debugger:
     """
-    Registry-based debugger with automatic drawer integration.
+    Debugger with optional drawer for enhanced visualization.
     
     """
-    _registry: Dict[str, Type[BaseDrawer]] = {}
 
-    def __init__(self, debug_config: DebugConfig, debug_enabled: bool = True):
+    def __init__(self, debug_config: DebugConfig, debug_enabled: bool = True, drawer: Optional[BaseDrawer] = None):
         self._enabled = debug_enabled
         self._save_composite = debug_config.save_composite
         self._output_dir = debug_config.output_dir
-        self._drawer_instances: Dict[str, BaseDrawer] = {}  # Cache drawer instances
+        self._drawer = drawer  # Single optional drawer instance
         if self._enabled and self._output_dir:
             os.makedirs(self._output_dir, exist_ok=True)
 
@@ -55,55 +53,20 @@ class Debugger:
             # Debug saving should never interfere with main processing
             pass
 
-    @classmethod
-    def register_drawer(cls, key: str, drawer_cls: Type[BaseDrawer]) -> None:
-        """Register a drawer class for a specific step type."""
-        cls._registry[key] = drawer_cls
-
-    @classmethod
-    def get_registered_drawers(cls) -> Dict[str, Type[BaseDrawer]]:
-        """Get all registered drawer types."""
-        return cls._registry.copy()
-
-    def create_drawer(self, key: str, **kwargs) -> BaseDrawer:
-        """Create a drawer instance for the specified step type."""
-        if key not in self._registry:
-            raise KeyError(f"Drawer '{key}' not registered. Available: {list(self._registry.keys())}")
-        
-        drawer_cls = self._registry[key]
-        return drawer_cls(**kwargs)
-
-    def _get_drawer(self, step_key: str) -> Optional[BaseDrawer]:
-        """Get or create a cached drawer instance for the specified step."""
-        if step_key not in self._registry:
-            return None
-            
-        # Reuse cached instance if available
-        if step_key not in self._drawer_instances:
-            self._drawer_instances[step_key] = self.create_drawer(step_key)
-            
-        return self._drawer_instances[step_key]
-
-    def save_debug_image(self, step_key: str, filename: str, image: np.ndarray, results=None, metadata=None) -> None:
-        """Save a debug image, using registered drawer if available."""
+    def save_debug_image(self, filename: str, image: np.ndarray, results=None, metadata=None) -> None:
+        """Save a debug image, using drawer if available."""
         if not self._enabled:
             return
             
         try:
-            # Check if there's a registered drawer for this step
-            drawer = self._get_drawer(step_key)
-            if drawer is not None:
+            if self._drawer is not None:
                 # Use drawer to create enhanced visualization
-                enhanced_image = drawer.draw(image, results, metadata)
+                enhanced_image = self._drawer.draw(image, results, metadata)
                 if enhanced_image is not None:
                     self._save_image(filename, enhanced_image)
             else:
-                # No drawer registered, save the plain image
+                # No drawer, save the plain image
                 self._save_image(filename, image)
         except Exception:
             # Debug operations should never interfere with main processing
             pass
-
-
-# Register default drawers
-Debugger.register_drawer("grid_detection", GridDetectionDrawer)

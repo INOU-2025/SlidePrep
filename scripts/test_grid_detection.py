@@ -8,11 +8,13 @@ sys.path.insert(0, str(project_root))
 
 from steps.grid_detection import GridDetectionStep
 from scripts.module_test_runner import StepTestRunner
+from utils.debug.grid_detection_drawer import GridDetectionDrawer
 
 
 def main(config_path: str):
-    # Initialize test runner
-    runner = StepTestRunner(config_path)
+    # Initialize test runner with grid detection drawer for enhanced visualization
+    grid_drawer = GridDetectionDrawer()
+    runner = StepTestRunner(config_path, drawer=grid_drawer)
     
     # Create grid detection step
     step = GridDetectionStep(
@@ -21,7 +23,7 @@ def main(config_path: str):
         logger=runner.logger
     )
     
-    # Run the step on all images - debugger will automatically create visualizations
+    # Run the step on all images - debugger will automatically create enhanced visualizations
     runner.run_on_directory(step, "grid_detected")
     
     runner.logger.info("Grid detection testing completed")
