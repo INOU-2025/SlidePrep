@@ -8,8 +8,10 @@ used across different processing scripts.
 import cv2
 import numpy as np
 import os
+import hashlib
 from typing import List, Tuple, Optional, Dict, Any
 from enum import Enum
+from glob import glob
 
 
 class DetectionStrategy(Enum):
@@ -221,22 +223,37 @@ class AdaptiveLineDetector:
     """
     Sophisticated adaptive line detector that tries multiple strategies.
     
+    Optimizations included:
+    - Early exit strategy: Stop when both orientations are found
+    - Template caching: Cache templates for repeated use
+    - Image preprocessing cache: Cache inverted image for multiple template matches
+    
     Detection Strategy:
     1. General detection (no area restrictions)
     2. If missing orientations: Thick border detection
     3. If still missing orientations: Thin border detection
+    
+    Optimized to only process missing orientations in each round.
     """
     
-    def __init__(self, min_contour_area: int = 100, verbose: bool = True):
+    def __init__(self, min_contour_area: int = 100, verbose: bool = True, 
+                 enable_early_exit: bool = True, enable_template_cache: bool = True,
+                 enable_preprocessing_cache: bool = True):
         """
-        Initialize adaptive detector.
+        Initialize adaptive detector with optimization options.
         
         Args:
             min_contour_area: Minimum contour area for valid detection
             verbose: Whether to print detection strategy information
+            enable_early_exit: Whether to stop when both orientations found
+            enable_template_cache: Whether to cache generated templates
+            enable_preprocessing_cache: Whether to cache image preprocessing
         """
         self.min_contour_area = min_contour_area
         self.verbose = verbose
+        self.enable_early_exit = enable_early_exit
+        self.enable_template_cache = enable_template_cache
+        self.enable_preprocessing_cache = enable_preprocessing_cache
         
         # Configuration for different strategies
         self.configs = {
@@ -263,71 +280,142 @@ class AdaptiveLineDetector:
             }
         }
         
+        # Template cache: strategy -> orientation -> List[templates]
+        self._template_cache: Dict[DetectionStrategy, Dict[str, List[np.ndarray]]] = {}
+        
+        # Image preprocessing cache: image_hash -> inverted_image
+        self._preprocessing_cache: Dict[str, np.ndarray] = {}
+        self._cache_max_size = 50  # Limit cache size to prevent memory issues
+        
         # Storage for detection results
         self.detection_results = {}
         self.strategies_used = {}
-    
-    def _has_valid_detections(self, contours: List[np.ndarray]) -> bool:
-        """Check if contours contain valid detections based on area."""
-        return any(cv2.contourArea(cnt) >= self.min_contour_area for cnt in contours)
-    
-    def _detect_with_strategy(self, image: np.ndarray, strategy: DetectionStrategy, 
-                            orientations: List[str]) -> Dict[str, Tuple[np.ndarray, List[np.ndarray]]]:
-        """
-        Detect lines with a specific strategy for given orientations.
         
-        Args:
-            image: Input grayscale image
-            strategy: Detection strategy to use
-            orientations: List of orientations to detect ('horizontal', 'vertical')
+        # Performance tracking
+        self.cache_hits = {'template': 0, 'preprocessing': 0}
+        self.cache_misses = {'template': 0, 'preprocessing': 0}
+    
+    def _get_image_hash(self, image: np.ndarray) -> str:
+        """Generate hash for image caching."""
+        return hashlib.md5(image.tobytes()).hexdigest()
+    
+    def _get_preprocessed_image(self, image: np.ndarray) -> np.ndarray:
+        """Get preprocessed (inverted) image with caching."""
+        if not self.enable_preprocessing_cache:
+            return cv2.bitwise_not(image)
         
-        Returns:
-            Dictionary with orientation -> (mask, contours) mapping
-        """
-        config = self.configs[strategy]
+        img_hash = self._get_image_hash(image)
+        
+        if img_hash in self._preprocessing_cache:
+            self.cache_hits['preprocessing'] += 1
+            return self._preprocessing_cache[img_hash]
+        
+        self.cache_misses['preprocessing'] += 1
         inverted = cv2.bitwise_not(image)
-        results = {}
         
-        for orientation in orientations:
-            # Generate templates for this orientation
-            templates = [generate_blurred_template(
+        # Manage cache size
+        if len(self._preprocessing_cache) >= self._cache_max_size:
+            # Remove oldest entry (simple FIFO)
+            oldest_key = next(iter(self._preprocessing_cache))
+            del self._preprocessing_cache[oldest_key]
+        
+        self._preprocessing_cache[img_hash] = inverted
+        return inverted
+    
+    def _get_templates(self, strategy: DetectionStrategy, orientation: str) -> List[np.ndarray]:
+        """Get templates with caching."""
+        if not self.enable_template_cache:
+            config = self.configs[strategy]
+            return [generate_blurred_template(
                 config['template_length'], 
                 config['thickness'], 
                 angle, 
                 orientation
             ) for angle in config['angles']]
-            
-            # Perform template matching
-            response_map = perform_template_matching(inverted, templates)
-            mask = create_detection_mask(response_map, config['threshold'])
-            
-            # Find contours
-            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            
-            # Filter contours for border strategies
-            if strategy != DetectionStrategy.GENERAL:
-                filtered_contours = []
-                h, w = image.shape
-                for cnt in contours:
-                    if cv2.contourArea(cnt) < self.min_contour_area:
-                        continue
-                    
-                    rect = cv2.minAreaRect(cnt)
-                    box = cv2.boxPoints(rect)
-                    box = np.intp(box)
-                    
-                    if contour_fully_within_zone(box, (h, w), config['border_thickness'], orientation):
-                        filtered_contours.append(cnt)
-                
-                contours = filtered_contours
-            
-            results[orientation] = (mask, contours)
         
-        return results
+        # Check cache
+        if strategy in self._template_cache and orientation in self._template_cache[strategy]:
+            self.cache_hits['template'] += 1
+            return self._template_cache[strategy][orientation]
+        
+        self.cache_misses['template'] += 1
+        
+        # Generate templates
+        config = self.configs[strategy]
+        templates = [generate_blurred_template(
+            config['template_length'], 
+            config['thickness'], 
+            angle, 
+            orientation
+        ) for angle in config['angles']]
+        
+        # Cache templates
+        if strategy not in self._template_cache:
+            self._template_cache[strategy] = {}
+        self._template_cache[strategy][orientation] = templates
+        
+        return templates
+    
+    def _has_valid_detections(self, contours: List[np.ndarray]) -> bool:
+        """Check if contours contain valid detections based on area."""
+        return any(cv2.contourArea(cnt) >= self.min_contour_area for cnt in contours)
+    
+    def _detect_single_orientation(self, image: np.ndarray, strategy: DetectionStrategy, 
+                                  orientation: str) -> Tuple[np.ndarray, List[np.ndarray]]:
+        """
+        Detect lines for a single orientation with a specific strategy.
+        Uses cached preprocessing and templates for better performance.
+        
+        Args:
+            image: Input grayscale image
+            strategy: Detection strategy to use
+            orientation: Orientation to detect ('horizontal' or 'vertical')
+        
+        Returns:
+            Tuple of (mask, contours)
+        """
+        config = self.configs[strategy]
+        
+        # Use cached preprocessing
+        inverted = self._get_preprocessed_image(image)
+        
+        # Use cached templates
+        templates = self._get_templates(strategy, orientation)
+        
+        # Perform template matching
+        response_map = perform_template_matching(inverted, templates)
+        mask = create_detection_mask(response_map, config['threshold'])
+        
+        # Find contours
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        # Filter contours for border strategies
+        if strategy != DetectionStrategy.GENERAL:
+            filtered_contours = []
+            h, w = image.shape
+            for cnt in contours:
+                if cv2.contourArea(cnt) < self.min_contour_area:
+                    continue
+                
+                rect = cv2.minAreaRect(cnt)
+                box = cv2.boxPoints(rect)
+                box = np.intp(box)
+                
+                if contour_fully_within_zone(box, (h, w), config['border_thickness'], orientation):
+                    filtered_contours.append(cnt)
+            
+            contours = filtered_contours
+        
+        return mask, contours
     
     def detect_lines(self, image: np.ndarray) -> Dict[str, Any]:
         """
         Adaptively detect lines using multiple strategies as needed.
+        
+        Optimizations:
+        - Early exit: Stop when both orientations are found
+        - Only processes missing orientations in each round for efficiency
+        - Uses template and preprocessing caches
         
         Args:
             image: Input grayscale image
@@ -344,60 +432,135 @@ class AdaptiveLineDetector:
         if self.verbose:
             print("Trying general detection...")
         
-        general_results = self._detect_with_strategy(image, DetectionStrategy.GENERAL, missing_orientations)
-        
-        for orientation in missing_orientations[:]:  # Copy list to modify during iteration
-            mask, contours = general_results[orientation]
+        for orientation in missing_orientations[:]:  # Copy to modify during iteration
+            if self.verbose:
+                print(f"  Processing {orientation} orientation...")
+            
+            mask, contours = self._detect_single_orientation(image, DetectionStrategy.GENERAL, orientation)
+            
             if self._has_valid_detections(contours):
                 self.detection_results[orientation] = (mask, contours)
                 self.strategies_used[orientation] = DetectionStrategy.GENERAL
                 missing_orientations.remove(orientation)
                 if self.verbose:
-                    print(f"  Found {orientation} lines with general detection")
+                    print(f"    ✓ Found {len([c for c in contours if cv2.contourArea(c) >= self.min_contour_area])} {orientation} lines")
+            else:
+                if self.verbose:
+                    print(f"    ✗ No {orientation} lines found")
         
-        # Strategy 2: Thick border detection for missing orientations
+        # Early exit optimization: Stop if both orientations found
+        if self.enable_early_exit and not missing_orientations:
+            if self.verbose:
+                print("✓ Early exit: Both orientations found in general detection")
+            return self._create_result_dict(missing_orientations)
+        
+        # Strategy 2: Thick border detection for missing orientations only
         if missing_orientations:
             if self.verbose:
-                print(f"Trying thick border detection for: {missing_orientations}")
-            
-            thick_results = self._detect_with_strategy(image, DetectionStrategy.THICK_BORDER, missing_orientations)
+                print(f"Trying thick border detection for missing orientations: {missing_orientations}")
             
             for orientation in missing_orientations[:]:
-                mask, contours = thick_results[orientation]
+                if self.verbose:
+                    print(f"  Processing {orientation} orientation...")
+                
+                mask, contours = self._detect_single_orientation(image, DetectionStrategy.THICK_BORDER, orientation)
+                
                 if self._has_valid_detections(contours):
                     self.detection_results[orientation] = (mask, contours)
                     self.strategies_used[orientation] = DetectionStrategy.THICK_BORDER
                     missing_orientations.remove(orientation)
                     if self.verbose:
-                        print(f"  Found {orientation} lines with thick border detection")
+                        print(f"    ✓ Found {len([c for c in contours if cv2.contourArea(c) >= self.min_contour_area])} {orientation} lines")
+                else:
+                    if self.verbose:
+                        print(f"    ✗ No {orientation} lines found")
         
-        # Strategy 3: Thin border detection for still missing orientations
+        # Early exit optimization: Stop if both orientations found
+        if self.enable_early_exit and not missing_orientations:
+            if self.verbose:
+                print("✓ Early exit: Both orientations found in thick border detection")
+            return self._create_result_dict(missing_orientations)
+        
+        # Strategy 3: Thin border detection for still missing orientations only
         if missing_orientations:
             if self.verbose:
-                print(f"Trying thin border detection for: {missing_orientations}")
-            
-            thin_results = self._detect_with_strategy(image, DetectionStrategy.THIN_BORDER, missing_orientations)
+                print(f"Trying thin border detection for remaining orientations: {missing_orientations}")
             
             for orientation in missing_orientations[:]:
-                mask, contours = thin_results[orientation]
+                if self.verbose:
+                    print(f"  Processing {orientation} orientation...")
+                
+                mask, contours = self._detect_single_orientation(image, DetectionStrategy.THIN_BORDER, orientation)
+                
                 if self._has_valid_detections(contours):
                     self.detection_results[orientation] = (mask, contours)
                     self.strategies_used[orientation] = DetectionStrategy.THIN_BORDER
                     missing_orientations.remove(orientation)
                     if self.verbose:
-                        print(f"  Found {orientation} lines with thin border detection")
+                        print(f"    ✓ Found {len([c for c in contours if cv2.contourArea(c) >= self.min_contour_area])} {orientation} lines")
+                else:
+                    if self.verbose:
+                        print(f"    ✗ No {orientation} lines found")
         
-        # Report any still missing orientations
-        if missing_orientations and self.verbose:
-            print(f"Could not find lines for: {missing_orientations}")
+        return self._create_result_dict(missing_orientations)
+    
+    def _create_result_dict(self, missing_orientations: List[str]) -> Dict[str, Any]:
+        """Create standardized result dictionary."""
+        # Handle any still missing orientations
+        if missing_orientations:
+            if self.verbose:
+                print(f"Final result: Could not find lines for {missing_orientations}")
             for orientation in missing_orientations:
-                self.detection_results[orientation] = (np.zeros(image.shape, dtype=np.uint8), [])
+                self.detection_results[orientation] = (np.zeros((100, 100), dtype=np.uint8), [])
                 self.strategies_used[orientation] = None
+        
+        # Print final summary
+        if self.verbose:
+            print("\nDetection Summary:")
+            for orientation in ['horizontal', 'vertical']:
+                strategy = self.strategies_used.get(orientation)
+                if strategy:
+                    mask, contours = self.detection_results[orientation]
+                    valid_count = len([c for c in contours if cv2.contourArea(c) >= self.min_contour_area])
+                    print(f"  {orientation.capitalize()}: {valid_count} lines using {strategy.value}")
+                else:
+                    print(f"  {orientation.capitalize()}: No lines found")
+            
+            # Print cache performance
+            print(f"\nCache Performance:")
+            print(f"  Template cache - Hits: {self.cache_hits['template']}, Misses: {self.cache_misses['template']}")
+            print(f"  Preprocessing cache - Hits: {self.cache_hits['preprocessing']}, Misses: {self.cache_misses['preprocessing']}")
         
         return {
             'detections': self.detection_results,
             'strategies': self.strategies_used,
-            'missing': missing_orientations
+            'missing': missing_orientations,
+            'cache_stats': {
+                'template_hits': self.cache_hits['template'],
+                'template_misses': self.cache_misses['template'],
+                'preprocessing_hits': self.cache_hits['preprocessing'],
+                'preprocessing_misses': self.cache_misses['preprocessing']
+            }
+        }
+    
+    def clear_caches(self) -> None:
+        """Clear all caches to free memory."""
+        self._template_cache.clear()
+        self._preprocessing_cache.clear()
+        self.cache_hits = {'template': 0, 'preprocessing': 0}
+        self.cache_misses = {'template': 0, 'preprocessing': 0}
+        if self.verbose:
+            print("Caches cleared")
+    
+    def get_cache_info(self) -> Dict[str, Any]:
+        """Get information about cache usage."""
+        return {
+            'template_cache_size': sum(len(orientations) for orientations in self._template_cache.values()),
+            'preprocessing_cache_size': len(self._preprocessing_cache),
+            'template_cache_hits': self.cache_hits['template'],
+            'template_cache_misses': self.cache_misses['template'],
+            'preprocessing_cache_hits': self.cache_hits['preprocessing'],
+            'preprocessing_cache_misses': self.cache_misses['preprocessing']
         }
     
     def create_visualization(self, image: np.ndarray, detection_results: Dict[str, Any]) -> np.ndarray:
@@ -432,16 +595,12 @@ class AdaptiveLineDetector:
                 strategy = strategies[orientation]
                 config = self.configs[strategy]
                 
-                # Get template shape for offset calculation
-                template = generate_blurred_template(
-                    config['template_length'], 
-                    config['thickness'], 
-                    config['angles'][0], 
-                    orientation
-                )
+                # Get template shape for offset calculation using cached templates
+                templates = self._get_templates(strategy, orientation)
+                template_shape = templates[0].shape if templates else (20, 300)
                 
                 base = draw_contours_with_strategy(
-                    base, contours, template.shape, orientation, 
+                    base, contours, template_shape, orientation, 
                     strategy, config['border_thickness'], self.min_contour_area
                 )
         
