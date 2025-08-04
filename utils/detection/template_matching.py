@@ -1,17 +1,15 @@
 """
-Shared template matching utilities for line detection.
+Adaptive template matching utilities for line detection.
 
-This module provides common functions for template-based line detection
-used across different processing scripts.
+This module provides an optimized adaptive line detector with multiple strategies,
+caching, and early exit optimizations.
 """
 
 import cv2
 import numpy as np
-import os
 import hashlib
 from typing import List, Tuple, Optional, Dict, Any
 from enum import Enum
-from glob import glob
 
 
 class DetectionStrategy(Enum):
@@ -605,161 +603,3 @@ class AdaptiveLineDetector:
                 )
         
         return base
-
-
-# Keep the original classes for backward compatibility
-class GeneralLineDetector:
-    """General template-based line detector without border zone restrictions."""
-    
-    def __init__(self, template_length: int = 300, thickness: int = 20, 
-                 angles: List[float] = None, threshold: float = 0.1, 
-                 min_contour_area: int = 100):
-        self.template_length = template_length
-        self.thickness = thickness
-        self.angles = angles if angles is not None else [2, -2]
-        self.threshold = threshold
-        self.min_contour_area = min_contour_area
-        
-        self.h_templates = [generate_blurred_template(template_length, thickness, a, 'horizontal') 
-                           for a in self.angles]
-        self.v_templates = [generate_blurred_template(template_length, thickness, a, 'vertical') 
-                           for a in self.angles]
-    
-    def detect_lines(self, image: np.ndarray) -> Tuple[np.ndarray, np.ndarray, List[np.ndarray], List[np.ndarray]]:
-        inverted = cv2.bitwise_not(image)
-        h_map = perform_template_matching(inverted, self.h_templates)
-        v_map = perform_template_matching(inverted, self.v_templates)
-        h_mask = create_detection_mask(h_map, self.threshold)
-        v_mask = create_detection_mask(v_map, self.threshold)
-        h_contours, _ = cv2.findContours(h_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        v_contours, _ = cv2.findContours(v_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        return h_mask, v_mask, h_contours, v_contours
-    
-    def create_visualization(self, image: np.ndarray, h_contours: List[np.ndarray], 
-                           v_contours: List[np.ndarray]) -> np.ndarray:
-        base = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-        base = draw_contours_with_strategy(base, h_contours, self.h_templates[0].shape, 
-                                         'horizontal', DetectionStrategy.GENERAL, 0, self.min_contour_area)
-        base = draw_contours_with_strategy(base, v_contours, self.v_templates[0].shape, 
-                                         'vertical', DetectionStrategy.GENERAL, 0, self.min_contour_area)
-        return base
-
-
-class TemplateLineDetector:
-    """Template-based line detector with configurable border zone restrictions."""
-    
-    def __init__(self, template_length: int = 100, thickness: int = 7, 
-                 angles: List[float] = None, border_thickness: int = 35, 
-                 threshold: float = 0.1, min_contour_area: int = 100):
-        self.template_length = template_length
-        self.thickness = thickness
-        self.angles = angles if angles is not None else [2, -2]
-        self.border_thickness = border_thickness
-        self.threshold = threshold
-        self.min_contour_area = min_contour_area
-        
-        self.h_templates = [generate_blurred_template(template_length, thickness, a, 'horizontal') 
-                           for a in self.angles]
-        self.v_templates = [generate_blurred_template(template_length, thickness, a, 'vertical') 
-                           for a in self.angles]
-    
-    def detect_lines(self, image: np.ndarray) -> Tuple[np.ndarray, np.ndarray, List[np.ndarray], List[np.ndarray]]:
-        inverted = cv2.bitwise_not(image)
-        h_map = perform_template_matching(inverted, self.h_templates)
-        v_map = perform_template_matching(inverted, self.v_templates)
-        h_mask = create_detection_mask(h_map, self.threshold)
-        v_mask = create_detection_mask(v_map, self.threshold)
-        h_contours, _ = cv2.findContours(h_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        v_contours, _ = cv2.findContours(v_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        return h_mask, v_mask, h_contours, v_contours
-    
-    def create_visualization(self, image: np.ndarray, h_contours: List[np.ndarray], 
-                           v_contours: List[np.ndarray]) -> np.ndarray:
-        base = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-        base = draw_border_overlay(base, self.border_thickness)
-        
-        strategy = DetectionStrategy.THICK_BORDER if self.border_thickness > 25 else DetectionStrategy.THIN_BORDER
-        base = draw_contours_with_strategy(base, h_contours, self.h_templates[0].shape, 
-                                         'horizontal', strategy, self.border_thickness, self.min_contour_area)
-        base = draw_contours_with_strategy(base, v_contours, self.v_templates[0].shape, 
-                                         'vertical', strategy, self.border_thickness, self.min_contour_area)
-        return base
-
-
-def process_image(path: str, out_dir: str, save_masks: bool = True, save_separate: bool = True, **kwargs) -> None:
-    """
-    Process single image with detailed output options.
-
-    Args:
-        path: Input image path
-        out_dir: Output directory
-        save_masks: Whether to save detection masks
-        save_separate: Whether to save separate horizontal/vertical visualizations
-        **kwargs: Parameters for TemplateLineDetector
-    """
-    name = os.path.splitext(os.path.basename(path))[0]
-    image = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-    if image is None:
-        print(f"Could not read {path}")
-        return
-
-    # Create detector
-    detector = TemplateLineDetector(**kwargs)
-
-    # Detect lines
-    h_mask, v_mask, h_contours, v_contours = detector.detect_lines(image)
-
-    os.makedirs(out_dir, exist_ok=True)
-
-    # Save masks if requested
-    if save_masks:
-        cv2.imwrite(os.path.join(out_dir, f"{name}_mask_h.png"), h_mask)
-        cv2.imwrite(os.path.join(out_dir, f"{name}_mask_v.png"), v_mask)
-
-    # Save separate visualizations if requested
-    if save_separate:
-        from utils.template_matching import draw_classified_contours
-
-        base_bgr = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-
-        rects_h = draw_classified_contours(base_bgr, h_contours, detector.h_templates[0].shape,
-                                            'horizontal', detector.border_thickness)
-        rects_v = draw_classified_contours(base_bgr, v_contours, detector.v_templates[0].shape,
-                                            'vertical', detector.border_thickness)
-
-        cv2.imwrite(os.path.join(out_dir, f"{name}_rects_h.png"), rects_h)
-        cv2.imwrite(os.path.join(out_dir, f"{name}_rects_v.png"), rects_v)
-
-    # Save combined visualization
-    result = detector.create_visualization(image, h_contours, v_contours)
-    cv2.imwrite(os.path.join(out_dir, f"{name}_combined.png"), result)
-
-
-def process_batch(folder: str, out_dir: str, **kwargs) -> None:
-    """
-    Process batch of images with template matching.
-
-    Args:
-        folder: Input folder path
-        out_dir: Output directory path
-        **kwargs: Parameters for process_image and TemplateLineDetector
-    """
-    paths = glob(os.path.join(folder, "*.png"))
-    for path in paths:
-        print(f"Processing {path}")
-        process_image(path, out_dir, **kwargs)
-
-
-# Default configuration
-DEFAULT_CONFIG = {
-    'template_length': 300,
-    'thickness': 20,
-    'border_thickness': 100,
-    'threshold': 0.1,
-    'angles': [2, -2]
-}
-
-
-if __name__ == "__main__":
-    # Example usage
-    process_batch("input_images", "output_results", **DEFAULT_CONFIG)

@@ -60,7 +60,7 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
     for orientation, strategy in results['strategies'].items():
         if strategy:
             mask, contours = results['detections'][orientation]
-            valid_contours = [c for c in contours if cv2.contourArea(c) >= 100]
+            valid_contours = [c for c in contours if cv2.contourArea(c) >= detector.min_contour_area]
             print(f"  {orientation}: {len(valid_contours)} lines found using {strategy.value}")
         else:
             print(f"  {orientation}: No lines found")
@@ -68,15 +68,21 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
     # Print cache statistics if available
     if 'cache_stats' in results:
         stats = results['cache_stats']
-        print(f"Cache stats - Template: {stats['template_hits']}/{stats['template_hits'] + stats['template_misses']} hits, "
-              f"Preprocessing: {stats['preprocessing_hits']}/{stats['preprocessing_hits'] + stats['preprocessing_misses']} hits")
+        total_template = stats['template_hits'] + stats['template_misses']
+        total_preprocessing = stats['preprocessing_hits'] + stats['preprocessing_misses']
+        
+        template_rate = f"{stats['template_hits']}/{total_template}" if total_template > 0 else "0/0"
+        preprocessing_rate = f"{stats['preprocessing_hits']}/{total_preprocessing}" if total_preprocessing > 0 else "0/0"
+        
+        print(f"Cache stats - Template: {template_rate} hits, Preprocessing: {preprocessing_rate} hits")
     
     return {
         'filename': os.path.basename(image_path),
         'detection_time': detection_time,
         'results': results,
         'cache_stats': results.get('cache_stats', {}),
-        'total_lines_found': sum(len([c for c in results['detections'][orient][1] if cv2.contourArea(c) >= 100]) 
+        'total_lines_found': sum(len([c for c in results['detections'][orient][1] 
+                                    if cv2.contourArea(c) >= detector.min_contour_area]) 
                                 for orient in results['detections'])
     }
 
@@ -164,8 +170,17 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
         print(f"\nFinal Cache Statistics:")
         print(f"  Template cache size: {cache_info['template_cache_size']} entries")
         print(f"  Preprocessing cache size: {cache_info['preprocessing_cache_size']} entries")
-        print(f"  Template cache efficiency: {cache_info['template_cache_hits']}/{cache_info['template_cache_hits'] + cache_info['template_cache_misses']} hits")
-        print(f"  Preprocessing cache efficiency: {cache_info['preprocessing_cache_hits']}/{cache_info['preprocessing_cache_hits'] + cache_info['preprocessing_cache_misses']} hits")
+        
+        template_total = cache_info['template_cache_hits'] + cache_info['template_cache_misses']
+        preprocessing_total = cache_info['preprocessing_cache_hits'] + cache_info['preprocessing_cache_misses']
+        
+        if template_total > 0:
+            template_efficiency = (cache_info['template_cache_hits'] / template_total) * 100
+            print(f"  Template cache efficiency: {template_efficiency:.1f}%")
+        
+        if preprocessing_total > 0:
+            preprocessing_efficiency = (cache_info['preprocessing_cache_hits'] / preprocessing_total) * 100
+            print(f"  Preprocessing cache efficiency: {preprocessing_efficiency:.1f}%")
     
     print("\n" + "="*60)
     print("PROCESSING ALL IMAGES WITH OPTIMIZATIONS")
