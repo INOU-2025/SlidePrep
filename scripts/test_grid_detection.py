@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 def main(config_path: str):
     grid_drawer = GridDetectionDrawer()
-    runner = StepTestRunner(config_path, drawer=grid_drawer)
+    runner = StepTestRunner(config_path, grid_drawer)
 
     step = GridDetectionStep(
         config=runner.cfg.grid_detection_config,
@@ -22,8 +22,7 @@ def main(config_path: str):
     )
 
     runner.run_on_directory(
-        step=step,
-        output_suffix="_grid_detection"
+        step=step
     )
 
     runner.logger.info("Grid detection testing completed")
