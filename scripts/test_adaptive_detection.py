@@ -10,13 +10,13 @@ sys.path.insert(0, str(project_root))
 import cv2
 import numpy as np
 from glob import glob
-from utils.detection.template_matching import AdaptiveLineDetector
+from utils.detection.adaptive_detector import AdaptiveLineDetector
 from utils.debug.adaptive_detection_drawer import AdaptiveDetectionDrawer
 from core.bootstrap import bootstrap, get_logger, get_debugger
 
 
 def process_image_adaptive(image_path: str, output_path: str, detector: AdaptiveLineDetector = None, 
-                          verbose: bool = True, use_debug_system: bool = True) -> dict:
+                          verbose: bool = True) -> dict:
     """
     Process single image with adaptive line detection using logging and debug system.
     
@@ -25,7 +25,6 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
         output_path: Path for output visualization
         detector: Pre-initialized detector (for cache reuse)
         verbose: Whether to print detection strategy information
-        use_debug_system: Whether to use the debug system for visualization
         
     Returns:
         Dictionary with processing results and timing
@@ -69,33 +68,29 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
     # Log cache statistics
     if 'cache_stats' in results:
         stats = results['cache_stats']
-        total_template = stats['template_hits'] + stats['template_misses']
-        total_preprocessing = stats['preprocessing_hits'] + stats['preprocessing_misses']
+        total_template = stats['template_cache_hits'] + stats['template_cache_misses']
+        total_preprocessing = stats['preprocessing_cache_hits'] + stats['preprocessing_cache_misses']
         
-        template_rate = f"{stats['template_hits']}/{total_template}" if total_template > 0 else "0/0"
-        preprocessing_rate = f"{stats['preprocessing_hits']}/{total_preprocessing}" if total_preprocessing > 0 else "0/0"
+        template_rate = f"{stats['template_cache_hits']}/{total_template}" if total_template > 0 else "0/0"
+        preprocessing_rate = f"{stats['preprocessing_cache_hits']}/{total_preprocessing}" if total_preprocessing > 0 else "0/0"
         
         logger.debug(f"Cache stats - Template: {template_rate} hits, Preprocessing: {preprocessing_rate} hits")
     
-    # Create visualization using debug system or fallback
-    if use_debug_system:
-        # Use debug system with drawer
-        metadata = {
-            'detector': detector,
-            'timing': detection_time,
-            'filename': filename
-        }
-        debugger.save_debug_image(filename, image, results, metadata)
-        
-        # Also save to specified output path by copying the debug output
-        debug_output = os.path.join(debugger._output_dir, filename) if debugger._output_dir else filename
-        if os.path.exists(debug_output):
-            import shutil
-            shutil.copy2(debug_output, output_path)
+    # Create visualization using debug system
+    metadata = {
+        'detector': detector,
+        'timing': detection_time,
+        'filename': filename
+    }
+    debugger.save_debug_image(filename, image, results, metadata)
+    
+    # Also save to specified output path by copying the debug output
+    debug_output = os.path.join(debugger._output_dir, filename) if debugger._output_dir else filename
+    if os.path.exists(debug_output):
+        import shutil
+        shutil.copy2(debug_output, output_path)
     else:
-        # Fallback to original visualization method
-        visualization = detector.create_visualization(image, results)
-        cv2.imwrite(output_path, visualization)
+        logger.warning(f"Debug output not found at {debug_output}")
     
     return {
         'filename': filename,
@@ -167,8 +162,7 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
         for image_path in test_images:
             filename = os.path.basename(image_path)
             output_path = os.path.join(output_folder, f"no_opt_{filename}")
-            result = process_image_adaptive(image_path, output_path, detector_no_opt, 
-                                          verbose=False, use_debug_system=False)
+            result = process_image_adaptive(image_path, output_path, detector_no_opt, verbose=False)
             if result:
                 times_no_opt.append(result['detection_time'])
         
@@ -189,8 +183,7 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
         for image_path in test_images:
             filename = os.path.basename(image_path)
             output_path = os.path.join(output_folder, f"opt_{filename}")
-            result = process_image_adaptive(image_path, output_path, detector_opt, 
-                                          verbose=False, use_debug_system=False)
+            result = process_image_adaptive(image_path, output_path, detector_opt, verbose=False)
             if result:
                 times_opt.append(result['detection_time'])
         
@@ -243,8 +236,7 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
         output_path = os.path.join(output_folder, filename)
         
         logger.info(f"[{i}/{len(image_paths)}] Processing {filename}")
-        result = process_image_adaptive(image_path, output_path, detector, 
-                                      verbose=True, use_debug_system=True)
+        result = process_image_adaptive(image_path, output_path, detector, verbose=True)
         
         if result:
             all_results.append(result)
@@ -325,8 +317,7 @@ def test_single_image(image_path: str, output_dir: str = None, config_path: str 
         enable_preprocessing_cache=True
     )
     
-    result = process_image_adaptive(image_path, output_path, detector, 
-                                  verbose=True, use_debug_system=True)
+    result = process_image_adaptive(image_path, output_path, detector, verbose=True)
     
     if result:
         logger.info(f"Result saved to: {output_path}")

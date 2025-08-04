@@ -1,15 +1,23 @@
 import numpy as np
 from typing import Dict, List
 from dataclasses import dataclass
+from enum import Enum
 
 from .status import DetectionStatus
+
+
+class DetectionStrategy(Enum):
+    """Detection strategy types for adaptive line detection."""
+    GENERAL = "general"
+    THICK_BORDER = "thick_border"
+    THIN_BORDER = "thin_border"
 
 
 @dataclass
 class Detection:
     """
     Represents a single grid line detection with geometric and classification data.
-    
+
     Contains the complete information about a detected grid line including
     its contour representation, bounding geometry, classification status,
     and orientation. This data structure enables both visualization and
@@ -25,7 +33,7 @@ class Detection:
 class GridDetectionResult:
     """
     Comprehensive results from grid detection analysis.
-    
+
     Encapsulates all detections found during grid analysis along with
     summary statistics for performance evaluation and debugging. Provides
     both detailed per-detection information and aggregate metrics for
