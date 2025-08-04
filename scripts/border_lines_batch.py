@@ -2,135 +2,138 @@ import cv2
 import numpy as np
 import os
 from glob import glob
-from shapely.geometry import Polygon
 
-def merge_similar_lines(lines, angle_threshold=np.deg2rad(2), rho_threshold=20):
-    if lines is None:
-        return []
-    merged = []
-    used = [False] * len(lines)
-    for i in range(len(lines)):
-        if used[i]: continue
-        rho1, theta1 = lines[i][0]
-        group = [(rho1, theta1)]
-        used[i] = True
-        for j in range(i + 1, len(lines)):
-            if used[j]: continue
-            rho2, theta2 = lines[j][0]
-            if abs(rho1 - rho2) < rho_threshold and abs(theta1 - theta2) < angle_threshold:
-                group.append((rho2, theta2))
-                used[j] = True
-        avg_rho = np.mean([g[0] for g in group])
-        avg_theta = np.mean([g[1] for g in group])
-        merged.append((avg_rho, avg_theta))
-    return merged
+def generate_blurred_template(length, thickness, angle_deg, orientation):
+    if orientation == 'horizontal':
+        template = np.zeros((thickness, length), dtype=np.uint8)
+        cv2.rectangle(template, (0, 0), (length-1, thickness-1), 255, -1)
+    else:
+        template = np.zeros((length, thickness), dtype=np.uint8)
+        cv2.rectangle(template, (0, 0), (thickness-1, length-1), 255, -1)
+    template = cv2.GaussianBlur(template, (5, 5), 0)
+    if angle_deg != 0:
+        center = (template.shape[1] // 2, template.shape[0] // 2)
+        M = cv2.getRotationMatrix2D(center, angle_deg, 1.0)
+        template = cv2.warpAffine(template, M, (template.shape[1], template.shape[0]), flags=cv2.INTER_LINEAR, borderValue=0)
+    return template
 
-def compute_line_intersections(rho, theta, width, height):
-    a, b = np.cos(theta), np.sin(theta)
-    if abs(b) < 1e-6: b = 1e-6
-    points = []
-    for y in [0, height - 1]:
-        x = (rho - y * b) / a if abs(a) > 1e-6 else None
-        if x is not None and 0 <= x <= width - 1:
-            points.append((int(round(x)), y))
-    for x in [0, width - 1]:
-        y = (rho - x * a) / b if abs(b) > 1e-6 else None
-        if y is not None and 0 <= y <= height - 1:
-            points.append((x, int(round(y))))
-    unique_points = []
-    for pt in points:
-        if pt not in unique_points:
-            unique_points.append(pt)
-        if len(unique_points) == 2:
-            break
-    return unique_points if len(unique_points) == 2 else None
+def pad_response(response, target_shape):
+    pad_y = target_shape[0] - response.shape[0]
+    pad_x = target_shape[1] - response.shape[1]
+    return cv2.copyMakeBorder(response, 0, pad_y, 0, pad_x, cv2.BORDER_CONSTANT, value=1.0)
 
-def classify_line(theta_deg, threshold=2):
-    if abs(theta_deg - 90) <= threshold:
+def contour_in_strict_border_zone(contour, shape, border_thickness, orientation):
+    h, w = shape
+    xs = contour[:, 0, 0]
+    ys = contour[:, 0, 1]
+    if orientation == 'horizontal':
+        return all(y < border_thickness for y in ys) or all(y >= h - border_thickness for y in ys)
+    elif orientation == 'vertical':
+        return all(x < border_thickness for x in xs) or all(x >= w - border_thickness for x in xs)
+    return False
+
+def classify_contour(contour):
+    rect = cv2.minAreaRect(contour)
+    _, (w, h), angle = rect
+    if w < h:
+        angle = angle + 90
+    angle = abs(angle)
+    if abs(angle - 0) <= 2:
         return 'horizontal'
-    elif abs(theta_deg - 0) <= threshold or abs(theta_deg - 180) <= threshold:
+    elif abs(angle - 90) <= 2:
         return 'vertical'
     else:
         return 'other'
 
-def horizontal_line_strict(pts, height, border_thickness):
-    return all(y < border_thickness or y >= height - border_thickness for _, y in pts)
+def draw_classified_contours(base_image, contours, template_shape, orientation, border_thickness):
+    result = base_image.copy()
+    if len(result.shape) == 2 or result.shape[2] == 1:
+        result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
+    h, w = result.shape[:2]
+    offset_x = template_shape[1] // 2
+    offset_y = template_shape[0] // 2
 
-def vertical_line_strict(pts, width, border_thickness):
-    return all(x < border_thickness or x >= width - border_thickness for x, _ in pts)
-
-def create_border_polygon(pts, orientation, w, h):
-    if orientation == 'horizontal':
-        y0, y1 = pts[0][1], pts[1][1]
-        y_closest = 0 if y0 < h // 2 and y1 < h // 2 else h
-        polygon = Polygon([pts[0], pts[1], (pts[1][0], y_closest), (pts[0][0], y_closest)])
-    elif orientation == 'vertical':
-        x0, x1 = pts[0][0], pts[1][0]
-        x_closest = 0 if x0 < w // 2 and x1 < w // 2 else w
-        polygon = Polygon([pts[0], pts[1], (x_closest, pts[1][1]), (x_closest, pts[0][1])])
-    else:
-        return None
-    return polygon
-
-def process_image(image_path, annotate=True):
-    gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    h, w = gray.shape
-    border_thickness = 70
-    edges = cv2.Canny(gray, 50, 150, apertureSize=3)
-    lines = cv2.HoughLines(edges, 1, np.pi / 180, threshold=150)
-    merged_lines = merge_similar_lines(lines)
-    vis = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
-
-    for rho, theta in merged_lines:
-        pts = compute_line_intersections(rho, theta, w, h)
-        if not pts:
+    for cnt in contours:
+        if cv2.contourArea(cnt) < 100:
             continue
+        rect = cv2.minAreaRect(cnt)
+        center, size, angle = rect
+        corrected_center = (center[0] + offset_x, center[1] + offset_y)
+        corrected_rect = (corrected_center, size, angle)
+        box = cv2.boxPoints(corrected_rect)
+        box = np.intp(box)
 
-        theta_deg = np.rad2deg(theta)
-        category = classify_line(theta_deg)
+        is_valid = contour_fully_within_zone(box, (h, w), border_thickness, orientation)
 
-        is_valid = False
-        if category == 'horizontal' and horizontal_line_strict(pts, h, border_thickness):
-            color = (0, 255, 0)  # green
-            is_valid = True
-        elif category == 'vertical' and vertical_line_strict(pts, w, border_thickness):
-            color = (255, 0, 0)  # blue
-            is_valid = True
-        else:
+        color = (0, 255, 0) if orientation == 'vertical' else (255, 0, 0)
+        if not is_valid:
             color = (0, 0, 255)  # red
 
-        cv2.line(vis, pts[0], pts[1], color, 2)
+        cv2.drawContours(result, [box], 0, color, 2)
+    return result
 
-        if is_valid:
-            polygon = create_border_polygon(pts, category, w, h)
-            if polygon and polygon.is_valid:
-                poly_pts = np.array(polygon.exterior.coords, dtype=np.int32)
-                overlay = vis.copy()
-                cv2.fillPoly(overlay, [poly_pts], color)
-                cv2.addWeighted(overlay, 0.3, vis, 0.7, 0, vis)
+def contour_fully_within_zone(box, img_shape, border_thickness, orientation):
+    h, w = img_shape
+    if orientation == 'horizontal':
+        in_top = all(y < border_thickness for _, y in box)
+        in_bottom = all(y >= h - border_thickness for _, y in box)
+        return in_top or in_bottom
+    elif orientation == 'vertical':
+        in_left = all(x < border_thickness for x, _ in box)
+        in_right = all(x >= w - border_thickness for x, _ in box)
+        return in_left or in_right
+    return False
 
-        if annotate:
-            label = f"{pts[0]} → {pts[1]}"
-            mid_x = (pts[0][0] + pts[1][0]) // 2
-            mid_y = (pts[0][1] + pts[1][1]) // 2
-            cv2.putText(vis, label, (mid_x + 10, mid_y), cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5, (255, 255, 255), 1, cv2.LINE_AA)
 
-    # Draw border zones (semi-transparent red overlay)
-    overlay_zone = vis.copy()
-    cv2.rectangle(overlay_zone, (0, 0), (w, border_thickness), (0, 0, 255), -1)
-    cv2.rectangle(overlay_zone, (0, h - border_thickness), (w, h), (0, 0, 255), -1)
-    cv2.rectangle(overlay_zone, (0, 0), (border_thickness, h), (0, 0, 255), -1)
-    cv2.rectangle(overlay_zone, (w - border_thickness, 0), (w, h), (0, 0, 255), -1)
-    cv2.addWeighted(overlay_zone, 0.25, vis, 0.75, 0, vis)
+def draw_border_overlay(image, border_thickness):
+    h, w = image.shape[:2]
+    overlay = image.copy()
+    cv2.rectangle(overlay, (0, 0), (w, border_thickness), (0, 0, 255), -1)
+    cv2.rectangle(overlay, (0, h - border_thickness), (w, h), (0, 0, 255), -1)
+    cv2.rectangle(overlay, (0, 0), (border_thickness, h), (0, 0, 255), -1)
+    cv2.rectangle(overlay, (w - border_thickness, 0), (w, h), (0, 0, 255), -1)
+    return cv2.addWeighted(overlay, 0.25, image, 0.75, 0)
 
-    return vis
+'''
+general case // template_length=300, thickness=20
+thick border lines // template_length=100, thickness=7, border_thickness=35 
+thin border lines // template_length=30, thickness=7, border_thickness=20
+'''
 
-def process_batch(input_folder, output_folder, ext="png", annotate=True):
+def process_image(image_path, output_path, threshold=0.1, template_length=100, thickness=7, angles=[+2, -2], border_thickness=35):
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    if image is None:
+        print(f"Could not read {image_path}")
+        return
+    inverted = cv2.bitwise_not(image)
+
+    h_templates = [generate_blurred_template(template_length, thickness, a, 'horizontal') for a in angles]
+    v_templates = [generate_blurred_template(template_length, thickness, a, 'vertical') for a in angles]
+
+    h_responses = [pad_response(cv2.matchTemplate(inverted, tpl, cv2.TM_SQDIFF_NORMED), image.shape) for tpl in h_templates]
+    v_responses = [pad_response(cv2.matchTemplate(inverted, tpl, cv2.TM_SQDIFF_NORMED), image.shape) for tpl in v_templates]
+
+    h_map = np.minimum.reduce(h_responses)
+    v_map = np.minimum.reduce(v_responses)
+
+    mask_h = (h_map < threshold).astype(np.uint8) * 255
+    mask_v = (v_map < threshold).astype(np.uint8) * 255
+
+    contours_h, _ = cv2.findContours(mask_h, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours_v, _ = cv2.findContours(mask_v, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    base = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+    base = draw_border_overlay(base, border_thickness)
+    base = draw_classified_contours(base, contours_h, h_templates[0].shape, 'horizontal', border_thickness)
+    base = draw_classified_contours(base, contours_v, v_templates[0].shape, 'vertical', border_thickness)
+
+    cv2.imwrite(output_path, base)
+
+def process_batch(input_folder, output_folder, ext="png"):
     os.makedirs(output_folder, exist_ok=True)
     image_paths = glob(os.path.join(input_folder, f"*.{ext}"))
-    for path in image_paths:
-        filename = os.path.basename(path)
+    for image_path in image_paths:
+        filename = os.path.basename(image_path)
         output_path = os.path.join(output_folder, filename)
-        vis = process_image(path, annotate=annotate)
-        cv2.imwrite(output_path, vis)
+        print(f"Processing {filename}")
+        process_image(image_path, output_path)
