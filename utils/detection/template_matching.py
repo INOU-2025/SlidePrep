@@ -8,8 +8,15 @@ used across different processing scripts.
 import cv2
 import numpy as np
 import os
-from typing import List, Tuple, Optional
-from glob import glob
+from typing import List, Tuple, Optional, Dict, Any
+from enum import Enum
+
+
+class DetectionStrategy(Enum):
+    """Detection strategy types."""
+    GENERAL = "general"
+    THICK_BORDER = "thick_border"
+    THIN_BORDER = "thin_border"
 
 
 def generate_blurred_template(length: int, thickness: int, angle_deg: float, orientation: str) -> np.ndarray:
@@ -146,18 +153,20 @@ def draw_border_overlay(image: np.ndarray, border_thickness: int, alpha: float =
     return cv2.addWeighted(overlay, alpha, base, 1 - alpha, 0)
 
 
-def draw_classified_contours(base_image: np.ndarray, contours: List[np.ndarray], 
-                           template_shape: Tuple[int, int], orientation: str, 
-                           border_thickness: int, min_area: int = 100) -> np.ndarray:
+def draw_contours_with_strategy(base_image: np.ndarray, contours: List[np.ndarray], 
+                               template_shape: Tuple[int, int], orientation: str, 
+                               strategy: DetectionStrategy, border_thickness: int = 0,
+                               min_area: int = 100) -> np.ndarray:
     """
-    Draw contours with classification-based coloring.
+    Draw contours with strategy-specific coloring and filtering.
     
     Args:
         base_image: Base image to draw on
         contours: List of contours to draw
         template_shape: Shape of template used for detection
         orientation: 'horizontal' or 'vertical'
-        border_thickness: Border zone thickness
+        strategy: Detection strategy used
+        border_thickness: Border zone thickness (for border strategies)
         min_area: Minimum contour area to draw
     
     Returns:
@@ -182,10 +191,24 @@ def draw_classified_contours(base_image: np.ndarray, contours: List[np.ndarray],
         box = cv2.boxPoints(corrected_rect)
         box = np.intp(box)
 
-        is_valid = contour_fully_within_zone(box, (h, w), border_thickness, orientation)
+        # For general strategy, accept all contours
+        if strategy == DetectionStrategy.GENERAL:
+            is_valid = True
+        else:
+            # For border strategies, check border zone
+            is_valid = contour_fully_within_zone(box, (h, w), border_thickness, orientation)
 
-        # Color coding: green for valid vertical, blue for valid horizontal, red for invalid
-        color = (0, 255, 0) if orientation == 'vertical' else (255, 0, 0)
+        # Color coding based on strategy and validity
+        if strategy == DetectionStrategy.GENERAL:
+            # Bright colors for general detection
+            color = (0, 255, 0) if orientation == 'vertical' else (255, 0, 0)
+        elif strategy == DetectionStrategy.THICK_BORDER:
+            # Medium colors for thick border
+            color = (0, 200, 0) if orientation == 'vertical' else (200, 0, 0)
+        else:  # THIN_BORDER
+            # Darker colors for thin border
+            color = (0, 150, 0) if orientation == 'vertical' else (150, 0, 0)
+        
         if not is_valid:
             color = (0, 0, 255)  # red for invalid
 
@@ -194,148 +217,281 @@ def draw_classified_contours(base_image: np.ndarray, contours: List[np.ndarray],
     return result
 
 
-def draw_all_contours(base_image: np.ndarray, contours: List[np.ndarray], 
-                     template_shape: Tuple[int, int], orientation: str, 
-                     min_area: int = 100) -> np.ndarray:
+class AdaptiveLineDetector:
     """
-    Draw all contours without border zone restrictions.
+    Sophisticated adaptive line detector that tries multiple strategies.
     
-    Args:
-        base_image: Base image to draw on
-        contours: List of contours to draw
-        template_shape: Shape of template used for detection
-        orientation: 'horizontal' or 'vertical'
-        min_area: Minimum contour area to draw
-    
-    Returns:
-        Image with drawn contours
+    Detection Strategy:
+    1. General detection (no area restrictions)
+    2. If missing orientations: Thick border detection
+    3. If still missing orientations: Thin border detection
     """
-    result = base_image.copy()
-    if len(result.shape) == 2:
-        result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
     
-    offset_x = template_shape[1] // 2
-    offset_y = template_shape[0] // 2
-
-    for cnt in contours:
-        if cv2.contourArea(cnt) < min_area:
-            continue
+    def __init__(self, min_contour_area: int = 100, verbose: bool = True):
+        """
+        Initialize adaptive detector.
+        
+        Args:
+            min_contour_area: Minimum contour area for valid detection
+            verbose: Whether to print detection strategy information
+        """
+        self.min_contour_area = min_contour_area
+        self.verbose = verbose
+        
+        # Configuration for different strategies
+        self.configs = {
+            DetectionStrategy.GENERAL: {
+                'template_length': 300,
+                'thickness': 20,
+                'threshold': 0.1,
+                'angles': [2, -2],
+                'border_thickness': 0
+            },
+            DetectionStrategy.THICK_BORDER: {
+                'template_length': 100,
+                'thickness': 7,
+                'threshold': 0.1,
+                'angles': [2, -2],
+                'border_thickness': 35
+            },
+            DetectionStrategy.THIN_BORDER: {
+                'template_length': 30,
+                'thickness': 7,
+                'threshold': 0.1,
+                'angles': [2, -2],
+                'border_thickness': 20
+            }
+        }
+        
+        # Storage for detection results
+        self.detection_results = {}
+        self.strategies_used = {}
+    
+    def _has_valid_detections(self, contours: List[np.ndarray]) -> bool:
+        """Check if contours contain valid detections based on area."""
+        return any(cv2.contourArea(cnt) >= self.min_contour_area for cnt in contours)
+    
+    def _detect_with_strategy(self, image: np.ndarray, strategy: DetectionStrategy, 
+                            orientations: List[str]) -> Dict[str, Tuple[np.ndarray, List[np.ndarray]]]:
+        """
+        Detect lines with a specific strategy for given orientations.
+        
+        Args:
+            image: Input grayscale image
+            strategy: Detection strategy to use
+            orientations: List of orientations to detect ('horizontal', 'vertical')
+        
+        Returns:
+            Dictionary with orientation -> (mask, contours) mapping
+        """
+        config = self.configs[strategy]
+        inverted = cv2.bitwise_not(image)
+        results = {}
+        
+        for orientation in orientations:
+            # Generate templates for this orientation
+            templates = [generate_blurred_template(
+                config['template_length'], 
+                config['thickness'], 
+                angle, 
+                orientation
+            ) for angle in config['angles']]
             
-        rect = cv2.minAreaRect(cnt)
-        center, size, angle = rect
-        corrected_center = (center[0] + offset_x, center[1] + offset_y)
-        corrected_rect = (corrected_center, size, angle)
-        box = cv2.boxPoints(corrected_rect)
-        box = np.intp(box)
-
-        # Color coding: green for vertical, blue for horizontal (all valid)
-        color = (0, 255, 0) if orientation == 'vertical' else (255, 0, 0)
-        cv2.drawContours(result, [box], 0, color, 2)
+            # Perform template matching
+            response_map = perform_template_matching(inverted, templates)
+            mask = create_detection_mask(response_map, config['threshold'])
+            
+            # Find contours
+            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            
+            # Filter contours for border strategies
+            if strategy != DetectionStrategy.GENERAL:
+                filtered_contours = []
+                h, w = image.shape
+                for cnt in contours:
+                    if cv2.contourArea(cnt) < self.min_contour_area:
+                        continue
+                    
+                    rect = cv2.minAreaRect(cnt)
+                    box = cv2.boxPoints(rect)
+                    box = np.intp(box)
+                    
+                    if contour_fully_within_zone(box, (h, w), config['border_thickness'], orientation):
+                        filtered_contours.append(cnt)
+                
+                contours = filtered_contours
+            
+            results[orientation] = (mask, contours)
+        
+        return results
     
-    return result
+    def detect_lines(self, image: np.ndarray) -> Dict[str, Any]:
+        """
+        Adaptively detect lines using multiple strategies as needed.
+        
+        Args:
+            image: Input grayscale image
+        
+        Returns:
+            Dictionary containing detection results and metadata
+        """
+        self.detection_results = {}
+        self.strategies_used = {}
+        
+        missing_orientations = ['horizontal', 'vertical']
+        
+        # Strategy 1: General detection
+        if self.verbose:
+            print("Trying general detection...")
+        
+        general_results = self._detect_with_strategy(image, DetectionStrategy.GENERAL, missing_orientations)
+        
+        for orientation in missing_orientations[:]:  # Copy list to modify during iteration
+            mask, contours = general_results[orientation]
+            if self._has_valid_detections(contours):
+                self.detection_results[orientation] = (mask, contours)
+                self.strategies_used[orientation] = DetectionStrategy.GENERAL
+                missing_orientations.remove(orientation)
+                if self.verbose:
+                    print(f"  Found {orientation} lines with general detection")
+        
+        # Strategy 2: Thick border detection for missing orientations
+        if missing_orientations:
+            if self.verbose:
+                print(f"Trying thick border detection for: {missing_orientations}")
+            
+            thick_results = self._detect_with_strategy(image, DetectionStrategy.THICK_BORDER, missing_orientations)
+            
+            for orientation in missing_orientations[:]:
+                mask, contours = thick_results[orientation]
+                if self._has_valid_detections(contours):
+                    self.detection_results[orientation] = (mask, contours)
+                    self.strategies_used[orientation] = DetectionStrategy.THICK_BORDER
+                    missing_orientations.remove(orientation)
+                    if self.verbose:
+                        print(f"  Found {orientation} lines with thick border detection")
+        
+        # Strategy 3: Thin border detection for still missing orientations
+        if missing_orientations:
+            if self.verbose:
+                print(f"Trying thin border detection for: {missing_orientations}")
+            
+            thin_results = self._detect_with_strategy(image, DetectionStrategy.THIN_BORDER, missing_orientations)
+            
+            for orientation in missing_orientations[:]:
+                mask, contours = thin_results[orientation]
+                if self._has_valid_detections(contours):
+                    self.detection_results[orientation] = (mask, contours)
+                    self.strategies_used[orientation] = DetectionStrategy.THIN_BORDER
+                    missing_orientations.remove(orientation)
+                    if self.verbose:
+                        print(f"  Found {orientation} lines with thin border detection")
+        
+        # Report any still missing orientations
+        if missing_orientations and self.verbose:
+            print(f"Could not find lines for: {missing_orientations}")
+            for orientation in missing_orientations:
+                self.detection_results[orientation] = (np.zeros(image.shape, dtype=np.uint8), [])
+                self.strategies_used[orientation] = None
+        
+        return {
+            'detections': self.detection_results,
+            'strategies': self.strategies_used,
+            'missing': missing_orientations
+        }
+    
+    def create_visualization(self, image: np.ndarray, detection_results: Dict[str, Any]) -> np.ndarray:
+        """
+        Create comprehensive visualization showing all detections with strategy indicators.
+        
+        Args:
+            image: Input grayscale image
+            detection_results: Results from detect_lines()
+        
+        Returns:
+            Visualization image
+        """
+        base = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+        
+        detections = detection_results['detections']
+        strategies = detection_results['strategies']
+        
+        # Draw border overlay if any border strategy was used
+        max_border_thickness = 0
+        for orientation, strategy in strategies.items():
+            if strategy in [DetectionStrategy.THICK_BORDER, DetectionStrategy.THIN_BORDER]:
+                config = self.configs[strategy]
+                max_border_thickness = max(max_border_thickness, config['border_thickness'])
+        
+        if max_border_thickness > 0:
+            base = draw_border_overlay(base, max_border_thickness, alpha=0.15)
+        
+        # Draw detections for each orientation
+        for orientation, (mask, contours) in detections.items():
+            if contours and strategies[orientation]:
+                strategy = strategies[orientation]
+                config = self.configs[strategy]
+                
+                # Get template shape for offset calculation
+                template = generate_blurred_template(
+                    config['template_length'], 
+                    config['thickness'], 
+                    config['angles'][0], 
+                    orientation
+                )
+                
+                base = draw_contours_with_strategy(
+                    base, contours, template.shape, orientation, 
+                    strategy, config['border_thickness'], self.min_contour_area
+                )
+        
+        return base
 
 
+# Keep the original classes for backward compatibility
 class GeneralLineDetector:
-    """
-    General template-based line detector without border zone restrictions.
-    Accepts all detections regardless of position.
-    """
+    """General template-based line detector without border zone restrictions."""
     
     def __init__(self, template_length: int = 300, thickness: int = 20, 
                  angles: List[float] = None, threshold: float = 0.1, 
                  min_contour_area: int = 100):
-        """
-        Initialize general detector with parameters.
-        
-        Args:
-            template_length: Length of line templates
-            thickness: Thickness of line templates
-            angles: List of angles to test (default: [+2, -2])
-            threshold: Detection threshold
-            min_contour_area: Minimum contour area for detection
-        """
         self.template_length = template_length
         self.thickness = thickness
         self.angles = angles if angles is not None else [2, -2]
         self.threshold = threshold
         self.min_contour_area = min_contour_area
         
-        # Pre-generate templates
         self.h_templates = [generate_blurred_template(template_length, thickness, a, 'horizontal') 
                            for a in self.angles]
         self.v_templates = [generate_blurred_template(template_length, thickness, a, 'vertical') 
                            for a in self.angles]
     
     def detect_lines(self, image: np.ndarray) -> Tuple[np.ndarray, np.ndarray, List[np.ndarray], List[np.ndarray]]:
-        """
-        Detect horizontal and vertical lines in image.
-        
-        Args:
-            image: Input grayscale image
-        
-        Returns:
-            Tuple of (h_mask, v_mask, h_contours, v_contours)
-        """
         inverted = cv2.bitwise_not(image)
-        
-        # Perform template matching
         h_map = perform_template_matching(inverted, self.h_templates)
         v_map = perform_template_matching(inverted, self.v_templates)
-        
-        # Create detection masks
         h_mask = create_detection_mask(h_map, self.threshold)
         v_mask = create_detection_mask(v_map, self.threshold)
-        
-        # Find contours
         h_contours, _ = cv2.findContours(h_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         v_contours, _ = cv2.findContours(v_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
         return h_mask, v_mask, h_contours, v_contours
     
     def create_visualization(self, image: np.ndarray, h_contours: List[np.ndarray], 
                            v_contours: List[np.ndarray]) -> np.ndarray:
-        """
-        Create visualization with all detected lines (no border restrictions).
-        
-        Args:
-            image: Input grayscale image
-            h_contours: Horizontal line contours
-            v_contours: Vertical line contours
-        
-        Returns:
-            Visualization image
-        """
-        # Convert to BGR (no border overlay for general detection)
         base = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-        
-        # Draw all contours without border filtering
-        base = draw_all_contours(base, h_contours, self.h_templates[0].shape, 
-                               'horizontal', self.min_contour_area)
-        base = draw_all_contours(base, v_contours, self.v_templates[0].shape, 
-                               'vertical', self.min_contour_area)
-        
+        base = draw_contours_with_strategy(base, h_contours, self.h_templates[0].shape, 
+                                         'horizontal', DetectionStrategy.GENERAL, 0, self.min_contour_area)
+        base = draw_contours_with_strategy(base, v_contours, self.v_templates[0].shape, 
+                                         'vertical', DetectionStrategy.GENERAL, 0, self.min_contour_area)
         return base
 
 
 class TemplateLineDetector:
-    """
-    Template-based line detector with configurable border zone restrictions.
-    """
+    """Template-based line detector with configurable border zone restrictions."""
     
     def __init__(self, template_length: int = 100, thickness: int = 7, 
                  angles: List[float] = None, border_thickness: int = 35, 
                  threshold: float = 0.1, min_contour_area: int = 100):
-        """
-        Initialize detector with parameters.
-        
-        Args:
-            template_length: Length of line templates
-            thickness: Thickness of line templates
-            angles: List of angles to test (default: [+2, -2])
-            border_thickness: Border zone thickness
-            threshold: Detection threshold
-            min_contour_area: Minimum contour area for detection
-        """
         self.template_length = template_length
         self.thickness = thickness
         self.angles = angles if angles is not None else [2, -2]
@@ -343,61 +499,31 @@ class TemplateLineDetector:
         self.threshold = threshold
         self.min_contour_area = min_contour_area
         
-        # Pre-generate templates
         self.h_templates = [generate_blurred_template(template_length, thickness, a, 'horizontal') 
                            for a in self.angles]
         self.v_templates = [generate_blurred_template(template_length, thickness, a, 'vertical') 
                            for a in self.angles]
     
     def detect_lines(self, image: np.ndarray) -> Tuple[np.ndarray, np.ndarray, List[np.ndarray], List[np.ndarray]]:
-        """
-        Detect horizontal and vertical lines in image.
-        
-        Args:
-            image: Input grayscale image
-        
-        Returns:
-            Tuple of (h_mask, v_mask, h_contours, v_contours)
-        """
         inverted = cv2.bitwise_not(image)
-        
-        # Perform template matching
         h_map = perform_template_matching(inverted, self.h_templates)
         v_map = perform_template_matching(inverted, self.v_templates)
-        
-        # Create detection masks
         h_mask = create_detection_mask(h_map, self.threshold)
         v_mask = create_detection_mask(v_map, self.threshold)
-        
-        # Find contours
         h_contours, _ = cv2.findContours(h_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         v_contours, _ = cv2.findContours(v_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
         return h_mask, v_mask, h_contours, v_contours
     
     def create_visualization(self, image: np.ndarray, h_contours: List[np.ndarray], 
                            v_contours: List[np.ndarray]) -> np.ndarray:
-        """
-        Create visualization with detected lines and border overlay.
-        
-        Args:
-            image: Input grayscale image
-            h_contours: Horizontal line contours
-            v_contours: Vertical line contours
-        
-        Returns:
-            Visualization image
-        """
-        # Convert to BGR and add border overlay
         base = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
         base = draw_border_overlay(base, self.border_thickness)
         
-        # Draw contours with border zone filtering
-        base = draw_classified_contours(base, h_contours, self.h_templates[0].shape, 
-                                      'horizontal', self.border_thickness, self.min_contour_area)
-        base = draw_classified_contours(base, v_contours, self.v_templates[0].shape, 
-                                      'vertical', self.border_thickness, self.min_contour_area)
-        
+        strategy = DetectionStrategy.THICK_BORDER if self.border_thickness > 25 else DetectionStrategy.THIN_BORDER
+        base = draw_contours_with_strategy(base, h_contours, self.h_templates[0].shape, 
+                                         'horizontal', strategy, self.border_thickness, self.min_contour_area)
+        base = draw_contours_with_strategy(base, v_contours, self.v_templates[0].shape, 
+                                         'vertical', strategy, self.border_thickness, self.min_contour_area)
         return base
 
 
