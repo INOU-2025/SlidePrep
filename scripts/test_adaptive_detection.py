@@ -11,28 +11,35 @@ import cv2
 import numpy as np
 from glob import glob
 from utils.detection.template_matching import AdaptiveLineDetector
+from utils.debug.adaptive_detection_drawer import AdaptiveDetectionDrawer
+from core.bootstrap import bootstrap, get_logger, get_debugger
 
 
 def process_image_adaptive(image_path: str, output_path: str, detector: AdaptiveLineDetector = None, 
-                          verbose: bool = True) -> dict:
+                          verbose: bool = True, use_debug_system: bool = True) -> dict:
     """
-    Process single image with adaptive line detection.
+    Process single image with adaptive line detection using logging and debug system.
     
     Args:
         image_path: Path to input image
         output_path: Path for output visualization
         detector: Pre-initialized detector (for cache reuse)
         verbose: Whether to print detection strategy information
+        use_debug_system: Whether to use the debug system for visualization
         
     Returns:
         Dictionary with processing results and timing
     """
+    logger = get_logger()
+    debugger = get_debugger()
+    
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     if image is None:
-        print(f"Could not read {image_path}")
+        logger.error(f"Could not read {image_path}")
         return {}
     
-    print(f"\nProcessing: {os.path.basename(image_path)}")
+    filename = os.path.basename(image_path)
+    logger.info(f"Processing: {filename}")
     
     # Create detector if not provided
     if detector is None:
@@ -49,23 +56,17 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
     results = detector.detect_lines(image)
     detection_time = time.time() - start_time
     
-    # Create visualization
-    visualization = detector.create_visualization(image, results)
-    
-    # Save result
-    cv2.imwrite(output_path, visualization)
-    
-    # Print summary
-    print(f"Detection summary (took {detection_time:.3f}s):")
+    # Log detection summary
+    logger.info(f"Detection completed in {detection_time:.3f}s")
     for orientation, strategy in results['strategies'].items():
         if strategy:
             mask, contours = results['detections'][orientation]
             valid_contours = [c for c in contours if cv2.contourArea(c) >= detector.min_contour_area]
-            print(f"  {orientation}: {len(valid_contours)} lines found using {strategy.value}")
+            logger.info(f"  {orientation}: {len(valid_contours)} lines found using {strategy.value}")
         else:
-            print(f"  {orientation}: No lines found")
+            logger.info(f"  {orientation}: No lines found")
     
-    # Print cache statistics if available
+    # Log cache statistics
     if 'cache_stats' in results:
         stats = results['cache_stats']
         total_template = stats['template_hits'] + stats['template_misses']
@@ -74,10 +75,30 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
         template_rate = f"{stats['template_hits']}/{total_template}" if total_template > 0 else "0/0"
         preprocessing_rate = f"{stats['preprocessing_hits']}/{total_preprocessing}" if total_preprocessing > 0 else "0/0"
         
-        print(f"Cache stats - Template: {template_rate} hits, Preprocessing: {preprocessing_rate} hits")
+        logger.debug(f"Cache stats - Template: {template_rate} hits, Preprocessing: {preprocessing_rate} hits")
+    
+    # Create visualization using debug system or fallback
+    if use_debug_system:
+        # Use debug system with drawer
+        metadata = {
+            'detector': detector,
+            'timing': detection_time,
+            'filename': filename
+        }
+        debugger.save_debug_image(filename, image, results, metadata)
+        
+        # Also save to specified output path by copying the debug output
+        debug_output = os.path.join(debugger._output_dir, filename) if debugger._output_dir else filename
+        if os.path.exists(debug_output):
+            import shutil
+            shutil.copy2(debug_output, output_path)
+    else:
+        # Fallback to original visualization method
+        visualization = detector.create_visualization(image, results)
+        cv2.imwrite(output_path, visualization)
     
     return {
-        'filename': os.path.basename(image_path),
+        'filename': filename,
         'detection_time': detection_time,
         'results': results,
         'cache_stats': results.get('cache_stats', {}),
@@ -88,33 +109,50 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
 
 
 def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "png", 
-                          test_performance: bool = True) -> None:
+                          test_performance: bool = True, config_path: str = None) -> None:
     """
-    Process batch of images with adaptive line detection.
+    Process batch of images with adaptive line detection using logging system.
     
     Args:
         input_folder: Input directory path
         output_folder: Output directory path
         ext: Image file extension
         test_performance: Whether to run performance comparison tests
+        config_path: Path to configuration file (defaults to development config)
     """
+    # Initialize the debug/logging system
+    if config_path is None:
+        config_path = str(Path(__file__).parent.parent / "config" / "development.json")
+    
+    # Create adaptive detection drawer
+    drawer = AdaptiveDetectionDrawer(
+        show_strategy_info=True,
+        show_cache_stats=True,
+        show_border_zones=True
+    )
+    
+    # Bootstrap the system
+    bootstrap(config_path, drawer=drawer)
+    logger = get_logger()
+    debugger = get_debugger()
+    
     os.makedirs(output_folder, exist_ok=True)
     image_paths = glob(os.path.join(input_folder, f"*.{ext}"))
     
     if not image_paths:
-        print(f"No {ext} files found in {input_folder}")
+        logger.error(f"No {ext} files found in {input_folder}")
         return
     
-    print(f"Found {len(image_paths)} images to process")
+    logger.info(f"Found {len(image_paths)} images to process")
     
     if test_performance and len(image_paths) > 1:
         # Performance comparison: with and without optimizations
-        print("\n" + "="*60)
-        print("PERFORMANCE COMPARISON")
-        print("="*60)
+        logger.info("=" * 60)
+        logger.info("PERFORMANCE COMPARISON")
+        logger.info("=" * 60)
         
         # Test 1: Without optimizations
-        print("\n1. Testing WITHOUT optimizations (first 3 images)...")
+        logger.info("Testing WITHOUT optimizations (first 3 images)...")
         detector_no_opt = AdaptiveLineDetector(
             min_contour_area=100,
             verbose=False,
@@ -129,14 +167,15 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
         for image_path in test_images:
             filename = os.path.basename(image_path)
             output_path = os.path.join(output_folder, f"no_opt_{filename}")
-            result = process_image_adaptive(image_path, output_path, detector_no_opt, verbose=False)
+            result = process_image_adaptive(image_path, output_path, detector_no_opt, 
+                                          verbose=False, use_debug_system=False)
             if result:
                 times_no_opt.append(result['detection_time'])
         
         avg_time_no_opt = sum(times_no_opt) / len(times_no_opt) if times_no_opt else 0
         
-        # Test 2: With optimizations (reuse detector for caching benefits)
-        print("\n2. Testing WITH optimizations (same images)...")
+        # Test 2: With optimizations
+        logger.info("Testing WITH optimizations (same images)...")
         detector_opt = AdaptiveLineDetector(
             min_contour_area=100,
             verbose=False,
@@ -150,43 +189,44 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
         for image_path in test_images:
             filename = os.path.basename(image_path)
             output_path = os.path.join(output_folder, f"opt_{filename}")
-            result = process_image_adaptive(image_path, output_path, detector_opt, verbose=False)
+            result = process_image_adaptive(image_path, output_path, detector_opt, 
+                                          verbose=False, use_debug_system=False)
             if result:
                 times_opt.append(result['detection_time'])
         
         avg_time_opt = sum(times_opt) / len(times_opt) if times_opt else 0
         
-        # Print performance comparison
-        print(f"\nPerformance Results:")
-        print(f"  Without optimizations: {avg_time_no_opt:.3f}s average")
-        print(f"  With optimizations:    {avg_time_opt:.3f}s average")
+        # Log performance comparison
+        logger.info("Performance Results:")
+        logger.info(f"  Without optimizations: {avg_time_no_opt:.3f}s average")
+        logger.info(f"  With optimizations:    {avg_time_opt:.3f}s average")
         if avg_time_no_opt > 0:
             speedup = avg_time_no_opt / avg_time_opt if avg_time_opt > 0 else float('inf')
             improvement = ((avg_time_no_opt - avg_time_opt) / avg_time_no_opt) * 100
-            print(f"  Speedup: {speedup:.2f}x ({improvement:.1f}% faster)")
+            logger.info(f"  Speedup: {speedup:.2f}x ({improvement:.1f}% faster)")
         
-        # Show cache statistics
+        # Log cache statistics
         cache_info = detector_opt.get_cache_info()
-        print(f"\nFinal Cache Statistics:")
-        print(f"  Template cache size: {cache_info['template_cache_size']} entries")
-        print(f"  Preprocessing cache size: {cache_info['preprocessing_cache_size']} entries")
+        logger.info("Final Cache Statistics:")
+        logger.info(f"  Template cache size: {cache_info['template_cache_size']} entries")
+        logger.info(f"  Preprocessing cache size: {cache_info['preprocessing_cache_size']} entries")
         
         template_total = cache_info['template_cache_hits'] + cache_info['template_cache_misses']
         preprocessing_total = cache_info['preprocessing_cache_hits'] + cache_info['preprocessing_cache_misses']
         
         if template_total > 0:
             template_efficiency = (cache_info['template_cache_hits'] / template_total) * 100
-            print(f"  Template cache efficiency: {template_efficiency:.1f}%")
+            logger.info(f"  Template cache efficiency: {template_efficiency:.1f}%")
         
         if preprocessing_total > 0:
             preprocessing_efficiency = (cache_info['preprocessing_cache_hits'] / preprocessing_total) * 100
-            print(f"  Preprocessing cache efficiency: {preprocessing_efficiency:.1f}%")
+            logger.info(f"  Preprocessing cache efficiency: {preprocessing_efficiency:.1f}%")
     
-    print("\n" + "="*60)
-    print("PROCESSING ALL IMAGES WITH OPTIMIZATIONS")
-    print("="*60)
+    logger.info("=" * 60)
+    logger.info("PROCESSING ALL IMAGES WITH OPTIMIZATIONS")
+    logger.info("=" * 60)
     
-    # Process all images with optimizations
+    # Process all images with optimizations and debug system
     detector = AdaptiveLineDetector(
         min_contour_area=100,
         verbose=True,
@@ -202,8 +242,9 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
         filename = os.path.basename(image_path)
         output_path = os.path.join(output_folder, filename)
         
-        print(f"\n[{i}/{len(image_paths)}] Processing {filename}")
-        result = process_image_adaptive(image_path, output_path, detector, verbose=True)
+        logger.info(f"[{i}/{len(image_paths)}] Processing {filename}")
+        result = process_image_adaptive(image_path, output_path, detector, 
+                                      verbose=True, use_debug_system=True)
         
         if result:
             all_results.append(result)
@@ -211,19 +252,19 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
     total_time = time.time() - total_start_time
     
     # Final summary
-    print("\n" + "="*60)
-    print("BATCH PROCESSING SUMMARY")
-    print("="*60)
+    logger.info("=" * 60)
+    logger.info("BATCH PROCESSING SUMMARY")
+    logger.info("=" * 60)
     
     if all_results:
         avg_time = sum(r['detection_time'] for r in all_results) / len(all_results)
         total_lines = sum(r['total_lines_found'] for r in all_results)
         
-        print(f"Total images processed: {len(all_results)}")
-        print(f"Total processing time: {total_time:.3f}s")
-        print(f"Average time per image: {avg_time:.3f}s")
-        print(f"Total lines detected: {total_lines}")
-        print(f"Processing rate: {len(all_results)/total_time:.2f} images/second")
+        logger.info(f"Total images processed: {len(all_results)}")
+        logger.info(f"Total processing time: {total_time:.3f}s")
+        logger.info(f"Average time per image: {avg_time:.3f}s")
+        logger.info(f"Total lines detected: {total_lines}")
+        logger.info(f"Processing rate: {len(all_results)/total_time:.2f} images/second")
         
         # Cache efficiency summary
         final_cache_info = detector.get_cache_info()
@@ -232,20 +273,21 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
         
         if template_total > 0:
             template_efficiency = (final_cache_info['template_cache_hits'] / template_total) * 100
-            print(f"Template cache efficiency: {template_efficiency:.1f}%")
+            logger.info(f"Template cache efficiency: {template_efficiency:.1f}%")
         
         if preprocessing_total > 0:
             preprocessing_efficiency = (final_cache_info['preprocessing_cache_hits'] / preprocessing_total) * 100
-            print(f"Preprocessing cache efficiency: {preprocessing_efficiency:.1f}%")
+            logger.info(f"Preprocessing cache efficiency: {preprocessing_efficiency:.1f}%")
 
 
-def test_single_image(image_path: str, output_dir: str = None) -> None:
+def test_single_image(image_path: str, output_dir: str = None, config_path: str = None) -> None:
     """
-    Test adaptive detection on a single image with detailed output.
+    Test adaptive detection on a single image with debug system.
     
     Args:
         image_path: Path to test image
         output_dir: Output directory (defaults to same as input)
+        config_path: Path to configuration file
     """
     if not os.path.exists(image_path):
         print(f"Image not found: {image_path}")
@@ -254,13 +296,25 @@ def test_single_image(image_path: str, output_dir: str = None) -> None:
     if output_dir is None:
         output_dir = os.path.dirname(image_path)
     
+    if config_path is None:
+        config_path = str(Path(__file__).parent.parent / "config" / "development.json")
+    
+    # Initialize debug system
+    drawer = AdaptiveDetectionDrawer(
+        show_strategy_info=True,
+        show_cache_stats=True,
+        show_border_zones=True
+    )
+    bootstrap(config_path, drawer=drawer)
+    logger = get_logger()
+    
     os.makedirs(output_dir, exist_ok=True)
     
     filename = os.path.splitext(os.path.basename(image_path))[0]
     output_path = os.path.join(output_dir, f"{filename}_adaptive_result.png")
     
-    print("Testing Adaptive Line Detection on Single Image")
-    print("=" * 50)
+    logger.info("Testing Adaptive Line Detection on Single Image")
+    logger.info("=" * 50)
     
     # Test with all optimization features
     detector = AdaptiveLineDetector(
@@ -271,23 +325,24 @@ def test_single_image(image_path: str, output_dir: str = None) -> None:
         enable_preprocessing_cache=True
     )
     
-    result = process_image_adaptive(image_path, output_path, detector, verbose=True)
+    result = process_image_adaptive(image_path, output_path, detector, 
+                                  verbose=True, use_debug_system=True)
     
     if result:
-        print(f"\nResult saved to: {output_path}")
+        logger.info(f"Result saved to: {output_path}")
         cache_info = detector.get_cache_info()
-        print(f"Final detector state: {cache_info}")
+        logger.debug(f"Final detector state: {cache_info}")
 
 
 if __name__ == "__main__":
-    # Example usage with adaptive detection and performance testing
+    # Example usage with logging and debug system
     
-    # Option 1: Process batch with performance comparison
+    # Option 1: Process batch with performance comparison and debug system
     process_batch_adaptive(
         "/Users/irconde/Downloads/V2_170225_exp250225/bin-select",         # input folder
         "/Users/irconde/Downloads/V2_170225_exp250225/adaptive_detection", # output folder
         test_performance=True  # Enable performance comparison
     )
     
-    # Option 2: Test single image
+    # Option 2: Test single image with debug system
     # test_single_image("/path/to/single/image.png", "/path/to/output/directory")
