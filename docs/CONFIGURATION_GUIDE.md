@@ -146,11 +146,6 @@ Controls debug visualization and output:
 
 ### Main Configurations
 
-**File:** `config/default.json`
-- **Purpose:** Main default configuration
-- **Usage:** `python main.py --config config/default.json`
-- **Settings:** Balanced settings for general use with `combined_differential` method
-
 **File:** `config/production.json`
 - **Purpose:** Production-optimized configuration
 - **Usage:** `python main.py --config config/production.json`
@@ -202,7 +197,6 @@ python main.py --input /path/to/images --suffix "_ch00"
 from core.bootstrap import bootstrap, get_config
 
 # Bootstrap with different configurations
-bootstrap("config/default.json")      # Default settings
 bootstrap("config/production.json")   # Production optimized
 bootstrap("config/development.json")  # Development friendly
 

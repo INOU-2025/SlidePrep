@@ -1,34 +1,23 @@
 {
   "general": {
     "input_path": "",
-    "output_path": "output", 
+    "output_path": "",
     "suffix_filter": "",
-    "output_suffix": "",
+    "output_suffix": "_baseline",
     "log": true,
     "debug": true
-  },
-  "log": {
-    "log_to_file": true,
-    "log_to_console": false,
-    "log_file_name": "app.log",
-    "log_level": "INFO",
-    "output_dir": "logs"
-  },
-  "binarization": {
-    "threshold_method": "combined_differential"
   },
   "grid_detection": {
     "min_contour_area": 100,
     "threshold": 0.1,
     "angles": [2.0, -2.0],
-    "enable_early_exit": true,
-    "enable_template_cache": true,
-    "enable_preprocessing_cache": true,
+    "enable_early_exit": false,
+    "enable_template_cache": false,
+    "enable_preprocessing_cache": false,
     "cache_max_size": 50,
     "general": {
       "template_length": 300,
-      "thickness": 20,
-      "border_thickness": 0
+      "thickness": 20
     },
     "thick_border": {
       "template_length": 100,
@@ -40,6 +29,13 @@
       "thickness": 7,
       "border_thickness": 20
     }
+  },
+  "log": {
+    "log_to_file": true,
+    "log_to_console": false,
+    "log_file_name": "performance_test.log",
+    "log_level": "INFO",
+    "output_dir": "logs"
   },
   "debug": {
     "output_dir": "debug_output",

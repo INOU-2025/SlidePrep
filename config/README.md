@@ -4,7 +4,6 @@
 
 ```
 config/
-├── default.json           # Main default configuration
 ├── production.json        # Production-optimized settings
 ├── development.json       # Development-friendly settings
 └── test/
@@ -15,12 +14,6 @@ config/
 ## 🎯 Configuration Selection Guide
 
 ### **When to use each configuration:**
-
-#### `default.json`
-- **Purpose:** General-purpose configuration
-- **Debug:** Enabled (for visibility)
-- **Logging:** INFO level, file + console
-- **Use for:** General testing and development
 
 #### `production.json`
 - **Purpose:** Production deployments
@@ -52,9 +45,6 @@ config/
 ## 🚀 Quick Usage
 
 ```bash
-# Default usage (uses default.json internally)
-python main.py --input /path/to/images
-
 # Production usage
 python main.py --config config/production.json
 
@@ -70,7 +60,6 @@ python scripts/test_grid_detection.py config/test/grid_detection.json
 
 | Config | Debug | Log Level | Log Output | Save Composite | Debug Dir |
 |--------|-------|-----------|------------|----------------|-----------|
-| default | ✅ | INFO | File + Console | ❌ | debug_output |
 | production | ❌ | WARNING | File only | ❌ | debug_output |
 | development | ✅ | DEBUG | File + Console | ✅ | debug_output/development |
 | test/* | Varies | INFO | Console | ❌ | debug_output/test_* |

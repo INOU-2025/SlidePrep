@@ -75,13 +75,13 @@ class GridDetectionConfig:
     enable_preprocessing_cache: bool = True
     cache_max_size: int = 50
     
-    # Strategy configurations
+    # Strategy configurations - must be provided in JSON
     general: Dict[str, Any] = None
     thick_border: Dict[str, Any] = None
     thin_border: Dict[str, Any] = None
     
     def __post_init__(self) -> None:
-        """Set default strategy configurations and validate settings."""
+        """Validate settings and ensure all required configurations are provided."""
         if self.min_contour_area <= 0:
             raise ValueError(f"min_contour_area must be positive, got: {self.min_contour_area}")
         if self.cache_max_size <= 0:
@@ -100,27 +100,13 @@ class GridDetectionConfig:
             if not -45 <= angle <= 45:
                 raise ValueError(f"angles must be between -45 and 45 degrees, got: {angle}")
         
-        # Set default strategy configurations (without threshold and angles)
+        # Ensure all strategy configurations are provided
         if self.general is None:
-            self.general = {
-                "template_length": 300,
-                "thickness": 20,
-                "border_thickness": 0
-            }
-        
+            raise ValueError("general strategy configuration is required")
         if self.thick_border is None:
-            self.thick_border = {
-                "template_length": 100,
-                "thickness": 7,
-                "border_thickness": 35
-            }
-        
+            raise ValueError("thick_border strategy configuration is required")
         if self.thin_border is None:
-            self.thin_border = {
-                "template_length": 30,
-                "thickness": 7,
-                "border_thickness": 20
-            }
+            raise ValueError("thin_border strategy configuration is required")
         
         # Validate all strategy configurations
         for strategy_name, strategy_config in [
@@ -132,7 +118,13 @@ class GridDetectionConfig:
     
     def _validate_strategy_config(self, name: str, config: Dict[str, Any]) -> None:
         """Validate a strategy configuration dictionary."""
-        required_keys = {"template_length", "thickness", "border_thickness"}
+        if name == "general":
+            # General strategy doesn't use border filtering
+            required_keys = {"template_length", "thickness"}
+        else:
+            # Border strategies require border_thickness
+            required_keys = {"template_length", "thickness", "border_thickness"}
+        
         if not all(key in config for key in required_keys):
             missing = required_keys - set(config.keys())
             raise ValueError(f"{name} strategy missing required keys: {missing}")
@@ -141,8 +133,11 @@ class GridDetectionConfig:
             raise ValueError(f"{name}.template_length must be positive")
         if config["thickness"] < 7:
             raise ValueError(f"{name}.thickness must be at least 7")
-        if config["border_thickness"] < 0:
-            raise ValueError(f"{name}.border_thickness must be non-negative")
+        
+        # Only validate border_thickness for border strategies
+        if name != "general":
+            if config["border_thickness"] < 0:
+                raise ValueError(f"{name}.border_thickness must be non-negative")
 
 @dataclass
 class DebugConfig:

@@ -1,9 +1,9 @@
 {
   "general": {
-    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/bin-select",
+    "input_path": "",
     "output_path": "",
     "suffix_filter": "",
-    "output_suffix": "_detection",
+    "output_suffix": "_optimized",
     "log": true,
     "debug": true
   },
@@ -32,13 +32,13 @@
   },
   "log": {
     "log_to_file": true,
-    "log_to_console": true,
-    "log_file_name": "grid_detection_test.log",
-    "log_level": "DEBUG",
-    "output_dir": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection"
+    "log_to_console": false,
+    "log_file_name": "performance_test.log",
+    "log_level": "INFO",
+    "output_dir": "logs"
   },
   "debug": {
-    "output_dir": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection",
+    "output_dir": "debug_output",
     "save_composite": false
   }
 }

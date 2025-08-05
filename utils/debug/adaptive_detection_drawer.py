@@ -95,7 +95,7 @@ class AdaptiveDetectionDrawer(BaseDrawer):
 
                 base = self._draw_contours_with_strategy(
                     base, contours, template_shape, orientation,
-                    strategy, config['border_thickness'], min_area
+                    strategy, config.get('border_thickness', 0), min_area
                 )
 
         # Add strategy information overlay

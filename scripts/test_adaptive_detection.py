@@ -13,19 +13,26 @@ from glob import glob
 from utils.detection.adaptive_detector import AdaptiveLineDetector
 from utils.debug.adaptive_detection_drawer import AdaptiveDetectionDrawer
 from core.bootstrap import bootstrap, get_logger, get_debugger
+from core.app_config_manager import AppConfigManager
+from utils.config_helpers import create_detector_from_grid_config
 
 
-def process_image_adaptive(image_path: str, output_path: str, detector: AdaptiveLineDetector = None) -> dict:
+def process_image_adaptive(image_path: str, output_path: str, detector: AdaptiveLineDetector = None, 
+                          config_manager: AppConfigManager = None) -> dict:
     """
     Process single image with adaptive line detection using logging and debug system.
     
     Args:
         image_path: Path to input image
-        output_path: Path for output visualization
+        output_path: Path for output visualization (can be empty if only using debug system)
         detector: Pre-initialized detector (for cache reuse)
+        config_manager: Configuration manager for creating detector if not provided
         
     Returns:
         Dictionary with processing results and timing
+        
+    Raises:
+        ValueError: If detector is None and config_manager is None or missing grid_detection_config
     """
     logger = get_logger()
     debugger = get_debugger()
@@ -38,17 +45,14 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
     filename = os.path.basename(image_path)
     logger.info(f"Processing: {filename}")
     
-    # Create detector if not provided
+    # Create detector if not provided - REQUIRE valid configuration
     if detector is None:
-        detector = AdaptiveLineDetector(
-            min_contour_area=100,
-            threshold=0.1,
-            angles=[2.0, -2.0],
-            enable_early_exit=True,
-            enable_template_cache=True,
-            enable_preprocessing_cache=True,
-            cache_max_size=50
-        )
+        if not config_manager:
+            raise ValueError("detector is None but no config_manager provided to create detector")
+        if not config_manager.grid_detection_config:
+            raise ValueError("config_manager.grid_detection_config is None - configuration not loaded properly")
+        
+        detector = create_detector_from_grid_config(config_manager.grid_detection_config)
     
     # Time the detection
     start_time = time.time()
@@ -57,10 +61,16 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
     
     # Log detection summary
     logger.info(f"Detection completed in {detection_time:.3f}s")
+    total_lines_found = 0
+    has_any_detections = False
+    
     for orientation, strategy in results['strategies'].items():
         if strategy:
             mask, contours = results['detections'][orientation]
             valid_contours = [c for c in contours if cv2.contourArea(c) >= detector.min_contour_area]
+            total_lines_found += len(valid_contours)
+            if len(valid_contours) > 0:
+                has_any_detections = True
             logger.info(f"  {orientation}: {len(valid_contours)} lines found using {strategy.value}")
         else:
             logger.info(f"  {orientation}: No lines found")
@@ -76,48 +86,196 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
         
         logger.debug(f"Cache stats - Template: {template_rate} hits, Preprocessing: {preprocessing_rate} hits")
     
-    # Create visualization using debug system
+    # Debug: Log what we're about to save
+    logger.debug(f"Saving debug image for {filename} - Has detections: {has_any_detections}, Total lines: {total_lines_found}")
+    logger.debug(f"Results structure: detections={list(results.get('detections', {}).keys())}, strategies={results.get('strategies', {})}")
+    
+    # Always create visualization using debug system
     metadata = {
         'detector': detector,
         'timing': detection_time,
-        'filename': filename
+        'filename': filename,
+        'total_lines_found': total_lines_found
     }
+    
+    # Save debug image
     debugger.save_debug_image(filename, image, results, metadata)
     
-    # Also save to specified output path by copying the debug output
-    debug_output = os.path.join(debugger._output_dir, filename) if debugger._output_dir else filename
-    if os.path.exists(debug_output):
-        import shutil
-        shutil.copy2(debug_output, output_path)
+    # Verify the debug image was actually saved
+    debug_output_path = os.path.join(debugger._output_dir, filename) if debugger._output_dir else filename
+    if os.path.exists(debug_output_path):
+        logger.debug(f"✓ Debug image successfully saved: {debug_output_path}")
     else:
-        logger.warning(f"Debug output not found at {debug_output}")
+        logger.warning(f"✗ Debug image NOT saved for {filename}")
+        logger.warning(f"  Expected path: {debug_output_path}")
+        logger.warning(f"  Debugger enabled: {debugger._enabled}")
+        logger.warning(f"  Drawer available: {debugger._drawer is not None}")
+    
+    # Only copy to output_path if specified and not empty
+    if output_path and output_path.strip():
+        if os.path.exists(debug_output_path):
+            import shutil
+            shutil.copy2(debug_output_path, output_path)
+        else:
+            logger.warning(f"Debug output not found at {debug_output_path}")
     
     return {
         'filename': filename,
         'detection_time': detection_time,
         'results': results,
         'cache_stats': results.get('cache_stats', {}),
-        'total_lines_found': sum(len([c for c in results['detections'][orient][1] 
-                                    if cv2.contourArea(c) >= detector.min_contour_area]) 
-                                for orient in results['detections'])
+        'total_lines_found': total_lines_found
     }
 
 
-def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "png", 
-                          test_performance: bool = True, config_path: str = None) -> None:
+def compare_performance_configs(baseline_config_path: str, optimized_config_path: str,
+                               ext: str = "png", test_image_count: int = 3) -> None:
     """
-    Process batch of images with adaptive line detection using logging system.
+    Compare performance between two different configurations.
     
     Args:
-        input_folder: Input directory path
-        output_folder: Output directory path
+        baseline_config_path: Path to baseline configuration (required)
+        optimized_config_path: Path to optimized configuration (required)
         ext: Image file extension
-        test_performance: Whether to run performance comparison tests
-        config_path: Path to configuration file (defaults to development config)
+        test_image_count: Number of images to test (default: 3)
+        
+    Raises:
+        ValueError: If configuration files are missing or invalid
     """
-    # Initialize the debug/logging system
-    if config_path is None:
-        config_path = str(Path(__file__).parent.parent / "config" / "development.json")
+    # Validate performance test configuration files
+    if not os.path.exists(baseline_config_path):
+        raise ValueError(f"Baseline configuration file not found: {baseline_config_path}")
+    if not os.path.exists(optimized_config_path):
+        raise ValueError(f"Optimized configuration file not found: {optimized_config_path}")
+    
+    # Load performance test configurations
+    baseline_config_manager = AppConfigManager(baseline_config_path)
+    optimized_config_manager = AppConfigManager(optimized_config_path)
+    
+    if not baseline_config_manager.grid_detection_config:
+        raise ValueError(f"grid_detection_config not found in {baseline_config_path}")
+    if not optimized_config_manager.grid_detection_config:
+        raise ValueError(f"grid_detection_config not found in {optimized_config_path}")
+    
+    # Extract input path from baseline configuration
+    input_folder = baseline_config_manager.general_config.input_path
+    
+    if not input_folder:
+        raise ValueError(f"input_path not specified in baseline configuration: {baseline_config_path}")
+    
+    # Initialize logging system with baseline config (for consistency)
+    drawer = AdaptiveDetectionDrawer(
+        show_strategy_info=True,
+        show_cache_stats=True,
+        show_border_zones=True
+    )
+    bootstrap(baseline_config_path, drawer=drawer)
+    logger = get_logger()
+    debugger = get_debugger()
+    
+    # Get test images
+    image_paths = glob(os.path.join(input_folder, f"*.{ext}"))
+    if not image_paths:
+        raise ValueError(f"No {ext} files found in {input_folder}")
+    
+    test_images = image_paths[:min(test_image_count, len(image_paths))]
+    
+    logger.info("=" * 60)
+    logger.info("PERFORMANCE COMPARISON")
+    logger.info("=" * 60)
+    logger.info(f"Input folder: {input_folder}")
+    logger.info(f"Debug output: {debugger._output_dir}")
+    logger.info(f"Testing {len(test_images)} images")
+    logger.info(f"Baseline config: {baseline_config_path}")
+    logger.info(f"Optimized config: {optimized_config_path}")
+    
+    # Test 1: Baseline configuration
+    logger.info("Testing BASELINE configuration...")
+    detector_baseline = create_detector_from_grid_config(baseline_config_manager.grid_detection_config)
+    
+    times_baseline = []
+    for image_path in test_images:
+        result = process_image_adaptive(image_path, "", detector_baseline, baseline_config_manager)
+        if result:
+            times_baseline.append(result['detection_time'])
+    
+    avg_time_baseline = sum(times_baseline) / len(times_baseline) if times_baseline else 0
+    
+    # Test 2: Optimized configuration
+    logger.info("Testing OPTIMIZED configuration...")
+    detector_optimized = create_detector_from_grid_config(optimized_config_manager.grid_detection_config)
+    
+    times_optimized = []
+    for image_path in test_images:
+        result = process_image_adaptive(image_path, "", detector_optimized, optimized_config_manager)
+        if result:
+            times_optimized.append(result['detection_time'])
+    
+    avg_time_optimized = sum(times_optimized) / len(times_optimized) if times_optimized else 0
+    
+    # Log performance comparison
+    logger.info("=" * 60)
+    logger.info("PERFORMANCE RESULTS")
+    logger.info("=" * 60)
+    logger.info(f"Baseline configuration:  {avg_time_baseline:.3f}s average")
+    logger.info(f"Optimized configuration: {avg_time_optimized:.3f}s average")
+    if avg_time_baseline > 0:
+        speedup = avg_time_baseline / avg_time_optimized if avg_time_optimized > 0 else float('inf')
+        improvement = ((avg_time_baseline - avg_time_optimized) / avg_time_baseline) * 100
+        logger.info(f"Speedup: {speedup:.2f}x ({improvement:.1f}% faster)")
+    
+    # Log optimization settings comparison
+    baseline_grid = baseline_config_manager.grid_detection_config
+    optimized_grid = optimized_config_manager.grid_detection_config
+    
+    logger.info("Configuration Comparison:")
+    logger.info(f"  Early Exit - Baseline: {baseline_grid.enable_early_exit}, Optimized: {optimized_grid.enable_early_exit}")
+    logger.info(f"  Template Cache - Baseline: {baseline_grid.enable_template_cache}, Optimized: {optimized_grid.enable_template_cache}")
+    logger.info(f"  Preprocessing Cache - Baseline: {baseline_grid.enable_preprocessing_cache}, Optimized: {optimized_grid.enable_preprocessing_cache}")
+    
+    # Log cache statistics for optimized detector
+    cache_info = detector_optimized.get_cache_info()
+    logger.info("Optimized Configuration Cache Statistics:")
+    logger.info(f"  Template cache size: {cache_info['template_cache_size']} entries")
+    logger.info(f"  Preprocessing cache size: {cache_info['preprocessing_cache_size']} entries")
+    
+    template_total = cache_info['template_cache_hits'] + cache_info['template_cache_misses']
+    preprocessing_total = cache_info['preprocessing_cache_hits'] + cache_info['preprocessing_cache_misses']
+    
+    if template_total > 0:
+        template_efficiency = (cache_info['template_cache_hits'] / template_total) * 100
+        logger.info(f"  Template cache efficiency: {template_efficiency:.1f}%")
+    
+    if preprocessing_total > 0:
+        preprocessing_efficiency = (cache_info['preprocessing_cache_hits'] / preprocessing_total) * 100
+        logger.info(f"  Preprocessing cache efficiency: {preprocessing_efficiency:.1f}%")
+
+
+def process_batch_adaptive(config_path: str, ext: str = "png") -> None:
+    """
+    Process batch of images with adaptive line detection using configuration.
+    
+    Args:
+        config_path: Path to configuration file (required)
+        ext: Image file extension
+        
+    Raises:
+        ValueError: If configuration file is missing or doesn't contain required settings
+    """
+    # Load configuration - fail fast if missing
+    if not os.path.exists(config_path):
+        raise ValueError(f"Configuration file not found: {config_path}")
+    
+    config_manager = AppConfigManager(config_path)
+    
+    if not config_manager.grid_detection_config:
+        raise ValueError(f"grid_detection_config not found in {config_path} - check configuration file structure")
+    
+    # Extract input path from configuration
+    input_folder = config_manager.general_config.input_path
+    
+    if not input_folder:
+        raise ValueError(f"input_path not specified in configuration: {config_path}")
     
     # Create adaptive detection drawer
     drawer = AdaptiveDetectionDrawer(
@@ -131,112 +289,35 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
     logger = get_logger()
     debugger = get_debugger()
     
-    os.makedirs(output_folder, exist_ok=True)
+    logger.info(f"Using configuration from: {config_path}")
+    logger.info(f"Input folder: {input_folder}")
+    logger.info(f"Debug output will be saved to: {debugger._output_dir}")
+    
     image_paths = glob(os.path.join(input_folder, f"*.{ext}"))
     
     if not image_paths:
         logger.error(f"No {ext} files found in {input_folder}")
         return
     
+    logger.info("=" * 60)
+    logger.info("BATCH PROCESSING")
+    logger.info("=" * 60)
     logger.info(f"Found {len(image_paths)} images to process")
     
-    if test_performance and len(image_paths) > 1:
-        # Performance comparison: with and without optimizations
-        logger.info("=" * 60)
-        logger.info("PERFORMANCE COMPARISON")
-        logger.info("=" * 60)
-        
-        # Test 1: Without optimizations
-        logger.info("Testing WITHOUT optimizations (first 3 images)...")
-        detector_no_opt = AdaptiveLineDetector(
-            min_contour_area=100,
-            enable_early_exit=False,
-            enable_template_cache=False,
-            enable_preprocessing_cache=False,
-            cache_max_size=50
-        )
-        
-        times_no_opt = []
-        test_images = image_paths[:min(3, len(image_paths))]
-        
-        for image_path in test_images:
-            filename = os.path.basename(image_path)
-            output_path = os.path.join(output_folder, f"no_opt_{filename}")
-            result = process_image_adaptive(image_path, output_path, detector_no_opt)
-            if result:
-                times_no_opt.append(result['detection_time'])
-        
-        avg_time_no_opt = sum(times_no_opt) / len(times_no_opt) if times_no_opt else 0
-        
-        # Test 2: With optimizations
-        logger.info("Testing WITH optimizations (same images)...")
-        detector_opt = AdaptiveLineDetector(
-            min_contour_area=100,
-            enable_early_exit=True,
-            enable_template_cache=True,
-            enable_preprocessing_cache=True,
-            cache_max_size=50
-        )
-        
-        times_opt = []
-        
-        for image_path in test_images:
-            filename = os.path.basename(image_path)
-            output_path = os.path.join(output_folder, f"opt_{filename}")
-            result = process_image_adaptive(image_path, output_path, detector_opt)
-            if result:
-                times_opt.append(result['detection_time'])
-        
-        avg_time_opt = sum(times_opt) / len(times_opt) if times_opt else 0
-        
-        # Log performance comparison
-        logger.info("Performance Results:")
-        logger.info(f"  Without optimizations: {avg_time_no_opt:.3f}s average")
-        logger.info(f"  With optimizations:    {avg_time_opt:.3f}s average")
-        if avg_time_no_opt > 0:
-            speedup = avg_time_no_opt / avg_time_opt if avg_time_opt > 0 else float('inf')
-            improvement = ((avg_time_no_opt - avg_time_opt) / avg_time_no_opt) * 100
-            logger.info(f"  Speedup: {speedup:.2f}x ({improvement:.1f}% faster)")
-        
-        # Log cache statistics
-        cache_info = detector_opt.get_cache_info()
-        logger.info("Final Cache Statistics:")
-        logger.info(f"  Template cache size: {cache_info['template_cache_size']} entries")
-        logger.info(f"  Preprocessing cache size: {cache_info['preprocessing_cache_size']} entries")
-        
-        template_total = cache_info['template_cache_hits'] + cache_info['template_cache_misses']
-        preprocessing_total = cache_info['preprocessing_cache_hits'] + cache_info['preprocessing_cache_misses']
-        
-        if template_total > 0:
-            template_efficiency = (cache_info['template_cache_hits'] / template_total) * 100
-            logger.info(f"  Template cache efficiency: {template_efficiency:.1f}%")
-        
-        if preprocessing_total > 0:
-            preprocessing_efficiency = (cache_info['preprocessing_cache_hits'] / preprocessing_total) * 100
-            logger.info(f"  Preprocessing cache efficiency: {preprocessing_efficiency:.1f}%")
-    
-    logger.info("=" * 60)
-    logger.info("PROCESSING ALL IMAGES WITH OPTIMIZATIONS")
-    logger.info("=" * 60)
-    
-    # Process all images with optimizations and debug system
-    detector = AdaptiveLineDetector(
-        min_contour_area=100,
-        enable_early_exit=True,
-        enable_template_cache=True,
-        enable_preprocessing_cache=True,
-        cache_max_size=50
-    )
+    # Process all images with the configuration
+    detector = create_detector_from_grid_config(config_manager.grid_detection_config)
+    logger.info("Using detector configuration from JSON file")
     
     all_results = []
     total_start_time = time.time()
     
     for i, image_path in enumerate(image_paths, 1):
         filename = os.path.basename(image_path)
-        output_path = os.path.join(output_folder, filename)
+        # Debug output will be handled by debugger.save_debug_image()
+        # No need for separate output_path since debug system manages this
         
-        logger.info(f"[{i}/{len(image_paths)}] Processing {filename}")
-        result = process_image_adaptive(image_path, output_path, detector)
+        logger.info(f"[{i}/{len(image_paths)}] Processing {os.path.basename(image_path)}")
+        result = process_image_adaptive(image_path, "", detector, config_manager)  # Empty output_path since debug handles it
         
         if result:
             all_results.append(result)
@@ -272,68 +353,14 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
             logger.info(f"Preprocessing cache efficiency: {preprocessing_efficiency:.1f}%")
 
 
-def test_single_image(image_path: str, output_dir: str = None, config_path: str = None) -> None:
-    """
-    Test adaptive detection on a single image with debug system.
-    
-    Args:
-        image_path: Path to test image
-        output_dir: Output directory (defaults to same as input)
-        config_path: Path to configuration file
-    """
-    if not os.path.exists(image_path):
-        print(f"Image not found: {image_path}")
-        return
-    
-    if output_dir is None:
-        output_dir = os.path.dirname(image_path)
-    
-    if config_path is None:
-        config_path = str(Path(__file__).parent.parent / "config" / "development.json")
-    
-    # Initialize debug system
-    drawer = AdaptiveDetectionDrawer(
-        show_strategy_info=True,
-        show_cache_stats=True,
-        show_border_zones=True
-    )
-    bootstrap(config_path, drawer=drawer)
-    logger = get_logger()
-    
-    os.makedirs(output_dir, exist_ok=True)
-    
-    filename = os.path.splitext(os.path.basename(image_path))[0]
-    output_path = os.path.join(output_dir, f"{filename}_adaptive_result.png")
-    
-    logger.info("Testing Adaptive Line Detection on Single Image")
-    logger.info("=" * 50)
-    
-    # Test with all optimization features
-    detector = AdaptiveLineDetector(
-        min_contour_area=100,
-        enable_early_exit=True,
-        enable_template_cache=True,
-        enable_preprocessing_cache=True,
-        cache_max_size=50
-    )
-    
-    result = process_image_adaptive(image_path, output_path, detector)
-    
-    if result:
-        logger.info(f"Result saved to: {output_path}")
-        cache_info = detector.get_cache_info()
-        logger.debug(f"Final detector state: {cache_info}")
-
-
 if __name__ == "__main__":
-    # Example usage with logging and debug system
+    # Example usage with explicit configuration paths
     
-    # Option 1: Process batch with performance comparison and debug system
-    process_batch_adaptive(
-        "/Users/irconde/Downloads/V2_170225_exp250225/bin-select",         # input folder
-        "/Users/irconde/Downloads/V2_170225_exp250225/adaptive_detection", # output folder
-        test_performance=True  # Enable performance comparison
-    )
+    # Option 1: Compare performance between two configurations
+    # compare_performance_configs(
+    #     baseline_config_path="config/test/performance_baseline.json",
+    #     optimized_config_path="config/test/performance_optimized.json"
+    # )
     
-    # Option 2: Test single image with debug system
-    # test_single_image("/path/to/single/image.png", "/path/to/output/directory")
+    # Option 2: Process batch with test configuration
+    process_batch_adaptive(config_path="config/test/grid_detection.json")
