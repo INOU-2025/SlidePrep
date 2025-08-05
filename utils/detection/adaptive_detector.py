@@ -3,6 +3,7 @@ import numpy as np
 from typing import List, Tuple, Optional, Dict, Any
 import logging
 
+from config.config_schema import GridDetectionConfig
 from .models import DetectionStrategy
 from .template_utils import generate_blurred_template, perform_template_matching
 from .image_preprocessing import create_detection_mask, ImagePreprocessingCache
@@ -71,59 +72,36 @@ class AdaptiveLineDetector:
     Optimized to only process missing orientations in each round.
     """
 
-    def __init__(self, min_contour_area: int = 100,
-                 threshold: float = 0.1,
-                 angles: List[float] = None,
-                 enable_early_exit: bool = True,
-                 enable_template_cache: bool = True, 
-                 enable_preprocessing_cache: bool = True,
-                 cache_max_size: int = 50):
+    def __init__(self, grid_config: GridDetectionConfig):
         """
-        Initialize the adaptive line detector.
+        Initialize the adaptive line detector from grid configuration.
 
         Args:
-            min_contour_area: Minimum contour area to consider as valid detection
-            threshold: Template matching threshold (0.0 to 1.0)
-            angles: List of rotation angles in degrees for template matching
-            enable_early_exit: Enable early exit optimization when lines are found
-            enable_template_cache: Enable template caching optimization
-            enable_preprocessing_cache: Enable preprocessing cache optimization
-            cache_max_size: Maximum number of cached items
+            grid_config: GridDetectionConfig instance with all settings
         """
-        self.min_contour_area = min_contour_area
-        self.threshold = threshold
-        self.angles = angles if angles is not None else [2.0, -2.0]
+        # Extract parameters from config
+        self.min_contour_area = grid_config.min_contour_area
+        self.threshold = grid_config.threshold
+        self.angles = grid_config.angles
 
-        # Performance optimizations
-        self.enable_early_exit = enable_early_exit
-        self.enable_template_cache = enable_template_cache
-        self.enable_preprocessing_cache = enable_preprocessing_cache
-        self.cache_max_size = cache_max_size
+        # Performance optimizations from config
+        self.enable_early_exit = grid_config.enable_early_exit
+        self.enable_template_cache = grid_config.enable_template_cache
+        self.enable_preprocessing_cache = grid_config.enable_preprocessing_cache
+        self.cache_max_size = grid_config.cache_max_size
 
-        # Configuration for different strategies (without threshold and angles)
+        # Strategy configurations from config
         self.configs = {
-            DetectionStrategy.GENERAL: {
-                'template_length': 300,
-                'thickness': 20,
-                'border_thickness': 0
-            },
-            DetectionStrategy.THICK_BORDER: {
-                'template_length': 100,
-                'thickness': 7,
-                'border_thickness': 35
-            },
-            DetectionStrategy.THIN_BORDER: {
-                'template_length': 30,
-                'thickness': 7,
-                'border_thickness': 20
-            }
+            DetectionStrategy.GENERAL: grid_config.general,
+            DetectionStrategy.THICK_BORDER: grid_config.thick_border,
+            DetectionStrategy.THIN_BORDER: grid_config.thin_border
         }
 
         # Initialize caches
-        self.template_cache = TemplateCache() if enable_template_cache else None
+        self.template_cache = TemplateCache() if self.enable_template_cache else None
         self.preprocessing_cache = ImagePreprocessingCache(
-            max_size=cache_max_size
-        ) if enable_preprocessing_cache else None
+            max_size=self.cache_max_size
+        ) if self.enable_preprocessing_cache else None
 
         # Storage for detection results
         self.detection_results = {}

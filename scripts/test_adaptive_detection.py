@@ -14,7 +14,6 @@ from utils.detection.adaptive_detector import AdaptiveLineDetector
 from utils.debug.adaptive_detection_drawer import AdaptiveDetectionDrawer
 from core.bootstrap import bootstrap, get_logger, get_debugger, get_config
 from core.app_config_manager import AppConfigManager
-from utils.config_helpers import create_detector_from_grid_config
 
 
 def process_image_adaptive(image_path: str, output_path: str, detector: AdaptiveLineDetector = None, 
@@ -52,7 +51,7 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
         if not config_manager.grid_detection_config:
             raise ValueError("config_manager.grid_detection_config is None - configuration not loaded properly")
         
-        detector = create_detector_from_grid_config(config_manager.grid_detection_config)
+        detector = AdaptiveLineDetector(config_manager.grid_detection_config)
     
     # Time the detection
     start_time = time.time()
@@ -206,7 +205,7 @@ def compare_performance_configs(baseline_config_path: str, optimized_config_path
     logger.info(f"Debug output: {debugger._output_dir}")
     
     config_manager = get_config()  # Use the singleton config manager
-    detector_baseline = create_detector_from_grid_config(config_manager.grid_detection_config)
+    detector_baseline = AdaptiveLineDetector(config_manager.grid_detection_config)
     
     times_baseline = []
     for image_path in test_images:
@@ -226,7 +225,7 @@ def compare_performance_configs(baseline_config_path: str, optimized_config_path
     logger.info(f"Debug output: {debugger._output_dir}")
     
     config_manager = get_config()  # Use the new singleton config manager
-    detector_optimized = create_detector_from_grid_config(config_manager.grid_detection_config)
+    detector_optimized = AdaptiveLineDetector(config_manager.grid_detection_config)
     
     times_optimized = []
     for image_path in test_images:
@@ -339,7 +338,7 @@ def process_batch_adaptive(config_path: str, ext: str = "png") -> None:
     logger.info(f"Found {len(image_paths)} images to process")
     
     # Process all images with the configuration
-    detector = create_detector_from_grid_config(config_manager.grid_detection_config)
+    detector = AdaptiveLineDetector(config_manager.grid_detection_config)
     logger.info("Using detector configuration from JSON file")
     
     all_results = []

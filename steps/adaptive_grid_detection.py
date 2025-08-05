@@ -7,7 +7,7 @@ import numpy as np
 from typing import Any, Dict
 from core.step import PipelineStep
 from config.config_schema import GridDetectionConfig
-from utils.config_helpers import create_detector_from_grid_config
+from utils.detection.adaptive_detector import AdaptiveLineDetector
 
 
 class AdaptiveGridDetectionStep(PipelineStep):
@@ -22,7 +22,7 @@ class AdaptiveGridDetectionStep(PipelineStep):
         
         # Create adaptive detector directly from grid config
         try:
-            self.detector = create_detector_from_grid_config(config)
+            self.detector = AdaptiveLineDetector(config)
             self.log(f"Initialized adaptive detector with optimizations: "
                     f"cache={self.detector.enable_template_cache}, "
                     f"early_exit={self.detector.enable_early_exit}")
@@ -64,46 +64,36 @@ class AdaptiveGridDetectionStep(PipelineStep):
                 else:
                     self.debug(f"  {orientation}: not found")
             
-            # Log cache performance
+            # Log cache performance with correct field names
             if 'cache_stats' in results:
                 stats = results['cache_stats']
-                self.debug(f"Cache performance - Template: {stats['template_hits']}/{stats['template_hits'] + stats['template_misses']}, "
-                          f"Preprocessing: {stats['preprocessing_hits']}/{stats['preprocessing_hits'] + stats['preprocessing_misses']}")
+                template_total = stats['template_cache_hits'] + stats['template_cache_misses']
+                preprocessing_total = stats['preprocessing_cache_hits'] + stats['preprocessing_cache_misses']
+                self.debug(f"Cache performance - Template: {stats['template_cache_hits']}/{template_total}, "
+                          f"Preprocessing: {stats['preprocessing_cache_hits']}/{preprocessing_total}")
             
-            # Save debug visualization
+            # Save debug visualization using debugger system instead of detector method
             if self.debugger:
-                visualization = self.detector.create_visualization(data, results)
+                # Use the debugger's save_debug_image method with drawer integration
+                metadata = {
+                    'detector': self.detector,
+                    'timing': 0,  # Pipeline step doesn't track timing separately
+                    'filename': f"{self.name}_result.png",
+                    'total_lines_found': horizontal_count + vertical_count,
+                    'horizontal_count': horizontal_count,
+                    'vertical_count': vertical_count,
+                    'strategies_used': strategies
+                }
+                
                 self.debugger.save_debug_image(
                     f"{self.name}_result.png",
                     data,
-                    visualization,
-                    metadata={
-                        'detector': self.detector,
-                        'results': results,
-                        'horizontal_count': horizontal_count,
-                        'vertical_count': vertical_count
-                    }
+                    results,
+                    metadata
                 )
             
-            return {
-                'horizontal_lines': horizontal_count,
-                'vertical_lines': vertical_count,
-                'total_lines': horizontal_count + vertical_count,
-                'detection_results': results,
-                'strategies_used': strategies,
-                'cache_stats': results.get('cache_stats', {}),
-                'success': True
-            }
+            return results['detections']
             
         except Exception as e:
             self.error(f"Adaptive grid detection failed: {e}")
-            return {
-                'horizontal_lines': 0,
-                'vertical_lines': 0,
-                'total_lines': 0,
-                'detection_results': None,
-                'strategies_used': {},
-                'cache_stats': {},
-                'success': False,
-                'error': str(e)
-            }
+            return None
