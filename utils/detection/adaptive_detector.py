@@ -7,7 +7,7 @@ from config.config_schema import GridDetectionConfig
 from .models import DetectionStrategy
 from .template_utils import generate_blurred_template, perform_template_matching
 from .image_preprocessing import create_detection_mask, ImagePreprocessingCache
-from .contour_analysis import filter_contours_by_border_zone, has_valid_detections
+from .contour_analysis import filter_contours_by_border_zone
 
 
 class TemplateCache:
@@ -185,18 +185,25 @@ class AdaptiveLineDetector:
         contours, _ = cv2.findContours(
             mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        # Filter contours for border strategies
+        # Filter by minimum area first (early filtering for performance)
+        area_filtered_contours = [
+            cnt for cnt in contours 
+            if cv2.contourArea(cnt) >= self.min_contour_area
+        ]
+
+        # Filter contours for border strategies (only process area-valid contours)
         if strategy != DetectionStrategy.GENERAL:
-            contours = filter_contours_by_border_zone(
-                contours, image.shape, config['border_thickness'],
-                orientation, self.min_contour_area
+            border_filtered_contours = filter_contours_by_border_zone(
+                area_filtered_contours, image.shape, config['border_thickness'], orientation
             )
+        else:
+            border_filtered_contours = area_filtered_contours
 
-        # Apply template offset correction
-        corrected_contours = self._apply_template_offset_correction(
-            contours, config, orientation)
+        # Apply template offset correction (only to final valid contours)
+        final_contours = self._apply_template_offset_correction(
+            border_filtered_contours, config, orientation)
 
-        return mask, corrected_contours
+        return mask, final_contours
 
     def detect_lines(self, image: np.ndarray) -> Dict[str, Any]:
         """Detect lines using adaptive strategy progression."""
@@ -216,7 +223,7 @@ class AdaptiveLineDetector:
             mask, contours = self._detect_single_orientation(
                 image, DetectionStrategy.GENERAL, orientation)
 
-            if has_valid_detections(contours, self.min_contour_area):
+            if contours:  # Simplified check since contours are pre-filtered
                 self.detection_results[orientation] = (mask, contours)
                 self.strategies_used[orientation] = DetectionStrategy.GENERAL
                 missing_orientations.remove(orientation)
@@ -240,7 +247,7 @@ class AdaptiveLineDetector:
                 mask, contours = self._detect_single_orientation(
                     image, DetectionStrategy.THICK_BORDER, orientation)
 
-                if has_valid_detections(contours, self.min_contour_area):
+                if contours:  # Simplified check since contours are pre-filtered
                     self.detection_results[orientation] = (mask, contours)
                     self.strategies_used[orientation] = DetectionStrategy.THICK_BORDER
                     missing_orientations.remove(orientation)
@@ -264,7 +271,7 @@ class AdaptiveLineDetector:
                 mask, contours = self._detect_single_orientation(
                     image, DetectionStrategy.THIN_BORDER, orientation)
 
-                if has_valid_detections(contours, self.min_contour_area):
+                if contours:  # Simplified check since contours are pre-filtered
                     self.detection_results[orientation] = (mask, contours)
                     self.strategies_used[orientation] = DetectionStrategy.THIN_BORDER
                     missing_orientations.remove(orientation)

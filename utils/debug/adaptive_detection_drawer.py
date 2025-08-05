@@ -59,9 +59,12 @@ class AdaptiveDetectionDrawer(BaseDrawer):
         strategies = results.get('strategies', {})
         cache_stats = results.get('cache_stats', {})
 
-        # Get detector configurations (from metadata if available)
+        # Get detector configurations (must be provided in metadata)
         detector = metadata.get('detector') if metadata else None
-        configs = detector.configs if detector else self._get_default_configs()
+        if not detector:
+            raise ValueError("Detector instance must be provided in metadata for drawer to access configurations")
+        
+        configs = detector.configs
 
         # Draw border overlay if any border strategy was used
         if self.show_border_zones:
@@ -82,11 +85,9 @@ class AdaptiveDetectionDrawer(BaseDrawer):
                 strategy = strategies[orientation]
                 config = configs[strategy]
 
-                min_area = detector.min_contour_area if detector else 100
-
                 base = self._draw_contours_with_strategy(
                     base, contours, orientation, strategy, 
-                    config.get('border_thickness', 0), min_area
+                    config.get('border_thickness', 0)
                 )
 
         # Add strategy information overlay
@@ -135,19 +136,18 @@ class AdaptiveDetectionDrawer(BaseDrawer):
 
     def _draw_contours_with_strategy(self, base_image: np.ndarray, contours: List[np.ndarray],
                                      orientation: str, strategy: DetectionStrategy, 
-                                     border_thickness: int = 0, min_area: int = 100) -> np.ndarray:
+                                     border_thickness: int = 0) -> np.ndarray:
         """
         Draw contours with strategy-specific coloring and filtering.
         
-        Note: Contours are pre-corrected by the detector, so no offset calculation needed.
+        Note: Contours are pre-corrected and pre-filtered by the detector.
 
         Args:
             base_image: Base image to draw on
-            contours: List of pre-corrected contours to draw
+            contours: List of pre-corrected and pre-filtered contours to draw
             orientation: 'horizontal' or 'vertical'
             strategy: Detection strategy used
             border_thickness: Border zone thickness (for border strategies)
-            min_area: Minimum contour area to draw
 
         Returns:
             Image with drawn contours
@@ -159,10 +159,7 @@ class AdaptiveDetectionDrawer(BaseDrawer):
         h, w = result.shape[:2]
 
         for cnt in contours:
-            if cv2.contourArea(cnt) < min_area:
-                continue
-
-            # Contours are already offset-corrected by the detector
+            # Contours are already offset-corrected and area-filtered by the detector
             rect = cv2.minAreaRect(cnt)
             box = cv2.boxPoints(rect)
             box = np.intp(box)
@@ -193,37 +190,12 @@ class AdaptiveDetectionDrawer(BaseDrawer):
 
         return result
 
-    def _get_default_configs(self) -> Dict[DetectionStrategy, Dict[str, Any]]:
-        """Get default configurations if detector is not available."""
-        return {
-            DetectionStrategy.GENERAL: {
-                'template_length': 300,
-                'thickness': 20,
-                'threshold': 0.1,
-                'angles': [2, -2],
-                'border_thickness': 0
-            },
-            DetectionStrategy.THICK_BORDER: {
-                'template_length': 100,
-                'thickness': 7,
-                'threshold': 0.1,
-                'angles': [2, -2],
-                'border_thickness': 35
-            },
-            DetectionStrategy.THIN_BORDER: {
-                'template_length': 30,
-                'thickness': 7,
-                'threshold': 0.1,
-                'angles': [2, -2],
-                'border_thickness': 20
-            }
-        }
-
     def _add_strategy_overlay(self, image: np.ndarray, strategies: Dict[str, DetectionStrategy],
                               detections: Dict[str, tuple], detector) -> np.ndarray:
         """Add strategy information overlay to the image."""
         h, w = image.shape[:2]
-        min_area = detector.min_contour_area if detector else 100
+        # Since contours are already filtered by the detector, just count them all
+        # No need for min_area check here anymore
 
         # Create semi-transparent overlay
         overlay = image.copy()
@@ -254,8 +226,8 @@ class AdaptiveDetectionDrawer(BaseDrawer):
             strategy = strategies.get(orientation)
             if strategy:
                 mask, contours = detections[orientation]
-                valid_count = len(
-                    [c for c in contours if cv2.contourArea(c) >= min_area])
+                # Contours are already filtered, so just count them
+                valid_count = len(contours)
 
                 # Strategy-specific color
                 if strategy == DetectionStrategy.GENERAL:

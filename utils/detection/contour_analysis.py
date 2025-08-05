@@ -44,17 +44,17 @@ def filter_contours_by_area(contours: List[np.ndarray], min_area: int) -> List[n
 
 
 def filter_contours_by_border_zone(contours: List[np.ndarray], img_shape: Tuple[int, int],
-                                   border_thickness: int, orientation: str,
-                                   min_area: int = 0) -> List[np.ndarray]:
+                                   border_thickness: int, orientation: str) -> List[np.ndarray]:
     """
     Filter contours to only those within border zones.
+    
+    Note: Area filtering is now handled by the detector, so removed min_area parameter.
 
     Args:
-        contours: List of contours
+        contours: List of contours (should already be area-filtered)
         img_shape: Image shape (height, width)
         border_thickness: Border zone thickness
         orientation: 'horizontal' or 'vertical'
-        min_area: Minimum contour area
 
     Returns:
         Filtered list of contours
@@ -62,9 +62,6 @@ def filter_contours_by_border_zone(contours: List[np.ndarray], img_shape: Tuple[
     filtered_contours = []
 
     for cnt in contours:
-        if cv2.contourArea(cnt) < min_area:
-            continue
-
         rect = cv2.minAreaRect(cnt)
         box = cv2.boxPoints(rect)
         box = np.intp(box)
@@ -74,16 +71,3 @@ def filter_contours_by_border_zone(contours: List[np.ndarray], img_shape: Tuple[
 
     return filtered_contours
 
-
-def has_valid_detections(contours: List[np.ndarray], min_area: int) -> bool:
-    """
-    Check if contours contain valid detections based on area.
-
-    Args:
-        contours: List of contours
-        min_area: Minimum area threshold
-
-    Returns:
-        True if any contour meets minimum area requirement
-    """
-    return any(cv2.contourArea(cnt) >= min_area for cnt in contours)
