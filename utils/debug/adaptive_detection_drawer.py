@@ -82,20 +82,11 @@ class AdaptiveDetectionDrawer(BaseDrawer):
                 strategy = strategies[orientation]
                 config = configs[strategy]
 
-                # Get template shape for offset calculation
-                if detector:
-                    templates = detector._get_templates(strategy, orientation)
-                    template_shape = templates[0].shape if templates else (
-                        20, 300)
-                else:
-                    template_shape = (
-                        config['thickness'], config['template_length'])
-
                 min_area = detector.min_contour_area if detector else 100
 
                 base = self._draw_contours_with_strategy(
-                    base, contours, template_shape, orientation,
-                    strategy, config.get('border_thickness', 0), min_area
+                    base, contours, orientation, strategy, 
+                    config.get('border_thickness', 0), min_area
                 )
 
         # Add strategy information overlay
@@ -143,16 +134,16 @@ class AdaptiveDetectionDrawer(BaseDrawer):
         return cv2.addWeighted(overlay, alpha, base, 1 - alpha, 0)
 
     def _draw_contours_with_strategy(self, base_image: np.ndarray, contours: List[np.ndarray],
-                                     template_shape: Tuple[int, int], orientation: str,
-                                     strategy: DetectionStrategy, border_thickness: int = 0,
-                                     min_area: int = 100) -> np.ndarray:
+                                     orientation: str, strategy: DetectionStrategy, 
+                                     border_thickness: int = 0, min_area: int = 100) -> np.ndarray:
         """
         Draw contours with strategy-specific coloring and filtering.
+        
+        Note: Contours are pre-corrected by the detector, so no offset calculation needed.
 
         Args:
             base_image: Base image to draw on
-            contours: List of contours to draw
-            template_shape: Shape of template used for detection
+            contours: List of pre-corrected contours to draw
             orientation: 'horizontal' or 'vertical'
             strategy: Detection strategy used
             border_thickness: Border zone thickness (for border strategies)
@@ -166,18 +157,14 @@ class AdaptiveDetectionDrawer(BaseDrawer):
             result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
 
         h, w = result.shape[:2]
-        offset_x = template_shape[1] // 2
-        offset_y = template_shape[0] // 2
 
         for cnt in contours:
             if cv2.contourArea(cnt) < min_area:
                 continue
 
+            # Contours are already offset-corrected by the detector
             rect = cv2.minAreaRect(cnt)
-            center, size, angle = rect
-            corrected_center = (center[0] + offset_x, center[1] + offset_y)
-            corrected_rect = (corrected_center, size, angle)
-            box = cv2.boxPoints(corrected_rect)
+            box = cv2.boxPoints(rect)
             box = np.intp(box)
 
             # For general strategy, accept all contours
@@ -191,16 +178,13 @@ class AdaptiveDetectionDrawer(BaseDrawer):
             # Color coding based on strategy and validity
             if strategy == DetectionStrategy.GENERAL:
                 # Bright colors for general detection
-                color = (0, 255, 0) if orientation == 'vertical' else (
-                    255, 0, 0)
+                color = (0, 255, 0) if orientation == 'vertical' else (255, 0, 0)
             elif strategy == DetectionStrategy.THICK_BORDER:
                 # Medium colors for thick border
-                color = (0, 200, 0) if orientation == 'vertical' else (
-                    200, 0, 0)
+                color = (0, 200, 0) if orientation == 'vertical' else (200, 0, 0)
             else:  # THIN_BORDER
                 # Darker colors for thin border
-                color = (0, 150, 0) if orientation == 'vertical' else (
-                    150, 0, 0)
+                color = (0, 150, 0) if orientation == 'vertical' else (150, 0, 0)
 
             if not is_valid:
                 color = (0, 0, 255)  # red for invalid

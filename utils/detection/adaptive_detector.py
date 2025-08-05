@@ -129,6 +129,40 @@ class AdaptiveLineDetector:
             orientation
         ) for angle in self.angles]  # Use global angles
 
+    def _apply_template_offset_correction(self, contours: List[np.ndarray], 
+                                        config: Dict[str, Any], orientation: str) -> List[np.ndarray]:
+        """
+        Apply template offset correction to contours based on orientation.
+        
+        Args:
+            contours: List of contours to correct
+            config: Strategy configuration with template_length and thickness
+            orientation: 'horizontal' or 'vertical'
+            
+        Returns:
+            List of corrected contours
+        """
+        if not contours:
+            return contours
+            
+        # Calculate orientation-specific offsets
+        if orientation == 'horizontal':
+            # For horizontal lines: template is (thickness, template_length)
+            offset_x = config['template_length'] // 2
+            offset_y = config['thickness'] // 2
+        else:  # vertical
+            # For vertical lines: template is (template_length, thickness)
+            offset_x = config['thickness'] // 2
+            offset_y = config['template_length'] // 2
+        
+        corrected_contours = []
+        for contour in contours:
+            # Apply offset to each point in the contour
+            corrected_contour = contour + np.array([offset_x, offset_y], dtype=np.int32)
+            corrected_contours.append(corrected_contour)
+            
+        return corrected_contours
+
     def _detect_single_orientation(self, image: np.ndarray, strategy: DetectionStrategy,
                                    orientation: str) -> Tuple[np.ndarray, List[np.ndarray]]:
         """
@@ -158,7 +192,11 @@ class AdaptiveLineDetector:
                 orientation, self.min_contour_area
             )
 
-        return mask, contours
+        # Apply template offset correction
+        corrected_contours = self._apply_template_offset_correction(
+            contours, config, orientation)
+
+        return mask, corrected_contours
 
     def detect_lines(self, image: np.ndarray) -> Dict[str, Any]:
         """Detect lines using adaptive strategy progression."""
