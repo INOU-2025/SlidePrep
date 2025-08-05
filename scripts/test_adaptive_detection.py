@@ -12,7 +12,7 @@ import numpy as np
 from glob import glob
 from utils.detection.adaptive_detector import AdaptiveLineDetector
 from utils.debug.adaptive_detection_drawer import AdaptiveDetectionDrawer
-from core.bootstrap import bootstrap, get_logger, get_debugger
+from core.bootstrap import bootstrap, get_logger, get_debugger, get_config
 from core.app_config_manager import AppConfigManager
 from utils.config_helpers import create_detector_from_grid_config
 
@@ -98,15 +98,26 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
         'total_lines_found': total_lines_found
     }
     
-    # Save debug image
-    debugger.save_debug_image(filename, image, results, metadata)
+    # Apply output suffix from configuration to debug filename
+    base_name = os.path.splitext(filename)[0]
+    extension = os.path.splitext(filename)[1]
+    
+    # Get suffix from current bootstrapped config or fallback to provided config_manager
+    current_config = get_config() if config_manager is None else config_manager
+    output_suffix = current_config.general_config.output_suffix or ""
+    debug_filename = f"{base_name}{output_suffix}{extension}"
+    
+    logger.debug(f"Debug filename with suffix: {debug_filename}")
+    
+    # Save debug image with suffix
+    debugger.save_debug_image(debug_filename, image, results, metadata)
     
     # Verify the debug image was actually saved
-    debug_output_path = os.path.join(debugger._output_dir, filename) if debugger._output_dir else filename
+    debug_output_path = os.path.join(debugger._output_dir, debug_filename) if debugger._output_dir else debug_filename
     if os.path.exists(debug_output_path):
         logger.debug(f"✓ Debug image successfully saved: {debug_output_path}")
     else:
-        logger.warning(f"✗ Debug image NOT saved for {filename}")
+        logger.warning(f"✗ Debug image NOT saved for {debug_filename}")
         logger.warning(f"  Expected path: {debug_output_path}")
         logger.warning(f"  Debugger enabled: {debugger._enabled}")
         logger.warning(f"  Drawer available: {debugger._drawer is not None}")
@@ -131,7 +142,7 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
 def compare_performance_configs(baseline_config_path: str, optimized_config_path: str,
                                ext: str = "png", test_image_count: int = 3) -> None:
     """
-    Compare performance between two different configurations.
+    Compare performance between two different configurations using sequential bootstrap.
     
     Args:
         baseline_config_path: Path to baseline configuration (required)
@@ -148,7 +159,7 @@ def compare_performance_configs(baseline_config_path: str, optimized_config_path
     if not os.path.exists(optimized_config_path):
         raise ValueError(f"Optimized configuration file not found: {optimized_config_path}")
     
-    # Load performance test configurations
+    # Pre-validate both configurations before starting
     baseline_config_manager = AppConfigManager(baseline_config_path)
     optimized_config_manager = AppConfigManager(optimized_config_path)
     
@@ -163,16 +174,6 @@ def compare_performance_configs(baseline_config_path: str, optimized_config_path
     if not input_folder:
         raise ValueError(f"input_path not specified in baseline configuration: {baseline_config_path}")
     
-    # Initialize logging system with baseline config (for consistency)
-    drawer = AdaptiveDetectionDrawer(
-        show_strategy_info=True,
-        show_cache_stats=True,
-        show_border_zones=True
-    )
-    bootstrap(baseline_config_path, drawer=drawer)
-    logger = get_logger()
-    debugger = get_debugger()
-    
     # Get test images
     image_paths = glob(os.path.join(input_folder, f"*.{ext}"))
     if not image_paths:
@@ -180,38 +181,61 @@ def compare_performance_configs(baseline_config_path: str, optimized_config_path
     
     test_images = image_paths[:min(test_image_count, len(image_paths))]
     
-    logger.info("=" * 60)
-    logger.info("PERFORMANCE COMPARISON")
-    logger.info("=" * 60)
-    logger.info(f"Input folder: {input_folder}")
-    logger.info(f"Debug output: {debugger._output_dir}")
-    logger.info(f"Testing {len(test_images)} images")
-    logger.info(f"Baseline config: {baseline_config_path}")
-    logger.info(f"Optimized config: {optimized_config_path}")
+    # Create drawer for both tests
+    drawer = AdaptiveDetectionDrawer(
+        show_strategy_info=True,
+        show_cache_stats=True,
+        show_border_zones=True
+    )
     
-    # Test 1: Baseline configuration
+    # Initial setup logging
+    print("=" * 60)
+    print("PERFORMANCE COMPARISON")
+    print("=" * 60)
+    print(f"Input folder: {input_folder}")
+    print(f"Testing {len(test_images)} images")
+    print(f"Baseline config: {baseline_config_path}")
+    print(f"Optimized config: {optimized_config_path}")
+    
+    # Test 1: Bootstrap with BASELINE configuration
+    bootstrap(baseline_config_path, drawer=drawer)
+    logger = get_logger()
+    debugger = get_debugger()
+    
     logger.info("Testing BASELINE configuration...")
-    detector_baseline = create_detector_from_grid_config(baseline_config_manager.grid_detection_config)
+    logger.info(f"Debug output: {debugger._output_dir}")
+    
+    config_manager = get_config()  # Use the singleton config manager
+    detector_baseline = create_detector_from_grid_config(config_manager.grid_detection_config)
     
     times_baseline = []
     for image_path in test_images:
-        result = process_image_adaptive(image_path, "", detector_baseline, baseline_config_manager)
+        result = process_image_adaptive(image_path, "", detector_baseline, config_manager)
         if result:
             times_baseline.append(result['detection_time'])
     
     avg_time_baseline = sum(times_baseline) / len(times_baseline) if times_baseline else 0
+    baseline_cache_info = detector_baseline.get_cache_info()
     
-    # Test 2: Optimized configuration
+    # Test 2: Re-bootstrap with OPTIMIZED configuration
+    bootstrap(optimized_config_path, drawer=drawer)
+    logger = get_logger()
+    debugger = get_debugger()
+    
     logger.info("Testing OPTIMIZED configuration...")
-    detector_optimized = create_detector_from_grid_config(optimized_config_manager.grid_detection_config)
+    logger.info(f"Debug output: {debugger._output_dir}")
+    
+    config_manager = get_config()  # Use the new singleton config manager
+    detector_optimized = create_detector_from_grid_config(config_manager.grid_detection_config)
     
     times_optimized = []
     for image_path in test_images:
-        result = process_image_adaptive(image_path, "", detector_optimized, optimized_config_manager)
+        result = process_image_adaptive(image_path, "", detector_optimized, config_manager)
         if result:
             times_optimized.append(result['detection_time'])
     
     avg_time_optimized = sum(times_optimized) / len(times_optimized) if times_optimized else 0
+    optimized_cache_info = detector_optimized.get_cache_info()
     
     # Log performance comparison
     logger.info("=" * 60)
@@ -233,22 +257,32 @@ def compare_performance_configs(baseline_config_path: str, optimized_config_path
     logger.info(f"  Template Cache - Baseline: {baseline_grid.enable_template_cache}, Optimized: {optimized_grid.enable_template_cache}")
     logger.info(f"  Preprocessing Cache - Baseline: {baseline_grid.enable_preprocessing_cache}, Optimized: {optimized_grid.enable_preprocessing_cache}")
     
-    # Log cache statistics for optimized detector
-    cache_info = detector_optimized.get_cache_info()
-    logger.info("Optimized Configuration Cache Statistics:")
-    logger.info(f"  Template cache size: {cache_info['template_cache_size']} entries")
-    logger.info(f"  Preprocessing cache size: {cache_info['preprocessing_cache_size']} entries")
+    # Log cache statistics for both configurations
+    logger.info("Cache Statistics Comparison:")
+    logger.info(f"  Baseline - Template cache size: {baseline_cache_info['template_cache_size']} entries")
+    logger.info(f"  Optimized - Template cache size: {optimized_cache_info['template_cache_size']} entries")
     
-    template_total = cache_info['template_cache_hits'] + cache_info['template_cache_misses']
-    preprocessing_total = cache_info['preprocessing_cache_hits'] + cache_info['preprocessing_cache_misses']
+    baseline_template_total = baseline_cache_info['template_cache_hits'] + baseline_cache_info['template_cache_misses']
+    optimized_template_total = optimized_cache_info['template_cache_hits'] + optimized_cache_info['template_cache_misses']
     
-    if template_total > 0:
-        template_efficiency = (cache_info['template_cache_hits'] / template_total) * 100
-        logger.info(f"  Template cache efficiency: {template_efficiency:.1f}%")
+    if baseline_template_total > 0:
+        baseline_efficiency = (baseline_cache_info['template_cache_hits'] / baseline_template_total) * 100
+        logger.info(f"  Baseline template cache efficiency: {baseline_efficiency:.1f}%")
     
-    if preprocessing_total > 0:
-        preprocessing_efficiency = (cache_info['preprocessing_cache_hits'] / preprocessing_total) * 100
-        logger.info(f"  Preprocessing cache efficiency: {preprocessing_efficiency:.1f}%")
+    if optimized_template_total > 0:
+        optimized_efficiency = (optimized_cache_info['template_cache_hits'] / optimized_template_total) * 100
+        logger.info(f"  Optimized template cache efficiency: {optimized_efficiency:.1f}%")
+    
+    baseline_preprocessing_total = baseline_cache_info['preprocessing_cache_hits'] + baseline_cache_info['preprocessing_cache_misses']
+    optimized_preprocessing_total = optimized_cache_info['preprocessing_cache_hits'] + optimized_cache_info['preprocessing_cache_misses']
+    
+    if baseline_preprocessing_total > 0:
+        baseline_preprocessing_efficiency = (baseline_cache_info['preprocessing_cache_hits'] / baseline_preprocessing_total) * 100
+        logger.info(f"  Baseline preprocessing cache efficiency: {baseline_preprocessing_efficiency:.1f}%")
+    
+    if optimized_preprocessing_total > 0:
+        optimized_preprocessing_efficiency = (optimized_cache_info['preprocessing_cache_hits'] / optimized_preprocessing_total) * 100
+        logger.info(f"  Optimized preprocessing cache efficiency: {optimized_preprocessing_efficiency:.1f}%")
 
 
 def process_batch_adaptive(config_path: str, ext: str = "png") -> None:
@@ -357,10 +391,10 @@ if __name__ == "__main__":
     # Example usage with explicit configuration paths
     
     # Option 1: Compare performance between two configurations
-    # compare_performance_configs(
-    #     baseline_config_path="config/test/performance_baseline.json",
-    #     optimized_config_path="config/test/performance_optimized.json"
-    # )
+    compare_performance_configs(
+         baseline_config_path="config/test/performance_baseline.json",
+         optimized_config_path="config/test/performance_optimized.json"
+    )
     
     # Option 2: Process batch with test configuration
-    process_batch_adaptive(config_path="config/test/grid_detection.json")
+    # process_batch_adaptive(config_path="config/test/grid_detection.json")
