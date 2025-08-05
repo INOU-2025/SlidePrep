@@ -19,6 +19,8 @@
   },
   "grid_detection": {
     "min_contour_area": 100,
+    "threshold": 0.1,
+    "angles": [2.0, -2.0],
     "enable_early_exit": true,
     "enable_template_cache": true,
     "enable_preprocessing_cache": true,
@@ -26,22 +28,16 @@
     "general": {
       "template_length": 300,
       "thickness": 20,
-      "threshold": 0.1,
-      "angles": [2.0, -2.0],
       "border_thickness": 0
     },
     "thick_border": {
       "template_length": 100,
       "thickness": 7,
-      "threshold": 0.1,
-      "angles": [2.0, -2.0],
       "border_thickness": 35
     },
     "thin_border": {
       "template_length": 30,
       "thickness": 7,
-      "threshold": 0.1,
-      "angles": [2.0, -2.0],
       "border_thickness": 20
     }
   },

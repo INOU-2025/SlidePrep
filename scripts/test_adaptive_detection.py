@@ -41,7 +41,9 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
     # Create detector if not provided
     if detector is None:
         detector = AdaptiveLineDetector(
-            min_contour_area=100, 
+            min_contour_area=100,
+            threshold=0.1,
+            angles=[2.0, -2.0],
             enable_early_exit=True,
             enable_template_cache=True,
             enable_preprocessing_cache=True,

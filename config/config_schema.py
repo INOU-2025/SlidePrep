@@ -65,6 +65,10 @@ class GridDetectionConfig:
     # Core detector settings
     min_contour_area: int = 100
     
+    # Global template matching settings
+    threshold: float = 0.1
+    angles: List[float] = None
+    
     # Performance optimizations
     enable_early_exit: bool = True
     enable_template_cache: bool = True
@@ -83,13 +87,24 @@ class GridDetectionConfig:
         if self.cache_max_size <= 0:
             raise ValueError(f"cache_max_size must be positive, got: {self.cache_max_size}")
         
-        # Set default strategy configurations
+        # Set default angles if not provided
+        if self.angles is None:
+            self.angles = [2.0, -2.0]
+        
+        # Validate global settings
+        if not 0 <= self.threshold <= 1:
+            raise ValueError(f"threshold must be between 0 and 1, got: {self.threshold}")
+        if not self.angles:
+            raise ValueError("angles cannot be empty")
+        for angle in self.angles:
+            if not -45 <= angle <= 45:
+                raise ValueError(f"angles must be between -45 and 45 degrees, got: {angle}")
+        
+        # Set default strategy configurations (without threshold and angles)
         if self.general is None:
             self.general = {
                 "template_length": 300,
                 "thickness": 20,
-                "threshold": 0.1,
-                "angles": [2.0, -2.0],
                 "border_thickness": 0
             }
         
@@ -97,8 +112,6 @@ class GridDetectionConfig:
             self.thick_border = {
                 "template_length": 100,
                 "thickness": 7,
-                "threshold": 0.1,
-                "angles": [2.0, -2.0],
                 "border_thickness": 35
             }
         
@@ -106,8 +119,6 @@ class GridDetectionConfig:
             self.thin_border = {
                 "template_length": 30,
                 "thickness": 7,
-                "threshold": 0.1,
-                "angles": [2.0, -2.0],
                 "border_thickness": 20
             }
         
@@ -121,7 +132,7 @@ class GridDetectionConfig:
     
     def _validate_strategy_config(self, name: str, config: Dict[str, Any]) -> None:
         """Validate a strategy configuration dictionary."""
-        required_keys = {"template_length", "thickness", "threshold", "angles", "border_thickness"}
+        required_keys = {"template_length", "thickness", "border_thickness"}
         if not all(key in config for key in required_keys):
             missing = required_keys - set(config.keys())
             raise ValueError(f"{name} strategy missing required keys: {missing}")
@@ -130,15 +141,8 @@ class GridDetectionConfig:
             raise ValueError(f"{name}.template_length must be positive")
         if config["thickness"] < 7:
             raise ValueError(f"{name}.thickness must be at least 7")
-        if not 0 <= config["threshold"] <= 1:
-            raise ValueError(f"{name}.threshold must be between 0 and 1")
         if config["border_thickness"] < 0:
             raise ValueError(f"{name}.border_thickness must be non-negative")
-        if not config["angles"]:
-            raise ValueError(f"{name}.angles cannot be empty")
-        for angle in config["angles"]:
-            if not -45 <= angle <= 45:
-                raise ValueError(f"{name}.angles must be between -45 and 45 degrees")
 
 @dataclass
 class DebugConfig:

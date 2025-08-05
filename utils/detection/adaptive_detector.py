@@ -72,6 +72,8 @@ class AdaptiveLineDetector:
     """
 
     def __init__(self, min_contour_area: int = 100,
+                 threshold: float = 0.1,
+                 angles: List[float] = None,
                  enable_early_exit: bool = True,
                  enable_template_cache: bool = True, 
                  enable_preprocessing_cache: bool = True,
@@ -81,12 +83,16 @@ class AdaptiveLineDetector:
 
         Args:
             min_contour_area: Minimum contour area to consider as valid detection
+            threshold: Template matching threshold (0.0 to 1.0)
+            angles: List of rotation angles in degrees for template matching
             enable_early_exit: Enable early exit optimization when lines are found
             enable_template_cache: Enable template caching optimization
             enable_preprocessing_cache: Enable preprocessing cache optimization
             cache_max_size: Maximum number of cached items
         """
         self.min_contour_area = min_contour_area
+        self.threshold = threshold
+        self.angles = angles if angles is not None else [2.0, -2.0]
 
         # Performance optimizations
         self.enable_early_exit = enable_early_exit
@@ -94,27 +100,21 @@ class AdaptiveLineDetector:
         self.enable_preprocessing_cache = enable_preprocessing_cache
         self.cache_max_size = cache_max_size
 
-        # Configuration for different strategies
+        # Configuration for different strategies (without threshold and angles)
         self.configs = {
             DetectionStrategy.GENERAL: {
                 'template_length': 300,
                 'thickness': 20,
-                'threshold': 0.1,
-                'angles': [2, -2],
                 'border_thickness': 0
             },
             DetectionStrategy.THICK_BORDER: {
                 'template_length': 100,
                 'thickness': 7,
-                'threshold': 0.1,
-                'angles': [2, -2],
                 'border_thickness': 35
             },
             DetectionStrategy.THIN_BORDER: {
                 'template_length': 30,
                 'thickness': 7,
-                'threshold': 0.1,
-                'angles': [2, -2],
                 'border_thickness': 20
             }
         }
@@ -136,18 +136,20 @@ class AdaptiveLineDetector:
         return cv2.bitwise_not(image)
 
     def _get_templates(self, strategy: DetectionStrategy, orientation: str) -> List[np.ndarray]:
-        """Get templates with caching."""
+        """Get templates for the given strategy and orientation."""
         config = self.configs[strategy]
 
         if self.template_cache:
-            return self.template_cache.get_templates(strategy, orientation, config)
+            # Use global threshold and angles instead of config-specific ones
+            cache_config = {**config, 'threshold': self.threshold, 'angles': self.angles}
+            return self.template_cache.get_templates(strategy, orientation, cache_config)
 
         return [generate_blurred_template(
             config['template_length'],
             config['thickness'],
             angle,
             orientation
-        ) for angle in config['angles']]
+        ) for angle in self.angles]  # Use global angles
 
     def _detect_single_orientation(self, image: np.ndarray, strategy: DetectionStrategy,
                                    orientation: str) -> Tuple[np.ndarray, List[np.ndarray]]:
@@ -165,7 +167,7 @@ class AdaptiveLineDetector:
 
         # Perform template matching
         response_map = perform_template_matching(inverted, templates)
-        mask = create_detection_mask(response_map, config['threshold'])
+        mask = create_detection_mask(response_map, self.threshold)  # Use global threshold
 
         # Find contours
         contours, _ = cv2.findContours(
