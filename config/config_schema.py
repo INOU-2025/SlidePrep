@@ -64,7 +64,6 @@ class GridDetectionConfig:
     """
     # Core detector settings
     min_contour_area: int = 100
-    verbose: bool = True
     
     # Performance optimizations
     enable_early_exit: bool = True

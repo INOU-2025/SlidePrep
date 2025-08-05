@@ -15,8 +15,7 @@ from utils.debug.adaptive_detection_drawer import AdaptiveDetectionDrawer
 from core.bootstrap import bootstrap, get_logger, get_debugger
 
 
-def process_image_adaptive(image_path: str, output_path: str, detector: AdaptiveLineDetector = None, 
-                          verbose: bool = True) -> dict:
+def process_image_adaptive(image_path: str, output_path: str, detector: AdaptiveLineDetector = None) -> dict:
     """
     Process single image with adaptive line detection using logging and debug system.
     
@@ -24,7 +23,6 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
         image_path: Path to input image
         output_path: Path for output visualization
         detector: Pre-initialized detector (for cache reuse)
-        verbose: Whether to print detection strategy information
         
     Returns:
         Dictionary with processing results and timing
@@ -44,7 +42,6 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
     if detector is None:
         detector = AdaptiveLineDetector(
             min_contour_area=100, 
-            verbose=verbose,
             enable_early_exit=True,
             enable_template_cache=True,
             enable_preprocessing_cache=True,
@@ -151,7 +148,6 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
         logger.info("Testing WITHOUT optimizations (first 3 images)...")
         detector_no_opt = AdaptiveLineDetector(
             min_contour_area=100,
-            verbose=False,
             enable_early_exit=False,
             enable_template_cache=False,
             enable_preprocessing_cache=False,
@@ -164,7 +160,7 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
         for image_path in test_images:
             filename = os.path.basename(image_path)
             output_path = os.path.join(output_folder, f"no_opt_{filename}")
-            result = process_image_adaptive(image_path, output_path, detector_no_opt, verbose=False)
+            result = process_image_adaptive(image_path, output_path, detector_no_opt)
             if result:
                 times_no_opt.append(result['detection_time'])
         
@@ -174,7 +170,6 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
         logger.info("Testing WITH optimizations (same images)...")
         detector_opt = AdaptiveLineDetector(
             min_contour_area=100,
-            verbose=False,
             enable_early_exit=True,
             enable_template_cache=True,
             enable_preprocessing_cache=True,
@@ -186,7 +181,7 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
         for image_path in test_images:
             filename = os.path.basename(image_path)
             output_path = os.path.join(output_folder, f"opt_{filename}")
-            result = process_image_adaptive(image_path, output_path, detector_opt, verbose=False)
+            result = process_image_adaptive(image_path, output_path, detector_opt)
             if result:
                 times_opt.append(result['detection_time'])
         
@@ -225,7 +220,6 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
     # Process all images with optimizations and debug system
     detector = AdaptiveLineDetector(
         min_contour_area=100,
-        verbose=True,
         enable_early_exit=True,
         enable_template_cache=True,
         enable_preprocessing_cache=True,
@@ -240,7 +234,7 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
         output_path = os.path.join(output_folder, filename)
         
         logger.info(f"[{i}/{len(image_paths)}] Processing {filename}")
-        result = process_image_adaptive(image_path, output_path, detector, verbose=True)
+        result = process_image_adaptive(image_path, output_path, detector)
         
         if result:
             all_results.append(result)
@@ -315,14 +309,13 @@ def test_single_image(image_path: str, output_dir: str = None, config_path: str 
     # Test with all optimization features
     detector = AdaptiveLineDetector(
         min_contour_area=100,
-        verbose=True,
         enable_early_exit=True,
         enable_template_cache=True,
         enable_preprocessing_cache=True,
         cache_max_size=50
     )
     
-    result = process_image_adaptive(image_path, output_path, detector, verbose=True)
+    result = process_image_adaptive(image_path, output_path, detector)
     
     if result:
         logger.info(f"Result saved to: {output_path}")

@@ -20,7 +20,6 @@ def create_detector_from_grid_config(grid_config: GridDetectionConfig) -> Adapti
     # Create detector with all optimization settings from config
     detector = AdaptiveLineDetector(
         min_contour_area=grid_config.min_contour_area,
-        verbose=grid_config.verbose,
         enable_early_exit=grid_config.enable_early_exit,
         enable_template_cache=grid_config.enable_template_cache,
         enable_preprocessing_cache=grid_config.enable_preprocessing_cache,

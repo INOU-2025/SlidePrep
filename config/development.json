@@ -19,7 +19,6 @@
   },
   "grid_detection": {
     "min_contour_area": 100,
-    "verbose": true,
     "enable_early_exit": true,
     "enable_template_cache": true,
     "enable_preprocessing_cache": true,

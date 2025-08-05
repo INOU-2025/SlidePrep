@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from typing import List, Tuple, Optional, Dict, Any
+import logging
 
 from .models import DetectionStrategy
 from .template_utils import generate_blurred_template, perform_template_matching
@@ -70,22 +71,24 @@ class AdaptiveLineDetector:
     Optimized to only process missing orientations in each round.
     """
 
-    def __init__(self, min_contour_area: int = 100, verbose: bool = True,
-                 enable_early_exit: bool = True, enable_template_cache: bool = True,
-                 enable_preprocessing_cache: bool = True, cache_max_size: int = 50):
+    def __init__(self, min_contour_area: int = 100,
+                 enable_early_exit: bool = True,
+                 enable_template_cache: bool = True, 
+                 enable_preprocessing_cache: bool = True,
+                 cache_max_size: int = 50):
         """
-        Initialize adaptive detector with optimization options.
+        Initialize the adaptive line detector.
 
         Args:
-            min_contour_area: Minimum contour area for valid detection
-            verbose: Whether to print detection strategy information
-            enable_early_exit: Whether to stop when both orientations found
-            enable_template_cache: Whether to cache generated templates
-            enable_preprocessing_cache: Whether to cache image preprocessing
-            cache_max_size: Maximum size for preprocessing cache
+            min_contour_area: Minimum contour area to consider as valid detection
+            enable_early_exit: Enable early exit optimization when lines are found
+            enable_template_cache: Enable template caching optimization
+            enable_preprocessing_cache: Enable preprocessing cache optimization
+            cache_max_size: Maximum number of cached items
         """
         self.min_contour_area = min_contour_area
-        self.verbose = verbose
+
+        # Performance optimizations
         self.enable_early_exit = enable_early_exit
         self.enable_template_cache = enable_template_cache
         self.enable_preprocessing_cache = enable_preprocessing_cache
@@ -178,24 +181,19 @@ class AdaptiveLineDetector:
         return mask, contours
 
     def detect_lines(self, image: np.ndarray) -> Dict[str, Any]:
-        """
-        Adaptively detect lines using multiple strategies as needed.
-
-        Returns:
-            Dictionary containing detection results and metadata
-        """
+        """Detect lines using adaptive strategy progression."""
+        logger = logging.getLogger(__name__)
+        
         self.detection_results = {}
         self.strategies_used = {}
 
         missing_orientations = ['horizontal', 'vertical']
 
         # Strategy 1: General detection
-        if self.verbose:
-            print("Trying general detection...")
+        logger.info("Trying general detection...")
 
         for orientation in missing_orientations[:]:
-            if self.verbose:
-                print(f"  Processing {orientation} orientation...")
+            logger.info(f"Processing {orientation} orientation...")
 
             mask, contours = self._detect_single_orientation(
                 image, DetectionStrategy.GENERAL, orientation)
@@ -204,29 +202,22 @@ class AdaptiveLineDetector:
                 self.detection_results[orientation] = (mask, contours)
                 self.strategies_used[orientation] = DetectionStrategy.GENERAL
                 missing_orientations.remove(orientation)
-                if self.verbose:
-                    valid_count = len(
-                        [c for c in contours if cv2.contourArea(c) >= self.min_contour_area])
-                    print(f"    ✓ Found {valid_count} {orientation} lines")
+                logger.info(f"✓ Found {len(contours)} {orientation} lines")
             else:
-                if self.verbose:
-                    print(f"    ✗ No {orientation} lines found")
+                logger.info(f"✗ No {orientation} lines found")
 
         # Early exit optimization
         if self.enable_early_exit and not missing_orientations:
-            if self.verbose:
-                print("✓ Early exit: Both orientations found in general detection")
+            logger.info("✓ Early exit: Both orientations found in general detection")
             return self._create_result_dict(missing_orientations)
 
         # Strategy 2: Thick border detection
         if missing_orientations:
-            if self.verbose:
-                print(
-                    f"Trying thick border detection for missing orientations: {missing_orientations}")
+            logger.info(
+                f"Trying thick border detection for missing orientations: {missing_orientations}")
 
             for orientation in missing_orientations[:]:
-                if self.verbose:
-                    print(f"  Processing {orientation} orientation...")
+                logger.info(f"Processing {orientation} orientation...")
 
                 mask, contours = self._detect_single_orientation(
                     image, DetectionStrategy.THICK_BORDER, orientation)
@@ -235,29 +226,22 @@ class AdaptiveLineDetector:
                     self.detection_results[orientation] = (mask, contours)
                     self.strategies_used[orientation] = DetectionStrategy.THICK_BORDER
                     missing_orientations.remove(orientation)
-                    if self.verbose:
-                        valid_count = len(
-                            [c for c in contours if cv2.contourArea(c) >= self.min_contour_area])
-                        print(f"    ✓ Found {valid_count} {orientation} lines")
+                    logger.info(f"✓ Found {len(contours)} {orientation} lines")
                 else:
-                    if self.verbose:
-                        print(f"    ✗ No {orientation} lines found")
+                    logger.info(f"✗ No {orientation} lines found")
 
         # Early exit optimization
         if self.enable_early_exit and not missing_orientations:
-            if self.verbose:
-                print("✓ Early exit: Both orientations found in thick border detection")
+            logger.info("✓ Early exit: Both orientations found in thick border detection")
             return self._create_result_dict(missing_orientations)
 
         # Strategy 3: Thin border detection
         if missing_orientations:
-            if self.verbose:
-                print(
-                    f"Trying thin border detection for remaining orientations: {missing_orientations}")
+            logger.info(
+                f"Trying thin border detection for remaining orientations: {missing_orientations}")
 
             for orientation in missing_orientations[:]:
-                if self.verbose:
-                    print(f"  Processing {orientation} orientation...")
+                logger.info(f"Processing {orientation} orientation...")
 
                 mask, contours = self._detect_single_orientation(
                     image, DetectionStrategy.THIN_BORDER, orientation)
@@ -266,13 +250,9 @@ class AdaptiveLineDetector:
                     self.detection_results[orientation] = (mask, contours)
                     self.strategies_used[orientation] = DetectionStrategy.THIN_BORDER
                     missing_orientations.remove(orientation)
-                    if self.verbose:
-                        valid_count = len(
-                            [c for c in contours if cv2.contourArea(c) >= self.min_contour_area])
-                        print(f"    ✓ Found {valid_count} {orientation} lines")
+                    logger.info(f"✓ Found {len(contours)} {orientation} lines")
                 else:
-                    if self.verbose:
-                        print(f"    ✗ No {orientation} lines found")
+                    logger.info(f"✗ No {orientation} lines found")
 
         return self._create_result_dict(missing_orientations)
 
@@ -280,35 +260,32 @@ class AdaptiveLineDetector:
         """Create standardized result dictionary."""
         # Handle any still missing orientations
         if missing_orientations:
-            if self.verbose:
-                print(
-                    f"Final result: Could not find lines for {missing_orientations}")
             for orientation in missing_orientations:
                 self.detection_results[orientation] = (
                     np.zeros((100, 100), dtype=np.uint8), [])
                 self.strategies_used[orientation] = None
 
         # Print final summary
-        if self.verbose:
-            print("\nDetection Summary:")
-            for orientation in ['horizontal', 'vertical']:
-                strategy = self.strategies_used.get(orientation)
-                if strategy:
-                    mask, contours = self.detection_results[orientation]
-                    valid_count = len(
-                        [c for c in contours if cv2.contourArea(c) >= self.min_contour_area])
-                    print(
-                        f"  {orientation.capitalize()}: {valid_count} lines using {strategy.value}")
-                else:
-                    print(f"  {orientation.capitalize()}: No lines found")
+        logger = logging.getLogger(__name__)
+        logger.info("Detection Summary:")
+        for orientation in ['horizontal', 'vertical']:
+            strategy = self.strategies_used.get(orientation)
+            if strategy:
+                mask, contours = self.detection_results[orientation]
+                valid_count = len(
+                    [c for c in contours if cv2.contourArea(c) >= self.min_contour_area])
+                logger.info(
+                    f"  {orientation.capitalize()}: {valid_count} lines using {strategy.value}")
+            else:
+                logger.info(f"  {orientation.capitalize()}: No lines found")
 
-            # Print cache performance
-            cache_stats = self.get_cache_info()
-            print(f"\nCache Performance:")
-            print(
-                f"  Template cache - Hits: {cache_stats['template_cache_hits']}, Misses: {cache_stats['template_cache_misses']}")
-            print(
-                f"  Preprocessing cache - Hits: {cache_stats['preprocessing_cache_hits']}, Misses: {cache_stats['preprocessing_cache_misses']}")
+        # Print cache performance
+        cache_stats = self.get_cache_info()
+        logger.info(f"Cache Performance:")
+        logger.info(
+            f"  Template cache - Hits: {cache_stats['template_cache_hits']}, Misses: {cache_stats['template_cache_misses']}")
+        logger.info(
+            f"  Preprocessing cache - Hits: {cache_stats['preprocessing_cache_hits']}, Misses: {cache_stats['preprocessing_cache_misses']}")
 
         return {
             'detections': self.detection_results,
@@ -323,8 +300,8 @@ class AdaptiveLineDetector:
             self.template_cache.clear()
         if self.preprocessing_cache:
             self.preprocessing_cache.clear()
-        if self.verbose:
-            print("Caches cleared")
+        logger = logging.getLogger(__name__)
+        logger.info("Caches cleared")
 
     def get_cache_info(self) -> Dict[str, Any]:
         """Get information about cache usage."""
