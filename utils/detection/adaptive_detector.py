@@ -72,7 +72,7 @@ class AdaptiveLineDetector:
 
     def __init__(self, min_contour_area: int = 100, verbose: bool = True,
                  enable_early_exit: bool = True, enable_template_cache: bool = True,
-                 enable_preprocessing_cache: bool = True):
+                 enable_preprocessing_cache: bool = True, cache_max_size: int = 50):
         """
         Initialize adaptive detector with optimization options.
 
@@ -82,12 +82,14 @@ class AdaptiveLineDetector:
             enable_early_exit: Whether to stop when both orientations found
             enable_template_cache: Whether to cache generated templates
             enable_preprocessing_cache: Whether to cache image preprocessing
+            cache_max_size: Maximum size for preprocessing cache
         """
         self.min_contour_area = min_contour_area
         self.verbose = verbose
         self.enable_early_exit = enable_early_exit
         self.enable_template_cache = enable_template_cache
         self.enable_preprocessing_cache = enable_preprocessing_cache
+        self.cache_max_size = cache_max_size
 
         # Configuration for different strategies
         self.configs = {
@@ -117,6 +119,7 @@ class AdaptiveLineDetector:
         # Initialize caches
         self.template_cache = TemplateCache() if enable_template_cache else None
         self.preprocessing_cache = ImagePreprocessingCache(
+            max_size=cache_max_size
         ) if enable_preprocessing_cache else None
 
         # Storage for detection results

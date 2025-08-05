@@ -1,6 +1,6 @@
 {
   "general": {
-    "input_path": "debug_output/test_binarization",
+    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/bin-imgs",
     "output_path": "",
     "suffix_filter": "",
     "output_suffix": "_detection",
@@ -8,24 +8,43 @@
     "debug": true
   },
   "grid_detection": {
-    "angle_deg": 2.0,
-    "margin": 5,
-    "percentile_thresh": 2,
-    "horizontal_area_threshold": 2000,
-    "vertical_area_threshold": 2000,
-    "line_length": 40,
-    "line_thickness": 21,
-    "length_threshold_factor": 0.55
+    "min_contour_area": 100,
+    "verbose": true,
+    "enable_early_exit": true,
+    "enable_template_cache": true,
+    "enable_preprocessing_cache": true,
+    "cache_max_size": 50,
+    "general": {
+      "template_length": 300,
+      "thickness": 20,
+      "threshold": 0.1,
+      "angles": [2.0, -2.0],
+      "border_thickness": 0
+    },
+    "thick_border": {
+      "template_length": 100,
+      "thickness": 7,
+      "threshold": 0.1,
+      "angles": [2.0, -2.0],
+      "border_thickness": 35
+    },
+    "thin_border": {
+      "template_length": 30,
+      "thickness": 7,
+      "threshold": 0.1,
+      "angles": [2.0, -2.0],
+      "border_thickness": 20
+    }
   },
   "log": {
     "log_to_file": true,
     "log_to_console": false,
     "log_file_name": "grid_detection_test.log",
     "log_level": "DEBUG",
-    "output_dir": "debug_output/test_grid_detection"
+    "output_dir": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection"
   },
   "debug": {
-    "output_dir": "debug_output/test_grid_detection",
+    "output_dir": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection",
     "save_composite": false
   }
 }

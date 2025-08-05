@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List, Dict, Any
 import os
 
 @dataclass
@@ -58,39 +58,88 @@ class BinarizationConfig:
 @dataclass
 class GridDetectionConfig:
     """
-    Configuration for grid pattern detection in binarized images.
+    Configuration for adaptive grid detection.
     
-    Defines parameters for template matching, contour analysis, and
-    validation criteria used to identify grid lines. Controls the
-    sensitivity and accuracy of the detection algorithm through
-    geometric constraints and quality thresholds.
+    Contains all adaptive detector settings directly without extra nesting.
     """
-    angle_deg: float  # Maximum rotation angle tolerance for grid lines
-    margin: int  # Border margin for edge detection analysis
-    percentile_thresh: int  # Template matching threshold percentile
-    horizontal_area_threshold: int  # Minimum area for horizontal line candidates  
-    vertical_area_threshold: int  # Minimum area for vertical line candidates
-    line_length: int  # Template line length in pixels
-    line_thickness: int  # Template line thickness in pixels
-    length_threshold_factor: float  # Length factor for override decisions
+    # Core detector settings
+    min_contour_area: int = 100
+    verbose: bool = True
+    
+    # Performance optimizations
+    enable_early_exit: bool = True
+    enable_template_cache: bool = True
+    enable_preprocessing_cache: bool = True
+    cache_max_size: int = 50
+    
+    # Strategy configurations
+    general: Dict[str, Any] = None
+    thick_border: Dict[str, Any] = None
+    thin_border: Dict[str, Any] = None
     
     def __post_init__(self) -> None:
-        """
-        Validate grid detection parameters for reasonable ranges.
+        """Set default strategy configurations and validate settings."""
+        if self.min_contour_area <= 0:
+            raise ValueError(f"min_contour_area must be positive, got: {self.min_contour_area}")
+        if self.cache_max_size <= 0:
+            raise ValueError(f"cache_max_size must be positive, got: {self.cache_max_size}")
         
-        Raises:
-            ValueError: If any parameter is outside acceptable bounds
-        """
-        if not 0 <= self.angle_deg <= 45:
-            raise ValueError(f"angle_deg must be between 0 and 45, got: {self.angle_deg}")
-        if not 0 < self.percentile_thresh <= 100:
-            raise ValueError(f"percentile_thresh must be between 1 and 100, got: {self.percentile_thresh}")
-        if not 0 < self.length_threshold_factor <= 1:
-            raise ValueError(f"length_threshold_factor must be between 0 and 1, got: {self.length_threshold_factor}")
-        if self.line_thickness <= 0:
-            raise ValueError(f"line_thickness must be positive, got: {self.line_thickness}")
-        if self.line_length <= 0:
-            raise ValueError(f"line_length must be positive, got: {self.line_length}")
+        # Set default strategy configurations
+        if self.general is None:
+            self.general = {
+                "template_length": 300,
+                "thickness": 20,
+                "threshold": 0.1,
+                "angles": [2.0, -2.0],
+                "border_thickness": 0
+            }
+        
+        if self.thick_border is None:
+            self.thick_border = {
+                "template_length": 100,
+                "thickness": 7,
+                "threshold": 0.1,
+                "angles": [2.0, -2.0],
+                "border_thickness": 35
+            }
+        
+        if self.thin_border is None:
+            self.thin_border = {
+                "template_length": 30,
+                "thickness": 7,
+                "threshold": 0.1,
+                "angles": [2.0, -2.0],
+                "border_thickness": 20
+            }
+        
+        # Validate all strategy configurations
+        for strategy_name, strategy_config in [
+            ("general", self.general),
+            ("thick_border", self.thick_border), 
+            ("thin_border", self.thin_border)
+        ]:
+            self._validate_strategy_config(strategy_name, strategy_config)
+    
+    def _validate_strategy_config(self, name: str, config: Dict[str, Any]) -> None:
+        """Validate a strategy configuration dictionary."""
+        required_keys = {"template_length", "thickness", "threshold", "angles", "border_thickness"}
+        if not all(key in config for key in required_keys):
+            missing = required_keys - set(config.keys())
+            raise ValueError(f"{name} strategy missing required keys: {missing}")
+        
+        if config["template_length"] <= 0:
+            raise ValueError(f"{name}.template_length must be positive")
+        if config["thickness"] < 7:
+            raise ValueError(f"{name}.thickness must be at least 7")
+        if not 0 <= config["threshold"] <= 1:
+            raise ValueError(f"{name}.threshold must be between 0 and 1")
+        if config["border_thickness"] < 0:
+            raise ValueError(f"{name}.border_thickness must be non-negative")
+        if not config["angles"]:
+            raise ValueError(f"{name}.angles cannot be empty")
+        for angle in config["angles"]:
+            if not -45 <= angle <= 45:
+                raise ValueError(f"{name}.angles must be between -45 and 45 degrees")
 
 @dataclass
 class DebugConfig:

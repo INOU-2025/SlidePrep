@@ -18,14 +18,33 @@
     "threshold_method": "combined_differential"
   },
   "grid_detection": {
-    "angle_deg": 2.0,
-    "margin": 5,
-    "percentile_thresh": 2,
-    "horizontal_area_threshold": 2000,
-    "vertical_area_threshold": 2000,
-    "line_length": 40,
-    "line_thickness": 21,
-    "length_threshold_factor": 0.55
+    "min_contour_area": 100,
+    "verbose": true,
+    "enable_early_exit": true,
+    "enable_template_cache": true,
+    "enable_preprocessing_cache": true,
+    "cache_max_size": 50,
+    "general": {
+      "template_length": 300,
+      "thickness": 20,
+      "threshold": 0.1,
+      "angles": [2.0, -2.0],
+      "border_thickness": 0
+    },
+    "thick_border": {
+      "template_length": 100,
+      "thickness": 7,
+      "threshold": 0.1,
+      "angles": [2.0, -2.0],
+      "border_thickness": 35
+    },
+    "thin_border": {
+      "template_length": 30,
+      "thickness": 7,
+      "threshold": 0.1,
+      "angles": [2.0, -2.0],
+      "border_thickness": 20
+    }
   },
   "debug": {
     "output_dir": "debug_output/development",

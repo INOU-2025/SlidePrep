@@ -47,7 +47,8 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
             verbose=verbose,
             enable_early_exit=True,
             enable_template_cache=True,
-            enable_preprocessing_cache=True
+            enable_preprocessing_cache=True,
+            cache_max_size=50
         )
     
     # Time the detection
@@ -153,7 +154,8 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
             verbose=False,
             enable_early_exit=False,
             enable_template_cache=False,
-            enable_preprocessing_cache=False
+            enable_preprocessing_cache=False,
+            cache_max_size=50
         )
         
         times_no_opt = []
@@ -175,7 +177,8 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
             verbose=False,
             enable_early_exit=True,
             enable_template_cache=True,
-            enable_preprocessing_cache=True
+            enable_preprocessing_cache=True,
+            cache_max_size=50
         )
         
         times_opt = []
@@ -225,7 +228,8 @@ def process_batch_adaptive(input_folder: str, output_folder: str, ext: str = "pn
         verbose=True,
         enable_early_exit=True,
         enable_template_cache=True,
-        enable_preprocessing_cache=True
+        enable_preprocessing_cache=True,
+        cache_max_size=50
     )
     
     all_results = []
@@ -314,7 +318,8 @@ def test_single_image(image_path: str, output_dir: str = None, config_path: str 
         verbose=True,
         enable_early_exit=True,
         enable_template_cache=True,
-        enable_preprocessing_cache=True
+        enable_preprocessing_cache=True,
+        cache_max_size=50
     )
     
     result = process_image_adaptive(image_path, output_path, detector, verbose=True)
