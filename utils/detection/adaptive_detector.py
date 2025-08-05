@@ -297,8 +297,7 @@ class AdaptiveLineDetector:
             strategy = self.strategies_used.get(orientation)
             if strategy:
                 mask, contours = self.detection_results[orientation]
-                valid_count = len(
-                    [c for c in contours if cv2.contourArea(c) >= self.min_contour_area])
+                valid_count = len(contours)
                 logger.info(
                     f"  {orientation.capitalize()}: {valid_count} lines using {strategy.value}")
             else:
@@ -312,13 +311,17 @@ class AdaptiveLineDetector:
         logger.info(
             f"  Preprocessing cache - Hits: {cache_stats['preprocessing_cache_hits']}, Misses: {cache_stats['preprocessing_cache_misses']}")
 
+        # Return only detections - metadata will be handled separately
         return {
-            'detections': self.detection_results,
-            'strategies': self.strategies_used,
-            'missing': missing_orientations,
-            'cache_stats': self.get_cache_info()
+            'detections': self.detection_results
         }
-
+    
+    def get_detection_metadata(self) -> Dict[str, Any]:
+        """Get detection metadata separately from core results."""
+        return {
+            'strategies': self.strategies_used
+        }
+    
     def clear_caches(self) -> None:
         """Clear all caches to free memory."""
         if self.template_cache:

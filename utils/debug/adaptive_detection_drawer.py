@@ -19,22 +19,15 @@ class AdaptiveDetectionDrawer(BaseDrawer):
     Creates comprehensive visualizations showing:
     - Detection results with strategy-specific coloring
     - Border zone overlays when applicable
-    - Strategy information overlay
-    - Cache statistics overlay
     """
 
-    def __init__(self, show_strategy_info: bool = True, show_cache_stats: bool = True,
-                 show_border_zones: bool = True):
+    def __init__(self, show_border_zones: bool = True):
         """
         Initialize the adaptive detection drawer.
 
         Args:
-            show_strategy_info: Whether to overlay strategy information
-            show_cache_stats: Whether to overlay cache statistics
             show_border_zones: Whether to show border zone overlays
         """
-        self.show_strategy_info = show_strategy_info
-        self.show_cache_stats = show_cache_stats
         self.show_border_zones = show_border_zones
 
     def draw(self, image: np.ndarray, results: Any = None, metadata: Any = None) -> Optional[np.ndarray]:
@@ -43,8 +36,8 @@ class AdaptiveDetectionDrawer(BaseDrawer):
 
         Args:
             image: Base grayscale image
-            results: Detection results from AdaptiveLineDetector.detect_lines()
-            metadata: Additional metadata (detector instance, timing info, etc.)
+            results: Detection results containing only 'detections' dict
+            metadata: All other metadata including strategies, detector, etc.
 
         Returns:
             Image with drawn visualizations
@@ -56,8 +49,9 @@ class AdaptiveDetectionDrawer(BaseDrawer):
         base = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 
         detections = results.get('detections', {})
-        strategies = results.get('strategies', {})
-        cache_stats = results.get('cache_stats', {})
+        
+        # Get metadata (moved from results)
+        strategies = metadata.get('strategies', {}) if metadata else {}
 
         # Get detector configurations (must be provided in metadata)
         detector = metadata.get('detector') if metadata else None
@@ -89,15 +83,6 @@ class AdaptiveDetectionDrawer(BaseDrawer):
                     base, contours, orientation, strategy, 
                     config.get('border_thickness', 0)
                 )
-
-        # Add strategy information overlay
-        if self.show_strategy_info:
-            base = self._add_strategy_overlay(
-                base, strategies, detections, detector)
-
-        # Add cache statistics overlay
-        if self.show_cache_stats and cache_stats:
-            base = self._add_cache_overlay(base, cache_stats)
 
         return base
 
@@ -159,152 +144,19 @@ class AdaptiveDetectionDrawer(BaseDrawer):
         h, w = result.shape[:2]
 
         for cnt in contours:
-            # Contours are already offset-corrected and area-filtered by the detector
             rect = cv2.minAreaRect(cnt)
             box = cv2.boxPoints(rect)
             box = np.intp(box)
 
-            # For general strategy, accept all contours
+            # Since contours are pre-filtered by detector, all are valid
+            # Just apply strategy-based coloring
             if strategy == DetectionStrategy.GENERAL:
-                is_valid = True
-            else:
-                # For border strategies, check border zone
-                is_valid = contour_fully_within_zone(
-                    box, (h, w), border_thickness, orientation)
-
-            # Color coding based on strategy and validity
-            if strategy == DetectionStrategy.GENERAL:
-                # Bright colors for general detection
                 color = (0, 255, 0) if orientation == 'vertical' else (255, 0, 0)
             elif strategy == DetectionStrategy.THICK_BORDER:
-                # Medium colors for thick border
                 color = (0, 200, 0) if orientation == 'vertical' else (200, 0, 0)
             else:  # THIN_BORDER
-                # Darker colors for thin border
                 color = (0, 150, 0) if orientation == 'vertical' else (150, 0, 0)
-
-            if not is_valid:
-                color = (0, 0, 255)  # red for invalid
 
             cv2.drawContours(result, [box], 0, color, 2)
 
         return result
-
-    def _add_strategy_overlay(self, image: np.ndarray, strategies: Dict[str, DetectionStrategy],
-                              detections: Dict[str, tuple], detector) -> np.ndarray:
-        """Add strategy information overlay to the image."""
-        h, w = image.shape[:2]
-        # Since contours are already filtered by the detector, just count them all
-        # No need for min_area check here anymore
-
-        # Create semi-transparent overlay
-        overlay = image.copy()
-
-        # Strategy info box
-        box_height = 120
-        box_width = 280
-        y_start = 10
-        x_start = 10
-
-        # Draw background box
-        cv2.rectangle(overlay, (x_start, y_start),
-                      (x_start + box_width, y_start + box_height),
-                      (0, 0, 0), -1)
-
-        # Add strategy information
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 0.5
-        thickness = 1
-        color = (255, 255, 255)
-
-        y_offset = y_start + 20
-        cv2.putText(overlay, "Detection Strategies:",
-                    (x_start + 5, y_offset), font, font_scale, color, thickness)
-
-        y_offset += 20
-        for orientation in ['horizontal', 'vertical']:
-            strategy = strategies.get(orientation)
-            if strategy:
-                mask, contours = detections[orientation]
-                # Contours are already filtered, so just count them
-                valid_count = len(contours)
-
-                # Strategy-specific color
-                if strategy == DetectionStrategy.GENERAL:
-                    strategy_color = (
-                        0, 255, 0) if orientation == 'vertical' else (255, 0, 0)
-                elif strategy == DetectionStrategy.THICK_BORDER:
-                    strategy_color = (
-                        0, 200, 0) if orientation == 'vertical' else (200, 0, 0)
-                else:  # THIN_BORDER
-                    strategy_color = (
-                        0, 150, 0) if orientation == 'vertical' else (150, 0, 0)
-
-                text = f"{orientation}: {valid_count} ({strategy.value})"
-                cv2.putText(overlay, text, (x_start + 5, y_offset),
-                            font, font_scale, strategy_color, thickness)
-            else:
-                cv2.putText(overlay, f"{orientation}: Not found",
-                            (x_start + 5, y_offset), font, font_scale, (0, 0, 255), thickness)
-            y_offset += 20
-
-        # Blend overlay
-        cv2.addWeighted(overlay, 0.8, image, 0.2, 0, image)
-        return image
-
-    def _add_cache_overlay(self, image: np.ndarray, cache_stats: Dict[str, int]) -> np.ndarray:
-        """Add cache statistics overlay to the image."""
-        h, w = image.shape[:2]
-
-        # Cache info box (top right)
-        box_height = 80
-        box_width = 200
-        y_start = 10
-        x_start = w - box_width - 10
-
-        # Create semi-transparent overlay
-        overlay = image.copy()
-
-        # Draw background box
-        cv2.rectangle(overlay, (x_start, y_start),
-                      (x_start + box_width, y_start + box_height),
-                      (0, 0, 0), -1)
-
-        # Add cache statistics
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 0.4
-        thickness = 1
-        color = (255, 255, 255)
-
-        y_offset = y_start + 15
-        cv2.putText(overlay, "Cache Statistics:",
-                    (x_start + 5, y_offset), font, font_scale, color, thickness)
-
-        # Template cache
-        y_offset += 15
-        template_hits = cache_stats.get('template_cache_hits', 0)
-        template_misses = cache_stats.get('template_cache_misses', 0)
-        template_total = template_hits + template_misses
-        template_rate = f"{template_hits}/{template_total}" if template_total > 0 else "0/0"
-        cv2.putText(overlay, f"Template: {template_rate}",
-                    (x_start + 5, y_offset), font, font_scale, (0, 255, 255), thickness)
-
-        # Preprocessing cache
-        y_offset += 15
-        preprocessing_hits = cache_stats.get('preprocessing_cache_hits', 0)
-        preprocessing_misses = cache_stats.get('preprocessing_cache_misses', 0)
-        preprocessing_total = preprocessing_hits + preprocessing_misses
-        preprocessing_rate = f"{preprocessing_hits}/{preprocessing_total}" if preprocessing_total > 0 else "0/0"
-        cv2.putText(overlay, f"Preproc: {preprocessing_rate}",
-                    (x_start + 5, y_offset), font, font_scale, (255, 255, 0), thickness)
-
-        # Cache efficiency
-        y_offset += 15
-        if template_total > 0:
-            efficiency = (template_hits / template_total) * 100
-            cv2.putText(overlay, f"Efficiency: {efficiency:.1f}%",
-                        (x_start + 5, y_offset), font, font_scale, (0, 255, 0), thickness)
-
-        # Blend overlay
-        cv2.addWeighted(overlay, 0.8, image, 0.2, 0, image)
-        return image

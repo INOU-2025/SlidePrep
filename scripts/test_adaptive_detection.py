@@ -57,13 +57,17 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
     start_time = time.time()
     results = detector.detect_lines(image)
     detection_time = time.time() - start_time
+
+
+    # Get metadata separately (CLEAN - no parameters needed)
+    detection_metadata = detector.get_detection_metadata()
     
     # Log detection summary
     logger.info(f"Detection completed in {detection_time:.3f}s")
     total_lines_found = 0
     has_any_detections = False
     
-    for orientation, strategy in results['strategies'].items():
+    for orientation, strategy in detection_metadata['strategies'].items():
         if strategy:
             mask, contours = results['detections'][orientation]
             valid_contours = [c for c in contours if cv2.contourArea(c) >= detector.min_contour_area]
@@ -89,14 +93,13 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
     logger.debug(f"Saving debug image for {filename} - Has detections: {has_any_detections}, Total lines: {total_lines_found}")
     logger.debug(f"Results structure: detections={list(results.get('detections', {}).keys())}, strategies={results.get('strategies', {})}")
     
-    # Always create visualization using debug system
+    # Create complete metadata for drawer
     metadata = {
+        # REQUIRED
         'detector': detector,
-        'timing': detection_time,
-        'filename': filename,
-        'total_lines_found': total_lines_found
+        'strategies': detection_metadata.get('strategies', {}),
     }
-    
+
     # Apply output suffix from configuration to debug filename
     base_name = os.path.splitext(filename)[0]
     extension = os.path.splitext(filename)[1]
@@ -108,7 +111,7 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
     
     logger.debug(f"Debug filename with suffix: {debug_filename}")
     
-    # Save debug image with suffix
+    # Save debug image with new structure
     debugger.save_debug_image(debug_filename, image, results, metadata)
     
     # Verify the debug image was actually saved
@@ -139,7 +142,7 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
 
 
 def compare_performance_configs(baseline_config_path: str, optimized_config_path: str,
-                               ext: str = "png", test_image_count: int = 3) -> None:
+                               ext: str = "png", test_image_count: int = None) -> None:
     """
     Compare performance between two different configurations using sequential bootstrap.
     
@@ -147,7 +150,7 @@ def compare_performance_configs(baseline_config_path: str, optimized_config_path
         baseline_config_path: Path to baseline configuration (required)
         optimized_config_path: Path to optimized configuration (required)
         ext: Image file extension
-        test_image_count: Number of images to test (default: 3)
+        test_image_count: Number of images to test (default: None for all images)
         
     Raises:
         ValueError: If configuration files are missing or invalid
@@ -178,12 +181,14 @@ def compare_performance_configs(baseline_config_path: str, optimized_config_path
     if not image_paths:
         raise ValueError(f"No {ext} files found in {input_folder}")
     
-    test_images = image_paths[:min(test_image_count, len(image_paths))]
+    # Use all images if no limit specified
+    if test_image_count is None:
+        test_images = image_paths
+    else:
+        test_images = image_paths[:min(test_image_count, len(image_paths))]
     
     # Create drawer for both tests
     drawer = AdaptiveDetectionDrawer(
-        show_strategy_info=True,
-        show_cache_stats=True,
         show_border_zones=True
     )
     
@@ -310,12 +315,8 @@ def process_batch_adaptive(config_path: str, ext: str = "png") -> None:
     if not input_folder:
         raise ValueError(f"input_path not specified in configuration: {config_path}")
     
-    # Create adaptive detection drawer
-    drawer = AdaptiveDetectionDrawer(
-        show_strategy_info=True,
-        show_cache_stats=True,
-        show_border_zones=True
-    )
+    # Create adaptive detection drawer (strategy overlay removed)
+    drawer = AdaptiveDetectionDrawer()
     
     # Bootstrap the system
     bootstrap(config_path, drawer=drawer)
