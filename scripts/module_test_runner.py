@@ -104,11 +104,11 @@ class StepTestRunner:
                 self._logger.debug(f"Processing {fname}")
 
                 # Run the step
-                result = step.run(image)
+                result, metadata = step.run(image)
 
                 # Save debug output - debugger handles everything automatically
                 debug_filename = f"{base_name}{output_suffix}.png"
-                self._debugger.save_debug_image(debug_filename, image, result)
+                self._debugger.save_debug_image(debug_filename, image, result, metadata)
 
                 self._logger.debug(f"Successfully processed {fname}")
                 processed += 1

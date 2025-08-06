@@ -40,20 +40,22 @@ class AdaptiveGridDetectionStep(PipelineStep):
             # Run adaptive detection
             results = self.detector.detect_lines(data)
             
-            # Extract detection counts
+            # Extract detection counts and strategies
             detections = results['detections']
             strategies = results['strategies']
+
+            metadata = self.detector.get_detection_metadata()
             
             horizontal_count = 0
             vertical_count = 0
             
             if 'horizontal' in detections:
                 mask, contours = detections['horizontal']
-                horizontal_count = len([c for c in contours if cv2.contourArea(c) >= self.detector.min_contour_area])
+                horizontal_count = len(contours)  # Contours are pre-filtered by detector
             
             if 'vertical' in detections:
                 mask, contours = detections['vertical']
-                vertical_count = len([c for c in contours if cv2.contourArea(c) >= self.detector.min_contour_area])
+                vertical_count = len(contours)  # Contours are pre-filtered by detector
             
             # Log results
             self.log(f"Detection completed: {horizontal_count} horizontal lines, {vertical_count} vertical lines")
@@ -64,36 +66,15 @@ class AdaptiveGridDetectionStep(PipelineStep):
                 else:
                     self.debug(f"  {orientation}: not found")
             
-            # Log cache performance with correct field names
-            if 'cache_stats' in results:
-                stats = results['cache_stats']
-                template_total = stats['template_cache_hits'] + stats['template_cache_misses']
-                preprocessing_total = stats['preprocessing_cache_hits'] + stats['preprocessing_cache_misses']
-                self.debug(f"Cache performance - Template: {stats['template_cache_hits']}/{template_total}, "
-                          f"Preprocessing: {stats['preprocessing_cache_hits']}/{preprocessing_total}")
+            # Log cache performance (get from detector)
+            cache_stats = self.detector.get_cache_info()
+            template_total = cache_stats['template_cache_hits'] + cache_stats['template_cache_misses']
+            preprocessing_total = cache_stats['preprocessing_cache_hits'] + cache_stats['preprocessing_cache_misses']
+            self.debug(f"Cache performance - Template: {cache_stats['template_cache_hits']}/{template_total}, "
+                      f"Preprocessing: {cache_stats['preprocessing_cache_hits']}/{preprocessing_total}")
             
-            # Save debug visualization using debugger system instead of detector method
-            if self.debugger:
-                # Use the debugger's save_debug_image method with drawer integration
-                metadata = {
-                    'detector': self.detector,
-                    'timing': 0,  # Pipeline step doesn't track timing separately
-                    'filename': f"{self.name}_result.png",
-                    'total_lines_found': horizontal_count + vertical_count,
-                    'horizontal_count': horizontal_count,
-                    'vertical_count': vertical_count,
-                    'strategies_used': strategies
-                }
-                
-                self.debugger.save_debug_image(
-                    f"{self.name}_result.png",
-                    data,
-                    results,
-                    metadata
-                )
-            
-            return results['detections']
+            return results, metadata
             
         except Exception as e:
             self.error(f"Adaptive grid detection failed: {e}")
-            return None
+            return None, None

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Union, Tuple, Optional
 import numpy as np
 from core.container import Container
 
@@ -25,7 +25,7 @@ class PipelineStep(ABC):
         self.config = config
 
     @abstractmethod
-    def run(self, data: Any) -> Any:
+    def run(self, data: Any) -> Union[Any, Tuple[Any, Optional[dict]]]:
         """
         Process input data and return output data.
 
@@ -33,7 +33,9 @@ class PipelineStep(ABC):
             data: Input data to process
 
         Returns:
-            Processed output data
+            Union[Any, Tuple[Any, Optional[dict]]]: Either:
+            - Results only: The processed data
+            - Tuple: (results, metadata) where metadata contains debug information
         """
         pass
 

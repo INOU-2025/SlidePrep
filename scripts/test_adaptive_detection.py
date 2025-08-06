@@ -180,9 +180,7 @@ def compare_performance_configs(baseline_config_path: str, optimized_config_path
         test_images = image_paths[:min(test_image_count, len(image_paths))]
     
     # Create drawer for both tests
-    drawer = AdaptiveDetectionDrawer(
-        show_border_zones=True
-    )
+    drawer = AdaptiveDetectionDrawer()
     
     # Initial setup logging
     print("=" * 60)
