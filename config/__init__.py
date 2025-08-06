@@ -8,7 +8,7 @@ from .config_schema import (
 
 __all__ = [
     "GeneralConfig",
-    "BinarizationConfig", 
+    "BinarizationConfig",
     "GridDetectionConfig",
     "DebugConfig",
     "LogConfig"
