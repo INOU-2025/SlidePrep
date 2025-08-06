@@ -22,20 +22,22 @@ The debug system uses a registry-based factory pattern for extensible drawer cre
 
 ### Built-in Drawer Types
 
+
 The debug system includes specialized drawers for different pipeline steps, each organized in its own module:
 
 - **`BaseDrawer`** (`utils/debug/base_drawer.py`): Abstract base class for all drawers
-- **`GridDetectionDrawer`** (`utils/debug/grid_detection_drawer.py`): Specialized for grid detection step debugging
+- **`DetectionDrawer`** (`utils/debug/detection_drawer.py`): Specialized for grid detection step debugging (now expects results and metadata, not legacy objects)
 
 **Import Structure:**
 ```python
 # Import from individual modules (recommended)
 from utils.debug.base_drawer import BaseDrawer
-from utils.debug.grid_detection_drawer import GridDetectionDrawer
+from utils.debug.detection_drawer import DetectionDrawer
 
 # Or import from the debug package (convenience)
-from utils.debug import BaseDrawer, GridDetectionDrawer
+from utils.debug import BaseDrawer, DetectionDrawer
 ```
+
 
 ### Debugger Integration
 
@@ -44,47 +46,35 @@ The `Debugger` class provides automatic drawer integration:
 ```python
 # Automatic drawer integration - preferred approach
 debugger.save_debug_image("grid_detection", "output.png", image, results, metadata)
-
-# Manual drawer creation (for advanced use cases)
-drawer = debugger.create_drawer("grid_detection")
-enhanced_image = drawer.draw(image, results, metadata)
-if enhanced_image is not None:
-    # Save manually if needed
-    cv2.imwrite("output.png", enhanced_image)
 ```
 
-## GridDetectionDrawer
+
+## DetectionDrawer
 
 ### Purpose
-Visualizes grid line detection results by drawing contours, bounding boxes, and annotations on the original image.
+Visualizes grid line detection results by drawing contours and annotations on the original image, using the new result and metadata structure.
 
 ### Features
-- **Contour visualization**: Color-coded contours (green=accepted, yellow=maybe, red=rejected)
+- **Contour visualization**: Color-coded contours based on result status (now determined by metadata/config)
 - **Rotated bounding boxes**: Shows detected grid line boundaries
-- **Status-based coloring**: Automatic color assignment based on DetectionStatus
 - **Automatic integration**: Works seamlessly with debugger system
 
 ### Usage
 ```python
 # Automatic integration (recommended)
-debugger.save_debug_image("grid_detection", "output.png", image, grid_detection_result)
+debugger.save_debug_image("grid_detection", "output.png", image, results, metadata)
 
 # Manual usage (advanced)
 drawer = debugger.create_drawer("grid_detection")
-result_image = drawer.draw(image, grid_detection_result)
+result_image = drawer.draw(image, results, metadata)
 ```
 
 ### Input Data Format
-The GridDetectionDrawer expects a `GridDetectionResult` object containing:
-- `detections`: List of `Detection` objects with contour, rotated_box, status, and orientation
-- Each detection is automatically color-coded based on its `DetectionStatus`
+The DetectionDrawer now expects:
+- `results`: List of detected grid lines or contours (structure defined by the new pipeline)
+- `metadata`: Dictionary containing configuration and status info (e.g., thresholds, accepted/rejected status)
 
-### Color Mapping
-
-The GridDetectionDrawer automatically maps detection status to colors:
-- **Green**: `DetectionStatus.ACCEPT` - Contour passes all criteria
-- **Yellow**: `DetectionStatus.MAYBE` - Contour partially matches criteria  
-- **Red**: `DetectionStatus.REJECT` - Contour rejected
+Color mapping and status assignment are now handled via metadata/config, not legacy enums.
 
 This mapping is handled automatically by the `DetectionStatus.get_color()` utility method.
 

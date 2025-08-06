@@ -62,7 +62,6 @@ python demo_binarization_methods.py --image your_image.png
 
 ### DEBUG_SYSTEM_GUIDE.md
 - **Visualization system** for development and debugging
-- **Custom drawer creation** with type-safe interfaces
 - **Debug output management** and analysis tools
 
 ## 📝 Code Quality Standards
@@ -106,9 +105,10 @@ class BinarizationStep(PipelineStep):
 - **Best practices** for production and development
 - **Troubleshooting** common configuration issues
 ### DEBUG_SYSTEM_GUIDE.md
-- **Debug visualization** system for development
-- **Creating custom debug outputs** for new steps
-- **Drawer configuration** and usage
+- **Debug visualization** system for development and grid detection
+- **Integration with new result/metadata structure** (no legacy objects)
+- **Drawer configuration** and usage, with all parameters sourced from JSON config
+- **Creating custom debug outputs** for new pipeline steps
 
 ### LOGGING_CONFIGURATION.md
 - **Logging setup** and configuration
@@ -125,7 +125,6 @@ SlidePrep/
 ├── utils/          # Utility modules (binarization, image processing, etc.)
 ├── scripts/        # Testing and validation scripts
 ├── docs/           # This documentation folder
-└── demo_binarization_methods.py  # Interactive method comparison
 ```
 
 ## 🆘 Getting Help
@@ -133,8 +132,4 @@ SlidePrep/
 1. **For binarization questions**: Start with [`BINARIZATION_METHODS_GUIDE.md`](BINARIZATION_METHODS_GUIDE.md)
 2. **For system architecture**: See [`SYSTEM_OVERVIEW.md`](SYSTEM_OVERVIEW.md)  
 3. **For debugging issues**: Check [`DEBUG_SYSTEM_GUIDE.md`](DEBUG_SYSTEM_GUIDE.md)
-4. **For interactive exploration**: Run `python demo_binarization_methods.py`
 
----
-
-*Last updated: July 31, 2025*

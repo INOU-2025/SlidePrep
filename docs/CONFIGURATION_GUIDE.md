@@ -162,7 +162,7 @@ Controls debug visualization and output:
 
 **Grid Detection Testing:**
 ```bash
-python scripts/test_grid_detection.py config/test/grid_detection.json
+python scripts/test_detection.py config/test/grid_detection.json
 ```
 
 **Binarization Testing:**
@@ -276,34 +276,6 @@ ValueError: Input path does not exist: /nonexistent/path
   }
 }
 ```
-
-## 🔍 Troubleshooting
-
-### Common Configuration Issues
-
-**1. Images not found:**
-```
-Error: Input path does not exist: /wrong/path
-```
-*Solution:* Check `general.input_path` exists and is accessible
-
-**2. No output generated:**
-```
-Warning: No supported images found in /path
-```
-*Solution:* Check `general.suffix_filter` isn't too restrictive
-
-**3. Poor detection results:**
-```
-Info: Grid detection completed. Accept: 0, Reject: 50, Maybe: 0
-```
-*Solution:* Adjust `grid_detection.line_thickness` to match your grid
-
-**4. Invalid configuration:**
-```
-ValueError: Invalid threshold method: otsu_adaptive
-```
-*Solution:* Use valid method names (see configuration reference above)
 
 ---
 
