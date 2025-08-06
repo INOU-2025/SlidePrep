@@ -1,12 +1,11 @@
 import cv2
 import numpy as np
-from typing import Any, Optional, Dict, List, Tuple
+from typing import Any, Optional, List
 from utils.debug.base_drawer import BaseDrawer
 from utils.detection.models import DetectionStrategy
-from utils.detection.contour_analysis import contour_fully_within_zone
 
 
-class AdaptiveDetectionDrawer(BaseDrawer):
+class DetectionDrawer(BaseDrawer):
     """
     Debug drawer for adaptive line detection visualization.
 
@@ -17,7 +16,7 @@ class AdaptiveDetectionDrawer(BaseDrawer):
 
     def __init__(self, show_border_zones: bool = True):
         """
-        Initialize the adaptive detection drawer.
+        Initialize the detection drawer.
 
         Args:
             show_border_zones: Whether to show border zone overlays
@@ -25,7 +24,7 @@ class AdaptiveDetectionDrawer(BaseDrawer):
         self.show_border_zones = show_border_zones
 
     def draw(self, image: np.ndarray, results: Any = None, metadata: Any = None) -> Optional[np.ndarray]:
-        """Draw adaptive detection results on the image."""
+        """Draw detection results on the image."""
         if results is None:
             return cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 

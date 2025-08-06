@@ -4,8 +4,8 @@
     "output_path": "",
     "suffix_filter": "",
     "output_suffix": "_detection",
-    "log": true,
-    "debug": true
+    "log": false,
+    "debug": false
   },
   "grid_detection": {
     "min_contour_area": 100,
@@ -32,7 +32,7 @@
   },
   "log": {
     "log_to_file": true,
-    "log_to_console": true,
+    "log_to_console": false,
     "log_file_name": "grid_detection_test.log",
     "log_level": "DEBUG",
     "output_dir": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection"

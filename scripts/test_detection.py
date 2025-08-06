@@ -6,16 +6,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Now import project modules
-from utils.debug.adaptive_detection_drawer import AdaptiveDetectionDrawer
+from utils.debug.detection_drawer import DetectionDrawer
 from scripts.module_test_runner import StepTestRunner
-from steps.adaptive_grid_detection import AdaptiveGridDetectionStep
+from steps.grid_detection import GridDetectionStep
 
 
 def main(config_path: str):
-    adaptive_drawer = AdaptiveDetectionDrawer()
+    adaptive_drawer = DetectionDrawer()
     runner = StepTestRunner(config_path, adaptive_drawer)
 
-    step = AdaptiveGridDetectionStep(
+    step = GridDetectionStep(
         config=runner.cfg.grid_detection_config,
         debugger=runner.debugger,
         logger=runner.logger

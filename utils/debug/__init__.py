@@ -1,4 +1,4 @@
 from .base_drawer import BaseDrawer
-from .grid_detection_drawer import GridDetectionDrawer
+from .detection_drawer import DetectionDrawer
 
-__all__ = ['BaseDrawer', 'GridDetectionDrawer']
+__all__ = ['BaseDrawer', 'DetectionDrawer']

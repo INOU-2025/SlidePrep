@@ -11,7 +11,7 @@ import cv2
 import numpy as np
 from glob import glob
 from utils.detection.adaptive_detector import AdaptiveLineDetector
-from utils.debug.adaptive_detection_drawer import AdaptiveDetectionDrawer
+from utils.debug.detection_drawer import AdaptiveDetectionDrawer
 from core.bootstrap import bootstrap, get_logger, get_debugger, get_config
 from core.app_config_manager import AppConfigManager
 
