@@ -85,7 +85,7 @@ Pipeline steps use direct numpy array processing for optimal performance and cla
 ```python
 # Each step processes arrays directly and returns results
 binary_image: np.ndarray = binarization_step.run(grayscale_image)
-detections: GridDetectionResult = grid_detection_step.run(binary_image)
+detections, metadata = grid_detection_step.run(binary_image)
 ```
 
 ### Type Safety (PEP 484)
