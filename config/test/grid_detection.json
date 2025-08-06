@@ -1,11 +1,11 @@
 {
   "general": {
-    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/bin-select",
+    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/bin",
     "output_path": "",
     "suffix_filter": "",
     "output_suffix": "_detection",
-    "log": false,
-    "debug": false
+    "log": true,
+    "debug": true
   },
   "grid_detection": {
     "min_contour_area": 100,

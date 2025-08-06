@@ -66,4 +66,4 @@ class BinarizationStep(PipelineStep):
             raise
 
         self.debug(f"Binarization completed successfully")
-        return binary_image
+        return binary_image, None
