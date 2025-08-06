@@ -1,13 +1,13 @@
 import cv2
 import numpy as np
 from typing import List, Tuple, Dict, Any
-import logging
 
 from config.config_schema import GridDetectionConfig
 from .models import DetectionStrategy
 from .template_utils import generate_blurred_template, perform_template_matching
 from .image_preprocessing import create_detection_mask, ImagePreprocessingCache
 from .contour_analysis import filter_contours_by_border_zone
+from core.container import Container
 
 
 class TemplateCache:
@@ -207,7 +207,7 @@ class AdaptiveLineDetector:
 
     def detect_lines(self, image: np.ndarray) -> Dict[str, Any]:
         """Detect lines using adaptive strategy progression."""
-        logger = logging.getLogger(__name__)
+        logger = Container.resolve("logger")
         
         self.detection_results = {}
         self.strategies_used = {}
@@ -291,7 +291,7 @@ class AdaptiveLineDetector:
                 self.strategies_used[orientation] = None
 
         # Print final summary
-        logger = logging.getLogger(__name__)
+        logger = Container.resolve("logger")
         logger.info("Detection Summary:")
         for orientation in ['horizontal', 'vertical']:
             strategy = self.strategies_used.get(orientation)
@@ -337,7 +337,7 @@ class AdaptiveLineDetector:
             self.template_cache.clear()
         if self.preprocessing_cache:
             self.preprocessing_cache.clear()
-        logger = logging.getLogger(__name__)
+        logger = Container.resolve("logger")
         logger.info("Caches cleared")
 
     def get_cache_info(self) -> Dict[str, Any]:
