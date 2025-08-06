@@ -11,7 +11,7 @@ import cv2
 import numpy as np
 from glob import glob
 from utils.detection.adaptive_detector import AdaptiveLineDetector
-from utils.debug.detection_drawer import AdaptiveDetectionDrawer
+from utils.debug.detection_drawer import DetectionDrawer
 from core.bootstrap import bootstrap, get_logger, get_debugger, get_config
 from core.app_config_manager import AppConfigManager
 
@@ -180,7 +180,7 @@ def compare_performance_configs(baseline_config_path: str, optimized_config_path
         test_images = image_paths[:min(test_image_count, len(image_paths))]
     
     # Create drawer for both tests
-    drawer = AdaptiveDetectionDrawer()
+    drawer = DetectionDrawer()
     
     # Initial setup logging
     print("=" * 60)
@@ -306,7 +306,7 @@ def process_batch_adaptive(config_path: str, ext: str = "png") -> None:
         raise ValueError(f"input_path not specified in configuration: {config_path}")
     
     # Create adaptive detection drawer (strategy overlay removed)
-    drawer = AdaptiveDetectionDrawer()
+    drawer = DetectionDrawer()
     
     # Bootstrap the system
     bootstrap(config_path, drawer=drawer)
@@ -381,10 +381,11 @@ if __name__ == "__main__":
     # Example usage with explicit configuration paths
     
     # Option 1: Compare performance between two configurations
+    '''
     compare_performance_configs(
          baseline_config_path="config/test/performance_baseline.json",
          optimized_config_path="config/test/performance_optimized.json"
     )
-    
+    '''
     # Option 2: Process batch with test configuration
-    # process_batch_adaptive(config_path="config/test/grid_detection.json")
+    process_batch_adaptive(config_path="config/test/grid_detection.json")
