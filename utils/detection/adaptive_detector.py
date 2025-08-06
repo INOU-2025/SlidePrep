@@ -311,9 +311,10 @@ class AdaptiveLineDetector:
         logger.info(
             f"  Preprocessing cache - Hits: {cache_stats['preprocessing_cache_hits']}, Misses: {cache_stats['preprocessing_cache_misses']}")
 
-        # Return only detections - metadata will be handled separately
+        # Return detections and strategies together
         return {
-            'detections': self.detection_results
+            'detections': self.detection_results,
+            'strategies': self.strategies_used
         }
     
     def get_detection_metadata(self) -> Dict[str, Any]:
@@ -327,7 +328,6 @@ class AdaptiveLineDetector:
                 }
         
         return {
-            'strategies': self.strategies_used,
             'border_configs': border_configs
         }
     

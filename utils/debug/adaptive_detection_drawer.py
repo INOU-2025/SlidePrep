@@ -1,9 +1,3 @@
-"""
-Adaptive line detection debug drawer.
-
-Provides visualization capabilities for the AdaptiveLineDetector results.
-"""
-
 import cv2
 import numpy as np
 from typing import Any, Optional, Dict, List, Tuple
@@ -38,8 +32,8 @@ class AdaptiveDetectionDrawer(BaseDrawer):
         # Convert to BGR for visualization
         base = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 
-        detections = results.get('detections', {})
-        strategies = metadata.get('strategies', {}) if metadata else {}
+        detections = results.get('detections', {}) if results else {}
+        strategies = results.get('strategies', {}) if results else {}
         border_configs = metadata.get('border_configs', {}) if metadata else {}
 
         # Draw border overlay if any border strategy was used

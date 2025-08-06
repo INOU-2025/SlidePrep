@@ -66,7 +66,7 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
     total_lines_found = 0
     has_any_detections = False
     
-    for orientation, strategy in metadata['strategies'].items():
+    for orientation, strategy in results['strategies'].items():
         if strategy:
             mask, contours = results['detections'][orientation]
             valid_contours = [c for c in contours if cv2.contourArea(c) >= detector.min_contour_area]
