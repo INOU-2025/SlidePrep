@@ -31,17 +31,7 @@ class AdaptiveDetectionDrawer(BaseDrawer):
         self.show_border_zones = show_border_zones
 
     def draw(self, image: np.ndarray, results: Any = None, metadata: Any = None) -> Optional[np.ndarray]:
-        """
-        Draw adaptive detection results on the image.
-
-        Args:
-            image: Base grayscale image
-            results: Detection results containing only 'detections' dict
-            metadata: All other metadata including strategies, detector, etc.
-
-        Returns:
-            Image with drawn visualizations
-        """
+        """Draw adaptive detection results on the image."""
         if results is None:
             return cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 
@@ -49,40 +39,23 @@ class AdaptiveDetectionDrawer(BaseDrawer):
         base = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 
         detections = results.get('detections', {})
-        
-        # Get metadata (moved from results)
         strategies = metadata.get('strategies', {}) if metadata else {}
-
-        # Get detector configurations (must be provided in metadata)
-        detector = metadata.get('detector') if metadata else None
-        if not detector:
-            raise ValueError("Detector instance must be provided in metadata for drawer to access configurations")
-        
-        configs = detector.configs
+        border_configs = metadata.get('border_configs', {}) if metadata else {}
 
         # Draw border overlay if any border strategy was used
-        if self.show_border_zones:
+        if self.show_border_zones and border_configs:
             max_border_thickness = 0
-            for orientation, strategy in strategies.items():
-                if strategy in [DetectionStrategy.THICK_BORDER, DetectionStrategy.THIN_BORDER]:
-                    config = configs[strategy]
-                    max_border_thickness = max(
-                        max_border_thickness, config['border_thickness'])
+            for strategy, config in border_configs.items():
+                max_border_thickness = max(max_border_thickness, config['border_thickness'])
 
             if max_border_thickness > 0:
-                base = self._draw_border_overlay(
-                    base, max_border_thickness, alpha=0.15)
+                base = self._draw_border_overlay(base, max_border_thickness, alpha=0.15)
 
         # Draw detections for each orientation
         for orientation, (mask, contours) in detections.items():
             if contours and strategies.get(orientation):
                 strategy = strategies[orientation]
-                config = configs[strategy]
-
-                base = self._draw_contours_with_strategy(
-                    base, contours, orientation, strategy, 
-                    config.get('border_thickness', 0)
-                )
+                base = self._draw_contours_with_strategy(base, contours, orientation, strategy)
 
         return base
 
@@ -120,10 +93,9 @@ class AdaptiveDetectionDrawer(BaseDrawer):
         return cv2.addWeighted(overlay, alpha, base, 1 - alpha, 0)
 
     def _draw_contours_with_strategy(self, base_image: np.ndarray, contours: List[np.ndarray],
-                                     orientation: str, strategy: DetectionStrategy, 
-                                     border_thickness: int = 0) -> np.ndarray:
+                                     orientation: str, strategy: DetectionStrategy) -> np.ndarray:
         """
-        Draw contours with strategy-specific coloring and filtering.
+        Draw contours with strategy-specific coloring.
         
         Note: Contours are pre-corrected and pre-filtered by the detector.
 
@@ -132,7 +104,6 @@ class AdaptiveDetectionDrawer(BaseDrawer):
             contours: List of pre-corrected and pre-filtered contours to draw
             orientation: 'horizontal' or 'vertical'
             strategy: Detection strategy used
-            border_thickness: Border zone thickness (for border strategies)
 
         Returns:
             Image with drawn contours

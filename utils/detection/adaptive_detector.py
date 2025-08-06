@@ -318,8 +318,17 @@ class AdaptiveLineDetector:
     
     def get_detection_metadata(self) -> Dict[str, Any]:
         """Get detection metadata separately from core results."""
+        # Calculate border thicknesses for used strategies
+        border_configs = {}
+        for orientation, strategy in self.strategies_used.items():
+            if strategy and strategy != DetectionStrategy.GENERAL:
+                border_configs[strategy] = {
+                    'border_thickness': self.configs[strategy]['border_thickness']
+                }
+        
         return {
-            'strategies': self.strategies_used
+            'strategies': self.strategies_used,
+            'border_configs': border_configs
         }
     
     def clear_caches(self) -> None:

@@ -58,16 +58,15 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
     results = detector.detect_lines(image)
     detection_time = time.time() - start_time
 
-
-    # Get metadata separately (CLEAN - no parameters needed)
-    detection_metadata = detector.get_detection_metadata()
+    # Get metadata separately
+    metadata = detector.get_detection_metadata()
     
     # Log detection summary
     logger.info(f"Detection completed in {detection_time:.3f}s")
     total_lines_found = 0
     has_any_detections = False
     
-    for orientation, strategy in detection_metadata['strategies'].items():
+    for orientation, strategy in metadata['strategies'].items():
         if strategy:
             mask, contours = results['detections'][orientation]
             valid_contours = [c for c in contours if cv2.contourArea(c) >= detector.min_contour_area]
@@ -92,13 +91,6 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
     # Debug: Log what we're about to save
     logger.debug(f"Saving debug image for {filename} - Has detections: {has_any_detections}, Total lines: {total_lines_found}")
     logger.debug(f"Results structure: detections={list(results.get('detections', {}).keys())}, strategies={results.get('strategies', {})}")
-    
-    # Create complete metadata for drawer
-    metadata = {
-        # REQUIRED
-        'detector': detector,
-        'strategies': detection_metadata.get('strategies', {}),
-    }
 
     # Apply output suffix from configuration to debug filename
     base_name = os.path.splitext(filename)[0]
