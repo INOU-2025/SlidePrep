@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from typing import List, Tuple, Dict, Any
+from typing import List, Dict, Any
 
 from config.config_schema import GridDetectionConfig
 from .models import DetectionStrategy
@@ -163,7 +163,7 @@ class AdaptiveLineDetector:
         return corrected_contours
 
     def _detect_single_orientation(self, image: np.ndarray, strategy: DetectionStrategy,
-                                   orientation: str) -> Tuple[np.ndarray, List[np.ndarray]]:
+                                   orientation: str) -> List[np.ndarray]:
         """
         Detect lines for a single orientation with a specific strategy.
         Uses cached preprocessing and templates for better performance.
@@ -180,7 +180,7 @@ class AdaptiveLineDetector:
         response_map = perform_template_matching(inverted, templates)
         mask = create_detection_mask(response_map, self.threshold)  # Use global threshold
 
-        # Find contours
+        # Find contours using mask (mask not needed beyond this point)
         contours, _ = cv2.findContours(
             mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -202,7 +202,7 @@ class AdaptiveLineDetector:
         final_contours = self._apply_template_offset_correction(
             border_filtered_contours, config, orientation)
 
-        return mask, final_contours
+        return final_contours
 
     def detect_lines(self, image: np.ndarray) -> Dict[str, Any]:
         """Detect lines using adaptive strategy progression."""
@@ -219,11 +219,11 @@ class AdaptiveLineDetector:
         for orientation in missing_orientations[:]:
             logger.info(f"Processing {orientation} orientation...")
 
-            mask, contours = self._detect_single_orientation(
+            contours = self._detect_single_orientation(
                 image, DetectionStrategy.GENERAL, orientation)
 
             if contours:  # Simplified check since contours are pre-filtered
-                self.detection_results[orientation] = (mask, contours)
+                self.detection_results[orientation] = contours
                 self.strategies_used[orientation] = DetectionStrategy.GENERAL
                 missing_orientations.remove(orientation)
                 logger.info(f"✓ Found {len(contours)} {orientation} lines")
@@ -243,11 +243,11 @@ class AdaptiveLineDetector:
             for orientation in missing_orientations[:]:
                 logger.info(f"Processing {orientation} orientation...")
 
-                mask, contours = self._detect_single_orientation(
+                contours = self._detect_single_orientation(
                     image, DetectionStrategy.THICK_BORDER, orientation)
 
                 if contours:  # Simplified check since contours are pre-filtered
-                    self.detection_results[orientation] = (mask, contours)
+                    self.detection_results[orientation] = contours
                     self.strategies_used[orientation] = DetectionStrategy.THICK_BORDER
                     missing_orientations.remove(orientation)
                     logger.info(f"✓ Found {len(contours)} {orientation} lines")
@@ -267,11 +267,11 @@ class AdaptiveLineDetector:
             for orientation in missing_orientations[:]:
                 logger.info(f"Processing {orientation} orientation...")
 
-                mask, contours = self._detect_single_orientation(
+                contours = self._detect_single_orientation(
                     image, DetectionStrategy.THIN_BORDER, orientation)
 
                 if contours:  # Simplified check since contours are pre-filtered
-                    self.detection_results[orientation] = (mask, contours)
+                    self.detection_results[orientation] = contours
                     self.strategies_used[orientation] = DetectionStrategy.THIN_BORDER
                     missing_orientations.remove(orientation)
                     logger.info(f"✓ Found {len(contours)} {orientation} lines")
@@ -286,7 +286,7 @@ class AdaptiveLineDetector:
         for orientation in ['horizontal', 'vertical']:
             orientation_analysis = []
             if orientation in results.get('detections', {}):
-                mask, contours = results['detections'][orientation]
+                contours = results['detections'][orientation]
                 strategy = results['strategies'].get(orientation)
                 for idx, contour in enumerate(contours):
                     logger.debug(
@@ -302,8 +302,7 @@ class AdaptiveLineDetector:
         # Handle any still missing orientations
         if missing_orientations:
             for orientation in missing_orientations:
-                self.detection_results[orientation] = (
-                    np.zeros((100, 100), dtype=np.uint8), [])
+                self.detection_results[orientation] = []
                 self.strategies_used[orientation] = None
 
         # Print final summary
@@ -312,7 +311,7 @@ class AdaptiveLineDetector:
         for orientation in ['horizontal', 'vertical']:
             strategy = self.strategies_used.get(orientation)
             if strategy:
-                mask, contours = self.detection_results[orientation]
+                contours = self.detection_results[orientation]
                 valid_count = len(contours)
                 logger.info(
                     f"  {orientation.capitalize()}: {valid_count} lines using {strategy.value}")

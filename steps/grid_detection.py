@@ -53,11 +53,11 @@ class GridDetectionStep(PipelineStep):
             vertical_count = 0
             
             if 'horizontal' in detections:
-                mask, contours = detections['horizontal']
+                contours = detections['horizontal']
                 horizontal_count = len(contours)  # Contours are pre-filtered by detector
             
             if 'vertical' in detections:
-                mask, contours = detections['vertical']
+                contours = detections['vertical']
                 vertical_count = len(contours)  # Contours are pre-filtered by detector
             
             # Log results

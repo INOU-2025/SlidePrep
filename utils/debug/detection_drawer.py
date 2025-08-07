@@ -45,7 +45,7 @@ class DetectionDrawer(BaseDrawer):
                 base = self._draw_border_overlay(base, max_border_thickness, alpha=0.15)
 
         # Draw detections for each orientation
-        for orientation, (mask, contours) in detections.items():
+        for orientation, contours in detections.items():
             if contours and strategies.get(orientation):
                 strategy = strategies[orientation]
                 base = self._draw_contours_with_strategy(base, contours, orientation, strategy)
