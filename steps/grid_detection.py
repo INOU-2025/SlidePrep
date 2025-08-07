@@ -39,6 +39,9 @@ class GridDetectionStep(PipelineStep):
         try:
             # Run adaptive detection
             results = self.detector.detect_lines(data)
+
+            # TODO. Delete this
+            self.detector.analyze_results(results)
             
             # Extract detection counts and strategies
             detections = results['detections']

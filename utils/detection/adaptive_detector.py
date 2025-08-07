@@ -6,7 +6,7 @@ from config.config_schema import GridDetectionConfig
 from .models import DetectionStrategy
 from .template_utils import generate_blurred_template, perform_template_matching
 from .image_preprocessing import create_detection_mask, ImagePreprocessingCache
-from .contour_analysis import filter_contours_by_border_zone
+from .contour_analysis import filter_contours_by_border_zone, analyze_contour
 from core.container import Container
 
 
@@ -280,6 +280,23 @@ class AdaptiveLineDetector:
                     logger.info(f"✗ No {orientation} lines found")
 
         return self._create_result_dict(missing_orientations)
+    
+    def analyze_results(self, results: dict) -> dict:
+        logger = Container.resolve("logger")
+        analysis = {}
+        for orientation in ['horizontal', 'vertical']:
+            orientation_analysis = []
+            if orientation in results.get('detections', {}):
+                mask, contours = results['detections'][orientation]
+                strategy = results['strategies'].get(orientation)
+                for idx, contour in enumerate(contours):
+                    logger.debug(
+                        f"Analyzing contour {idx+1}/{len(contours)} for orientation: {orientation}, strategy: {getattr(strategy, 'value', strategy)}"
+                    )
+                    contour_info = analyze_contour(contour, orientation=orientation, strategy=strategy)
+                    orientation_analysis.append(contour_info)
+            analysis[orientation] = orientation_analysis
+        return analysis
 
     def _create_result_dict(self, missing_orientations: List[str]) -> Dict[str, Any]:
         """Create standardized result dictionary."""
