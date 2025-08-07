@@ -2,10 +2,12 @@ import cv2
 import numpy as np
 from typing import List, Tuple
 from core.container import Container
+from utils.detection.models import DetectionRegion, Orientation
+from typing import Optional
 
 
 def get_contour_zone(box: np.ndarray, img_shape: Tuple[int, int],
-                     border_thickness: int, orientation: str) -> str:
+                     border_thickness: int, orientation: Orientation) -> Optional[DetectionRegion]:
     """
     Get the border zone that encloses a given contour
 
@@ -13,22 +15,22 @@ def get_contour_zone(box: np.ndarray, img_shape: Tuple[int, int],
         box: Bounding box points
         img_shape: Image (height, width)
         border_thickness: Border zone thickness
-        orientation: 'horizontal' or 'vertical'
+        orientation: Orientation of the contour ('horizontal' or 'vertical')
 
     Returns:
         True if contour is fully within appropriate border zone
     """
     h, w = img_shape
-    if orientation == 'horizontal':
+    if orientation == Orientation.HORIZONTAL:
         if all(y < border_thickness for _, y in box):
-            return 'top'
+            return DetectionRegion.TOP
         elif all(y >= h - border_thickness for _, y in box):
-            return 'bottom'
-    elif orientation == 'vertical':
+            return DetectionRegion.BOTTOM
+    elif orientation == Orientation.VERTICAL:
         if all(x < border_thickness for x, _ in box):
-            return 'left'
+            return DetectionRegion.LEFT
         elif all(x >= w - border_thickness for x, _ in box):
-            return 'right'
+            return DetectionRegion.RIGHT
     return None
 
 
@@ -47,7 +49,7 @@ def filter_contours_by_area(contours: List[np.ndarray], min_area: int) -> List[n
 
 
 def filter_contours_by_border_zone(contours: List[np.ndarray], img_shape: Tuple[int, int],
-                                   border_thickness: int, orientation: str) -> List[dict]:
+                                   border_thickness: int, orientation: Orientation) -> List[dict]:
     """
     Filter contours to only those within border zones.
 
@@ -57,7 +59,7 @@ def filter_contours_by_border_zone(contours: List[np.ndarray], img_shape: Tuple[
         contours: List of contours (should already be area-filtered)
         img_shape: Image shape (height, width)
         border_thickness: Border zone thickness
-        orientation: 'horizontal' or 'vertical'
+        orientation: Orientation of the contour ('horizontal' or 'vertical')
 
     Returns:
         Filtered list of contours
@@ -76,13 +78,13 @@ def filter_contours_by_border_zone(contours: List[np.ndarray], img_shape: Tuple[
     return filtered_contours
 
 
-def analyze_contour(contour: np.ndarray, orientation: str, strategy=None) -> dict:
+def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy=None) -> dict:
     """
     Analyze a contour and return analytical information.
 
     Args:
         contour: np.ndarray representing the contour
-        orientation: 'horizontal', 'vertical', or None (optional, for validation)
+        orientation: Orientation of the contour (HORIZONTAL or VERTICAL)
 
     Returns:
         Dictionary with contour properties, including orientation.
@@ -119,9 +121,9 @@ def analyze_contour(contour: np.ndarray, orientation: str, strategy=None) -> dic
 
     # Compute orientation based on longest side angle
     if -45 <= long_side_angle <= 45:
-        computed_orientation = 'horizontal'
+        computed_orientation = Orientation.HORIZONTAL
     else:
-        computed_orientation = 'vertical'
+        computed_orientation = Orientation.VERTICAL
 
     hull = cv2.convexHull(contour)
     hull_area = cv2.contourArea(hull)
@@ -134,8 +136,8 @@ def analyze_contour(contour: np.ndarray, orientation: str, strategy=None) -> dic
 
     logger.debug(
         f"Contour analysis:\n"
-        f"  Orientation (passed): {orientation}\n"
-        f"  Orientation (computed): {computed_orientation}\n"
+        f"  Orientation (passed): {orientation.value}\n"
+        f"  Orientation (computed): {computed_orientation.value}\n"
         f"  Area: {area}\n"
         f"  Perimeter: {perimeter}\n"
         f"  Min area rect: center=({cx:.1f}, {cy:.1f}), size=({rect_w:.1f}, {rect_h:.1f}), raw_angle={raw_angle:.1f}\n"
@@ -168,5 +170,5 @@ def analyze_contour(contour: np.ndarray, orientation: str, strategy=None) -> dic
         "solidity": solidity,
         "extent": extent,
         "centroid": centroid,
-        "strategy": getattr(strategy, "value", strategy) if strategy else None
+        "strategy": strategy
     }

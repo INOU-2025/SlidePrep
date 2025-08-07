@@ -11,6 +11,7 @@ import cv2
 import numpy as np
 from glob import glob
 from utils.detection.adaptive_detector import AdaptiveLineDetector
+from utils.detection.models import DetectionRegion, Orientation
 from utils.debug.detection_drawer import DetectionDrawer
 from core.bootstrap import bootstrap, get_logger, get_debugger, get_config
 from core.app_config_manager import AppConfigManager
@@ -68,6 +69,7 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Optional
     has_any_detections = False
     
     for orientation, strategy in results['strategies'].items():
+        orientation_str = orientation.value if hasattr(orientation, 'value') else str(orientation)
         if strategy:
             contour_dicts = results['detections'][orientation]
             min_area = detector.configs[strategy]["min_contour_area"]
@@ -75,11 +77,12 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Optional
             total_lines_found += len(valid_contours)
             if len(valid_contours) > 0:
                 has_any_detections = True
-            logger.info(f"  {orientation}: {len(valid_contours)} lines found using {strategy.value}")
+            logger.info(f"  {orientation_str}: {len(valid_contours)} lines found using {strategy.value}")
             for item in valid_contours:
-                logger.debug(f"    Line zone: {item['zone']}")
+                zone_str = item['zone'].value if hasattr(item['zone'], 'value') else str(item['zone'])
+                logger.debug(f"    Line zone: {zone_str}")
         else:
-            logger.info(f"  {orientation}: No lines found")
+            logger.info(f"  {orientation_str}: No lines found")
     
     # Log cache statistics
     if 'cache_stats' in results:

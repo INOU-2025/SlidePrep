@@ -4,16 +4,17 @@ Grid detection step using the adaptive line detector.
 
 import cv2
 import numpy as np
-from typing import Any, Dict
+from typing import Any
 from core.step import PipelineStep
 from config.config_schema import GridDetectionConfig
 from utils.detection.adaptive_detector import AdaptiveLineDetector
+from typing import Optional
 
 
 class GridDetectionStep(PipelineStep):
     """Pipeline step for adaptive grid detection."""
     
-    def __init__(self, name: str = "adaptive_grid_detection", config: GridDetectionConfig = None, **kwargs):
+    def __init__(self, name: str = "adaptive_grid_detection", config: Optional[GridDetectionConfig] = None, **kwargs):
         """Initialize adaptive grid detection step."""
         super().__init__(name, config, **kwargs)
         
@@ -30,7 +31,7 @@ class GridDetectionStep(PipelineStep):
             self.error(f"Failed to initialize adaptive detector: {e}")
             raise
     
-    def run(self, data: Any) -> Dict[str, Any]:
+    def run(self, data: Any) -> tuple[Any, Optional[dict]]:
         """Run adaptive grid detection on input image."""
         self._validate_image_input(data)
         
@@ -64,10 +65,11 @@ class GridDetectionStep(PipelineStep):
             self.log(f"Detection completed: {horizontal_count} horizontal lines, {vertical_count} vertical lines")
             
             for orientation, strategy in strategies.items():
+                orientation_str = orientation.value if hasattr(orientation, 'value') else str(orientation)
                 if strategy:
-                    self.debug(f"  {orientation}: found using {strategy.value}")
+                    self.debug(f"  {orientation_str}: found using {strategy.value}")
                 else:
-                    self.debug(f"  {orientation}: not found")
+                    self.debug(f"  {orientation_str}: not found")
             
             # Log cache performance (get from detector)
             cache_stats = self.detector.get_cache_info()

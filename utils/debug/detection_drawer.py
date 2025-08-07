@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from typing import Any, Optional, List
 from utils.debug.base_drawer import BaseDrawer
-from utils.detection.models import DetectionStrategy
+from utils.detection.models import DetectionStrategy, Orientation
 
 
 class DetectionDrawer(BaseDrawer):
@@ -86,7 +86,7 @@ class DetectionDrawer(BaseDrawer):
         return cv2.addWeighted(overlay, alpha, base, 1 - alpha, 0)
 
     def _draw_contours_with_strategy(self, base_image: np.ndarray, contour_dicts: List[dict],
-                                     orientation: str, strategy: DetectionStrategy) -> np.ndarray:
+                                     orientation: Orientation, strategy: DetectionStrategy) -> np.ndarray:
         """
         Draw contours with strategy-specific coloring.
         
@@ -95,7 +95,7 @@ class DetectionDrawer(BaseDrawer):
         Args:
             base_image: Base image to draw on
             contour_dicts: List of pre-corrected and pre-filtered contours to draw
-            orientation: 'horizontal' or 'vertical'
+            orientation: Orientation of the contours (horizontal or vertical)
             strategy: Detection strategy used
 
         Returns:
@@ -110,18 +110,28 @@ class DetectionDrawer(BaseDrawer):
         for item in contour_dicts:
             cnt = item['contour']
             rect = cv2.minAreaRect(cnt)
-            box = cv2.boxPoints(rect)
-            box = np.intp(box)
+            box = cv2.boxPoints(rect).astype(np.intp)
 
             # Since contours are pre-filtered by detector, all are valid
             # Just apply strategy-based coloring
             if strategy == DetectionStrategy.GENERAL:
-                color = (0, 255, 0) if orientation == 'vertical' else (255, 0, 0)
+                color = (0, 255, 0) if orientation == Orientation.VERTICAL else (255, 0, 0)
             elif strategy == DetectionStrategy.THICK_BORDER:
-                color = (0, 200, 0) if orientation == 'vertical' else (200, 0, 0)
+                color = (0, 200, 0) if orientation == Orientation.VERTICAL else (200, 0, 0)
             else:  # THIN_BORDER
-                color = (0, 150, 0) if orientation == 'vertical' else (150, 0, 0)
+                color = (0, 150, 0) if orientation == Orientation.VERTICAL else (150, 0, 0)
 
             cv2.drawContours(result, [box], 0, color, 2)
+
+            # Visualize zone metadata if present
+            zone = item.get('zone', None)
+            if zone is not None:
+                zone_str = zone.value if hasattr(zone, 'value') else str(zone)
+                # Place zone label at the center of the contour
+                M = cv2.moments(cnt)
+                if M['m00'] != 0:
+                    cx = int(M['m10'] / M['m00'])
+                    cy = int(M['m01'] / M['m00'])
+                    cv2.putText(result, zone_str, (cx, cy), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, cv2.LINE_AA)
 
         return result

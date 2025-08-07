@@ -3,11 +3,12 @@ import numpy as np
 from typing import List, Dict, Any
 
 from config.config_schema import GridDetectionConfig
-from .models import DetectionStrategy
+from .models import DetectionStrategy, DetectionRegion, Orientation
 from .template_utils import generate_blurred_template, perform_template_matching
 from .image_preprocessing import create_detection_mask, ImagePreprocessingCache
 from .contour_analysis import filter_contours_by_border_zone, analyze_contour
 from core.container import Container
+from typing import Optional
 
 
 class TemplateCache:
@@ -20,7 +21,8 @@ class TemplateCache:
 
     def get_templates(self, strategy: DetectionStrategy, orientation: str,
                       config: Dict[str, Any]) -> List[np.ndarray]:
-        """Get templates with caching."""
+        """Get templates with caching. Orientation should be a string (enum.value) for cache keys."""
+        # Orientation is always passed as enum.value from detector
         if strategy in self.cache and orientation in self.cache[strategy]:
             self.hits += 1
             return self.cache[strategy][orientation]
@@ -103,8 +105,8 @@ class AdaptiveLineDetector:
         ) if self.enable_preprocessing_cache else None
 
         # Storage for detection results
-        self.detection_results = {}
-        self.strategies_used = {}
+        self.detection_results: Dict[Orientation, List[dict]] = {}
+        self.strategies_used: Dict[Orientation, Optional[DetectionStrategy]] = {}
 
     def _get_preprocessed_image(self, image: np.ndarray) -> np.ndarray:
         """Get preprocessed (inverted) image with caching."""
@@ -112,31 +114,31 @@ class AdaptiveLineDetector:
             return self.preprocessing_cache.get_inverted_image(image)
         return cv2.bitwise_not(image)
 
-    def _get_templates(self, strategy: DetectionStrategy, orientation: str) -> List[np.ndarray]:
+    def _get_templates(self, strategy: DetectionStrategy, orientation: Orientation) -> List[np.ndarray]:
         """Get templates for the given strategy and orientation."""
         config = self.configs[strategy]
 
         if self.template_cache:
             # Use global threshold and angles instead of config-specific ones
             cache_config = {**config, 'threshold': self.threshold, 'angles': self.angles}
-            return self.template_cache.get_templates(strategy, orientation, cache_config)
+            return self.template_cache.get_templates(strategy, orientation.value, cache_config)
 
         return [generate_blurred_template(
             config['template_length'],
             config['thickness'],
             angle,
-            orientation
+            orientation.value
         ) for angle in self.angles]  # Use global angles
 
     def _apply_template_offset_correction(self, contour_dicts: List[dict], 
-                                        config: Dict[str, Any], orientation: str) -> List[dict]:
+                                        config: Dict[str, Any], orientation: Orientation) -> List[dict]:
         """
         Apply template offset correction to contours based on orientation.
         
         Args:
             contour_dicts: List of contours {'contour': ..., 'zone': ...} to correct
             config: Strategy configuration with template_length and thickness
-            orientation: 'horizontal' or 'vertical'
+            orientation: Orientation enum
             
         Returns:
             List of corrected contours {'contour': corrected_contour, 'zone': zone}
@@ -145,7 +147,7 @@ class AdaptiveLineDetector:
             return contour_dicts
 
         # Calculate orientation-specific offsets
-        if orientation == 'horizontal':
+        if orientation == Orientation.HORIZONTAL:
             offset_x = config['template_length'] // 2
             offset_y = config['thickness'] // 2
         else:
@@ -160,7 +162,7 @@ class AdaptiveLineDetector:
         return corrected
 
     def _detect_single_orientation(self, image: np.ndarray, strategy: DetectionStrategy,
-                                   orientation: str) -> List[dict]:
+                                   orientation: Orientation) -> List[dict]:
         """
         Detect lines for a single orientation with a specific strategy.
         Uses cached preprocessing and templates for better performance.
@@ -189,11 +191,13 @@ class AdaptiveLineDetector:
 
         # Filter contours for border strategies (only process area-valid contours)
         if strategy != DetectionStrategy.GENERAL:
+            # Only pass height and width, not full shape tuple
+            height, width = image.shape[:2]
             border_filtered_contours = filter_contours_by_border_zone(
-                area_filtered_contours, image.shape, config['border_thickness'], orientation
+                area_filtered_contours, (height, width), config['border_thickness'], orientation
             )
         else:
-            border_filtered_contours = [{'contour': cnt, 'zone': None} for cnt in area_filtered_contours]
+            border_filtered_contours = [{'contour': cnt, 'zone': DetectionRegion.CENTER} for cnt in area_filtered_contours]
 
         # Apply template offset correction (only to final valid contours)
         final_contours = self._apply_template_offset_correction(
@@ -208,13 +212,13 @@ class AdaptiveLineDetector:
         self.detection_results = {}
         self.strategies_used = {}
 
-        missing_orientations = ['horizontal', 'vertical']
+        missing_orientations = [Orientation.HORIZONTAL, Orientation.VERTICAL]
 
         # Strategy 1: General detection
         logger.info("Trying general detection...")
 
         for orientation in missing_orientations[:]:
-            logger.info(f"Processing {orientation} orientation...")
+            logger.info(f"Processing {orientation.value} orientation...")
 
             contour_dicts = self._detect_single_orientation(
                 image, DetectionStrategy.GENERAL, orientation)
@@ -223,9 +227,9 @@ class AdaptiveLineDetector:
                 self.detection_results[orientation] = contour_dicts
                 self.strategies_used[orientation] = DetectionStrategy.GENERAL
                 missing_orientations.remove(orientation)
-                logger.info(f"✓ Found {len(contour_dicts)} {orientation} lines")
+                logger.info(f"✓ Found {len(contour_dicts)} {orientation.value} lines")
             else:
-                logger.info(f"✗ No {orientation} lines found")
+                logger.info(f"✗ No {orientation.value} lines found")
 
         # Early exit optimization
         if self.enable_early_exit and not missing_orientations:
@@ -235,10 +239,10 @@ class AdaptiveLineDetector:
         # Strategy 2: Thick border detection
         if missing_orientations:
             logger.info(
-                f"Trying thick border detection for missing orientations: {missing_orientations}")
+                f"Trying thick border detection for missing orientations: {[o.value for o in missing_orientations]}")
 
             for orientation in missing_orientations[:]:
-                logger.info(f"Processing {orientation} orientation...")
+                logger.info(f"Processing {orientation.value} orientation...")
 
                 contour_dicts = self._detect_single_orientation(
                     image, DetectionStrategy.THICK_BORDER, orientation)
@@ -247,9 +251,9 @@ class AdaptiveLineDetector:
                     self.detection_results[orientation] = contour_dicts
                     self.strategies_used[orientation] = DetectionStrategy.THICK_BORDER
                     missing_orientations.remove(orientation)
-                    logger.info(f"✓ Found {len(contour_dicts)} {orientation} lines")
+                    logger.info(f"✓ Found {len(contour_dicts)} {orientation.value} lines")
                 else:
-                    logger.info(f"✗ No {orientation} lines found")
+                    logger.info(f"✗ No {orientation.value} lines found")
 
         # Early exit optimization
         if self.enable_early_exit and not missing_orientations:
@@ -259,10 +263,10 @@ class AdaptiveLineDetector:
         # Strategy 3: Thin border detection
         if missing_orientations:
             logger.info(
-                f"Trying thin border detection for remaining orientations: {missing_orientations}")
+                f"Trying thin border detection for remaining orientations: {[o.value for o in missing_orientations]}")
 
             for orientation in missing_orientations[:]:
-                logger.info(f"Processing {orientation} orientation...")
+                logger.info(f"Processing {orientation.value} orientation...")
 
                 contour_dicts = self._detect_single_orientation(
                     image, DetectionStrategy.THIN_BORDER, orientation)
@@ -271,16 +275,16 @@ class AdaptiveLineDetector:
                     self.detection_results[orientation] = contour_dicts
                     self.strategies_used[orientation] = DetectionStrategy.THIN_BORDER
                     missing_orientations.remove(orientation)
-                    logger.info(f"✓ Found {len(contour_dicts)} {orientation} lines")
+                    logger.info(f"✓ Found {len(contour_dicts)} {orientation.value} lines")
                 else:
-                    logger.info(f"✗ No {orientation} lines found")
+                    logger.info(f"✗ No {orientation.value} lines found")
 
         return self._create_result_dict(missing_orientations)
     
     def analyze_results(self, results: dict) -> dict:
         logger = Container.resolve("logger")
         analysis = {}
-        for orientation in ['horizontal', 'vertical']:
+        for orientation in [Orientation.HORIZONTAL, Orientation.VERTICAL]:
             orientation_analysis = []
             if orientation in results.get('detections', {}):
                 contour_dicts = results['detections'][orientation]
@@ -289,15 +293,15 @@ class AdaptiveLineDetector:
                     contour = item['contour']
                     zone = item['zone']
                     logger.debug(
-                        f"Analyzing contour {idx+1}/{len(contour_dicts)} for orientation: {orientation}, strategy: {getattr(strategy, 'value', strategy)}, zone: {zone}"
+                        f"Analyzing contour {idx+1}/{len(contour_dicts)} for orientation: {orientation.value}, strategy: {getattr(strategy, 'value', strategy)}, zone: {zone.value if zone else None}"
                     )
                     contour_info = analyze_contour(contour, orientation=orientation, strategy=strategy)
-                    contour_info['zone'] = zone
+                    contour_info['zone'] = zone.value if zone else None
                     orientation_analysis.append(contour_info)
-            analysis[orientation] = orientation_analysis
+            analysis[orientation.value] = orientation_analysis
         return analysis
 
-    def _create_result_dict(self, missing_orientations: List[str]) -> Dict[str, Any]:
+    def _create_result_dict(self, missing_orientations: List[Orientation]) -> Dict[str, Any]:
         """Create standardized result dictionary."""
         # Handle any still missing orientations
         if missing_orientations:
@@ -308,15 +312,15 @@ class AdaptiveLineDetector:
         # Print final summary
         logger = Container.resolve("logger")
         logger.info("Detection Summary:")
-        for orientation in ['horizontal', 'vertical']:
+        for orientation in [Orientation.HORIZONTAL, Orientation.VERTICAL]:
             strategy = self.strategies_used.get(orientation)
             if strategy:
                 contours = self.detection_results[orientation]
                 valid_count = len(contours)
                 logger.info(
-                    f"  {orientation.capitalize()}: {valid_count} lines using {strategy.value}")
+                    f"  {orientation.value.capitalize()}: {valid_count} lines using {strategy.value}")
             else:
-                logger.info(f"  {orientation.capitalize()}: No lines found")
+                logger.info(f"  {orientation.value.capitalize()}: No lines found")
 
         # Print cache performance
         cache_stats = self.get_cache_info()
