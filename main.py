@@ -3,7 +3,7 @@ import cv2
 from glob import glob
 from core import bootstrap, get_config, get_logger
 from core.pipeline import Pipeline
-from steps import BinarizationStep, GridDetectionStep
+from steps import BinarizationStep, GridDetectionStep, GridRefinementStep
 from utils import get_supported_image_patterns, filter_images_by_suffix
 
 
@@ -45,6 +45,7 @@ def run_pipeline(config_path: str):
         steps = [
             BinarizationStep(cfg.binarization_config),
             GridDetectionStep(cfg.grid_detection_config),
+            GridRefinementStep(cfg.grid_refinement_config),
         ]
         pipeline = Pipeline(steps)
         logger.info(f"Pipeline initialized with {len(steps)} steps")

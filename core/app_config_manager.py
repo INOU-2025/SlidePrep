@@ -1,5 +1,12 @@
 from typing import List, Optional
-from config.config_schema import GeneralConfig, GridDetectionConfig, BinarizationConfig, LogConfig, DebugConfig
+from config.config_schema import (
+    GeneralConfig,
+    GridDetectionConfig,
+    GridRefinementConfig,
+    BinarizationConfig,
+    LogConfig,
+    DebugConfig,
+)
 from utils.config_manager import ConfigManager
 
 
@@ -28,6 +35,11 @@ class AppConfigManager(ConfigManager):
             grid_config = self.get("grid_detection")
             self.grid_detection_config = (
                 GridDetectionConfig(**grid_config) if grid_config else None
+            )
+
+            refine_config = self.get("grid_refinement")
+            self.grid_refinement_config = (
+                GridRefinementConfig(**refine_config) if refine_config else None
             )
 
             self.log_config = LogConfig(**self.get("log", {}))

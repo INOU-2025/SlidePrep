@@ -141,6 +141,21 @@ class GridDetectionConfig:
             if config["border_thickness"] < 0:
                 raise ValueError(f"{name}.border_thickness must be non-negative")
 
+
+@dataclass
+class GridRefinementConfig:
+    """Configuration for grid refinement step."""
+
+    analyze_thick_border: bool = True
+    analyze_thin_border: bool = True
+
+    def __post_init__(self) -> None:
+        """Validate boolean flags."""
+        for field in ("analyze_thick_border", "analyze_thin_border"):
+            value = getattr(self, field)
+            if not isinstance(value, bool):
+                raise ValueError(f"{field} must be a boolean, got: {value}")
+
 @dataclass
 class DebugConfig:
     """

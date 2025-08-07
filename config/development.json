@@ -43,6 +43,10 @@
       "min_contour_area": 100
     }
   },
+  "grid_refinement": {
+    "analyze_thick_border": true,
+    "analyze_thin_border": true
+  },
   "debug": {
     "output_dir": "debug_output/development",
     "save_composite": true
