@@ -62,9 +62,6 @@ class GridDetectionConfig:
     
     Contains all adaptive detector settings directly without extra nesting.
     """
-    # Core detector settings
-    min_contour_area: int = 100
-    
     # Global template matching settings
     threshold: float = 0.1
     angles: List[float] = None
@@ -82,8 +79,6 @@ class GridDetectionConfig:
     
     def __post_init__(self) -> None:
         """Validate settings and ensure all required configurations are provided."""
-        if self.min_contour_area <= 0:
-            raise ValueError(f"min_contour_area must be positive, got: {self.min_contour_area}")
         if self.cache_max_size <= 0:
             raise ValueError(f"cache_max_size must be positive, got: {self.cache_max_size}")
         
@@ -120,10 +115,15 @@ class GridDetectionConfig:
         """Validate a strategy configuration dictionary."""
         if name == "general":
             # General strategy doesn't use border filtering
-            required_keys = {"template_length", "thickness"}
+            required_keys = {"template_length", "thickness", "min_contour_area"}
         else:
             # Border strategies require border_thickness
-            required_keys = {"template_length", "thickness", "border_thickness"}
+            required_keys = {
+                "template_length",
+                "thickness",
+                "border_thickness",
+                "min_contour_area",
+            }
         
         if not all(key in config for key in required_keys):
             missing = required_keys - set(config.keys())
@@ -133,7 +133,9 @@ class GridDetectionConfig:
             raise ValueError(f"{name}.template_length must be positive")
         if config["thickness"] < 7:
             raise ValueError(f"{name}.thickness must be at least 7")
-        
+        if config["min_contour_area"] <= 0:
+            raise ValueError(f"{name}.min_contour_area must be positive")
+
         # Only validate border_thickness for border strategies
         if name != "general":
             if config["border_thickness"] < 0:

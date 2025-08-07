@@ -18,7 +18,6 @@
     "threshold_method": "combined_differential"
   },
   "grid_detection": {
-    "min_contour_area": 100,
     "threshold": 0.1,
     "angles": [2.0, -2.0],
     "enable_early_exit": true,
@@ -28,17 +27,20 @@
     "general": {
       "template_length": 300,
       "thickness": 20,
-      "border_thickness": 0
+      "border_thickness": 0,
+      "min_contour_area": 100
     },
     "thick_border": {
       "template_length": 100,
       "thickness": 7,
-      "border_thickness": 35
+      "border_thickness": 35,
+      "min_contour_area": 100
     },
     "thin_border": {
       "template_length": 30,
       "thickness": 7,
-      "border_thickness": 20
+      "border_thickness": 20,
+      "min_contour_area": 100
     }
   },
   "debug": {

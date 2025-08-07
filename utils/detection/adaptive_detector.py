@@ -80,7 +80,6 @@ class AdaptiveLineDetector:
             grid_config: GridDetectionConfig instance with all settings
         """
         # Extract parameters from config
-        self.min_contour_area = grid_config.min_contour_area
         self.threshold = grid_config.threshold
         self.angles = grid_config.angles
 
@@ -186,9 +185,9 @@ class AdaptiveLineDetector:
             mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         # Filter by minimum area first (early filtering for performance)
+        min_area = config["min_contour_area"]
         area_filtered_contours = [
-            cnt for cnt in contours 
-            if cv2.contourArea(cnt) >= self.min_contour_area
+            cnt for cnt in contours if cv2.contourArea(cnt) >= min_area
         ]
 
         # Filter contours for border strategies (only process area-valid contours)
