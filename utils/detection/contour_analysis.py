@@ -6,6 +6,44 @@ from utils.detection.models import DetectionRegion, Orientation
 from typing import Optional
 
 
+def corner_proximity_from_box(box, W, H):
+    """
+    Normalized by FULL diagonal.
+    0 = exactly on a corner, ~1 = near image center.
+    Uses the min distance from any box vertex to any image corner.
+    Args:
+        box: Nx2 array of box vertices (e.g., from cv2.boxPoints)
+        W: image width
+        H: image height
+    Returns:
+        float: normalized proximity (0=corner, ~1=center)
+    """
+    FULL_DIAG = np.hypot(W, H)
+    corners = [(0,0), (W,0), (0,H), (W,H)]
+    dmin = min(
+        np.hypot(px - cx, py - cy)
+        for (px, py) in box
+        for (cx, cy) in corners
+    )
+    return float(dmin / FULL_DIAG)
+
+def border_proximity_from_box(box, W, H):
+    """
+    Normalized by max image dimension.
+    0 = touching a border, ~0.5 = centered along the short dimension.
+    Uses the min distance from any box vertex to the nearest border.
+    Args:
+        box: Nx2 array of box vertices (e.g., from cv2.boxPoints)
+        W: image width
+        H: image height
+    Returns:
+        float: normalized proximity (0=border, ~0.5=center)
+    """
+    MAX_DIM = max(W, H)
+    dmin = min(min(x, W - x, y, H - y) for (x, y) in box)
+    return float(dmin / MAX_DIM)
+
+
 def get_contour_zone(box: np.ndarray, img_shape: Tuple[int, int],
                      border_thickness: int, orientation: Orientation) -> Optional[DetectionRegion]:
     """
@@ -69,7 +107,7 @@ def filter_contours_by_border_zone(contours: List[np.ndarray], img_shape: Tuple[
     for cnt in contours:
         rect = cv2.minAreaRect(cnt)
         box = cv2.boxPoints(rect)
-        box = np.intp(box)
+        box = box.astype(np.intp)
         zone = get_contour_zone(box, img_shape, border_thickness, orientation)
 
         if zone:
@@ -78,7 +116,7 @@ def filter_contours_by_border_zone(contours: List[np.ndarray], img_shape: Tuple[
     return filtered_contours
 
 
-def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy=None) -> dict:
+def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy=None, image_shape=None) -> dict:
     """
     Analyze a contour and return analytical information.
 
@@ -98,7 +136,7 @@ def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy=None
     min_rect = cv2.minAreaRect(contour)
     ((cx, cy), (rect_w, rect_h), raw_angle) = min_rect
     box = cv2.boxPoints(min_rect)
-    box = np.intp(box)
+    box = box.astype(np.intp)
 
     # Calculate side lengths and find the longest side
     side_lengths = [np.linalg.norm(box[i] - box[(i + 1) % 4])
@@ -134,10 +172,23 @@ def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy=None
     centroid = (int(M["m10"] / M["m00"]), int(M["m01"] /
                 M["m00"])) if M["m00"] != 0 else (0, 0)
 
+    # Proximity metrics (if image_shape is provided)
+    if image_shape is not None:
+        H, W = image_shape[:2]
+        corner_proximity = corner_proximity_from_box(box, W, H)
+        border_proximity = border_proximity_from_box(box, W, H)
+    else:
+        corner_proximity = None
+        border_proximity = None
+
+    # Orientation mismatch
+    orientation_mismatch = has_orientation_mismatch(orientation, computed_orientation)
+
     logger.debug(
         f"Contour analysis:\n"
         f"  Orientation (passed): {orientation.value}\n"
         f"  Orientation (computed): {computed_orientation.value}\n"
+        f"  Orientation mismatch: {orientation_mismatch}\n"
         f"  Area: {area}\n"
         f"  Perimeter: {perimeter}\n"
         f"  Min area rect: center=({cx:.1f}, {cy:.1f}), size=({rect_w:.1f}, {rect_h:.1f}), raw_angle={raw_angle:.1f}\n"
@@ -150,7 +201,9 @@ def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy=None
         f"  Extent: {extent:.3f}\n"
         f"  Centroid: {centroid}\n"
         f"  Coordinates: {coordinates if len(coordinates) <= 10 else '[truncated]'}\n"
-        f"  Strategy: {getattr(strategy, 'value', strategy) if strategy else 'undefined'}"
+        f"  Strategy: {getattr(strategy, 'value', strategy) if strategy else 'undefined'}\n"
+        f"  Corner proximity: {corner_proximity if corner_proximity is not None else 'undefined'}\n"
+        f"  Border proximity: {border_proximity if border_proximity is not None else 'undefined'}"
     )
 
     return {
@@ -170,5 +223,23 @@ def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy=None
         "solidity": solidity,
         "extent": extent,
         "centroid": centroid,
-        "strategy": strategy
+        "strategy": strategy,
+        "corner_proximity": corner_proximity,
+        "border_proximity": border_proximity,
+        "orientation_mismatch": orientation_mismatch
     }
+
+
+def has_orientation_mismatch(passed_orientation, computed_orientation):
+    """
+    Returns True if there is a mismatch between the passed and computed orientation.
+    Args:
+        passed_orientation: Orientation enum or string
+        computed_orientation: Orientation enum or string
+    Returns:
+        bool: True if mismatch, False otherwise
+    """
+    # Normalize to string for comparison
+    passed = passed_orientation.value if hasattr(passed_orientation, 'value') else str(passed_orientation)
+    computed = computed_orientation.value if hasattr(computed_orientation, 'value') else str(computed_orientation)
+    return passed != computed
