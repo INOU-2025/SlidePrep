@@ -128,42 +128,39 @@ class AdaptiveLineDetector:
             orientation
         ) for angle in self.angles]  # Use global angles
 
-    def _apply_template_offset_correction(self, contours: List[np.ndarray], 
-                                        config: Dict[str, Any], orientation: str) -> List[np.ndarray]:
+    def _apply_template_offset_correction(self, contour_dicts: List[dict], 
+                                        config: Dict[str, Any], orientation: str) -> List[dict]:
         """
         Apply template offset correction to contours based on orientation.
         
         Args:
-            contours: List of contours to correct
+            contour_dicts: List of contours {'contour': ..., 'zone': ...} to correct
             config: Strategy configuration with template_length and thickness
             orientation: 'horizontal' or 'vertical'
             
         Returns:
-            List of corrected contours
+            List of corrected contours {'contour': corrected_contour, 'zone': zone}
         """
-        if not contours:
-            return contours
-            
+        if not contour_dicts:
+            return contour_dicts
+
         # Calculate orientation-specific offsets
         if orientation == 'horizontal':
-            # For horizontal lines: template is (thickness, template_length)
             offset_x = config['template_length'] // 2
             offset_y = config['thickness'] // 2
-        else:  # vertical
-            # For vertical lines: template is (template_length, thickness)
+        else:
             offset_x = config['thickness'] // 2
             offset_y = config['template_length'] // 2
-        
-        corrected_contours = []
-        for contour in contours:
-            # Apply offset to each point in the contour
+        corrected = []
+        for item in contour_dicts:
+            contour = item['contour']
+            zone = item['zone']
             corrected_contour = contour + np.array([offset_x, offset_y], dtype=np.int32)
-            corrected_contours.append(corrected_contour)
-            
-        return corrected_contours
+            corrected.append({'contour': corrected_contour, 'zone': zone})
+        return corrected
 
     def _detect_single_orientation(self, image: np.ndarray, strategy: DetectionStrategy,
-                                   orientation: str) -> List[np.ndarray]:
+                                   orientation: str) -> List[dict]:
         """
         Detect lines for a single orientation with a specific strategy.
         Uses cached preprocessing and templates for better performance.
@@ -196,7 +193,7 @@ class AdaptiveLineDetector:
                 area_filtered_contours, image.shape, config['border_thickness'], orientation
             )
         else:
-            border_filtered_contours = area_filtered_contours
+            border_filtered_contours = [{'contour': cnt, 'zone': None} for cnt in area_filtered_contours]
 
         # Apply template offset correction (only to final valid contours)
         final_contours = self._apply_template_offset_correction(
@@ -219,14 +216,14 @@ class AdaptiveLineDetector:
         for orientation in missing_orientations[:]:
             logger.info(f"Processing {orientation} orientation...")
 
-            contours = self._detect_single_orientation(
+            contour_dicts = self._detect_single_orientation(
                 image, DetectionStrategy.GENERAL, orientation)
 
-            if contours:  # Simplified check since contours are pre-filtered
-                self.detection_results[orientation] = contours
+            if contour_dicts:
+                self.detection_results[orientation] = contour_dicts
                 self.strategies_used[orientation] = DetectionStrategy.GENERAL
                 missing_orientations.remove(orientation)
-                logger.info(f"✓ Found {len(contours)} {orientation} lines")
+                logger.info(f"✓ Found {len(contour_dicts)} {orientation} lines")
             else:
                 logger.info(f"✗ No {orientation} lines found")
 
@@ -243,14 +240,14 @@ class AdaptiveLineDetector:
             for orientation in missing_orientations[:]:
                 logger.info(f"Processing {orientation} orientation...")
 
-                contours = self._detect_single_orientation(
+                contour_dicts = self._detect_single_orientation(
                     image, DetectionStrategy.THICK_BORDER, orientation)
 
-                if contours:  # Simplified check since contours are pre-filtered
-                    self.detection_results[orientation] = contours
+                if contour_dicts:
+                    self.detection_results[orientation] = contour_dicts
                     self.strategies_used[orientation] = DetectionStrategy.THICK_BORDER
                     missing_orientations.remove(orientation)
-                    logger.info(f"✓ Found {len(contours)} {orientation} lines")
+                    logger.info(f"✓ Found {len(contour_dicts)} {orientation} lines")
                 else:
                     logger.info(f"✗ No {orientation} lines found")
 
@@ -267,14 +264,14 @@ class AdaptiveLineDetector:
             for orientation in missing_orientations[:]:
                 logger.info(f"Processing {orientation} orientation...")
 
-                contours = self._detect_single_orientation(
+                contour_dicts = self._detect_single_orientation(
                     image, DetectionStrategy.THIN_BORDER, orientation)
 
-                if contours:  # Simplified check since contours are pre-filtered
-                    self.detection_results[orientation] = contours
+                if contour_dicts:
+                    self.detection_results[orientation] = contour_dicts
                     self.strategies_used[orientation] = DetectionStrategy.THIN_BORDER
                     missing_orientations.remove(orientation)
-                    logger.info(f"✓ Found {len(contours)} {orientation} lines")
+                    logger.info(f"✓ Found {len(contour_dicts)} {orientation} lines")
                 else:
                     logger.info(f"✗ No {orientation} lines found")
 
@@ -286,13 +283,16 @@ class AdaptiveLineDetector:
         for orientation in ['horizontal', 'vertical']:
             orientation_analysis = []
             if orientation in results.get('detections', {}):
-                contours = results['detections'][orientation]
+                contour_dicts = results['detections'][orientation]
                 strategy = results['strategies'].get(orientation)
-                for idx, contour in enumerate(contours):
+                for idx, item in enumerate(contour_dicts):
+                    contour = item['contour']
+                    zone = item['zone']
                     logger.debug(
-                        f"Analyzing contour {idx+1}/{len(contours)} for orientation: {orientation}, strategy: {getattr(strategy, 'value', strategy)}"
+                        f"Analyzing contour {idx+1}/{len(contour_dicts)} for orientation: {orientation}, strategy: {getattr(strategy, 'value', strategy)}, zone: {zone}"
                     )
                     contour_info = analyze_contour(contour, orientation=orientation, strategy=strategy)
+                    contour_info['zone'] = zone
                     orientation_analysis.append(contour_info)
             analysis[orientation] = orientation_analysis
         return analysis

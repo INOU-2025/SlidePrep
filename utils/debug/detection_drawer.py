@@ -85,7 +85,7 @@ class DetectionDrawer(BaseDrawer):
 
         return cv2.addWeighted(overlay, alpha, base, 1 - alpha, 0)
 
-    def _draw_contours_with_strategy(self, base_image: np.ndarray, contours: List[np.ndarray],
+    def _draw_contours_with_strategy(self, base_image: np.ndarray, contour_dicts: List[dict],
                                      orientation: str, strategy: DetectionStrategy) -> np.ndarray:
         """
         Draw contours with strategy-specific coloring.
@@ -94,7 +94,7 @@ class DetectionDrawer(BaseDrawer):
 
         Args:
             base_image: Base image to draw on
-            contours: List of pre-corrected and pre-filtered contours to draw
+            contour_dicts: List of pre-corrected and pre-filtered contours to draw
             orientation: 'horizontal' or 'vertical'
             strategy: Detection strategy used
 
@@ -107,7 +107,8 @@ class DetectionDrawer(BaseDrawer):
 
         h, w = result.shape[:2]
 
-        for cnt in contours:
+        for item in contour_dicts:
+            cnt = item['contour']
             rect = cv2.minAreaRect(cnt)
             box = cv2.boxPoints(rect)
             box = np.intp(box)

@@ -14,10 +14,11 @@ from utils.detection.adaptive_detector import AdaptiveLineDetector
 from utils.debug.detection_drawer import DetectionDrawer
 from core.bootstrap import bootstrap, get_logger, get_debugger, get_config
 from core.app_config_manager import AppConfigManager
+from typing import Optional
 
 
-def process_image_adaptive(image_path: str, output_path: str, detector: AdaptiveLineDetector = None, 
-                          config_manager: AppConfigManager = None) -> dict:
+def process_image_adaptive(image_path: str, output_path: str, detector: Optional[AdaptiveLineDetector] = None, 
+                          config_manager: Optional[AppConfigManager] = None) -> dict:
     """
     Process single image with adaptive line detection using logging and debug system.
     
@@ -68,13 +69,15 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
     
     for orientation, strategy in results['strategies'].items():
         if strategy:
-            contours = results['detections'][orientation]
+            contour_dicts = results['detections'][orientation]
             min_area = detector.configs[strategy]["min_contour_area"]
-            valid_contours = [c for c in contours if cv2.contourArea(c) >= min_area]
+            valid_contours = [item for item in contour_dicts if cv2.contourArea(item['contour']) >= min_area]
             total_lines_found += len(valid_contours)
             if len(valid_contours) > 0:
                 has_any_detections = True
             logger.info(f"  {orientation}: {len(valid_contours)} lines found using {strategy.value}")
+            for item in valid_contours:
+                logger.debug(f"    Line zone: {item['zone']}")
         else:
             logger.info(f"  {orientation}: No lines found")
     
@@ -135,7 +138,7 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Adaptive
 
 
 def compare_performance_configs(baseline_config_path: str, optimized_config_path: str,
-                               ext: str = "png", test_image_count: int = None) -> None:
+                               ext: str = "png", test_image_count:  Optional[int] = None) -> None:
     """
     Compare performance between two different configurations using sequential bootstrap.
     

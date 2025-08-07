@@ -4,10 +4,10 @@ from typing import List, Tuple
 from core.container import Container
 
 
-def contour_fully_within_zone(box: np.ndarray, img_shape: Tuple[int, int],
-                              border_thickness: int, orientation: str) -> bool:
+def get_contour_zone(box: np.ndarray, img_shape: Tuple[int, int],
+                     border_thickness: int, orientation: str) -> str:
     """
-    Check if a contour bounding box is fully within border zone.
+    Get the border zone that encloses a given contour
 
     Args:
         box: Bounding box points
@@ -20,14 +20,16 @@ def contour_fully_within_zone(box: np.ndarray, img_shape: Tuple[int, int],
     """
     h, w = img_shape
     if orientation == 'horizontal':
-        in_top = all(y < border_thickness for _, y in box)
-        in_bottom = all(y >= h - border_thickness for _, y in box)
-        return in_top or in_bottom
+        if all(y < border_thickness for _, y in box):
+            return 'top'
+        elif all(y >= h - border_thickness for _, y in box):
+            return 'bottom'
     elif orientation == 'vertical':
-        in_left = all(x < border_thickness for x, _ in box)
-        in_right = all(x >= w - border_thickness for x, _ in box)
-        return in_left or in_right
-    return False
+        if all(x < border_thickness for x, _ in box):
+            return 'left'
+        elif all(x >= w - border_thickness for x, _ in box):
+            return 'right'
+    return None
 
 
 def filter_contours_by_area(contours: List[np.ndarray], min_area: int) -> List[np.ndarray]:
@@ -45,10 +47,10 @@ def filter_contours_by_area(contours: List[np.ndarray], min_area: int) -> List[n
 
 
 def filter_contours_by_border_zone(contours: List[np.ndarray], img_shape: Tuple[int, int],
-                                   border_thickness: int, orientation: str) -> List[np.ndarray]:
+                                   border_thickness: int, orientation: str) -> List[dict]:
     """
     Filter contours to only those within border zones.
-    
+
     Note: Area filtering is now handled by the detector, so removed min_area parameter.
 
     Args:
@@ -66,9 +68,10 @@ def filter_contours_by_border_zone(contours: List[np.ndarray], img_shape: Tuple[
         rect = cv2.minAreaRect(cnt)
         box = cv2.boxPoints(rect)
         box = np.intp(box)
+        zone = get_contour_zone(box, img_shape, border_thickness, orientation)
 
-        if contour_fully_within_zone(box, img_shape, border_thickness, orientation):
-            filtered_contours.append(cnt)
+        if zone:
+            filtered_contours.append({'contour': cnt, 'zone': zone})
 
     return filtered_contours
 
@@ -96,7 +99,8 @@ def analyze_contour(contour: np.ndarray, orientation: str, strategy=None) -> dic
     box = np.intp(box)
 
     # Calculate side lengths and find the longest side
-    side_lengths = [np.linalg.norm(box[i] - box[(i + 1) % 4]) for i in range(4)]
+    side_lengths = [np.linalg.norm(box[i] - box[(i + 1) % 4])
+                    for i in range(4)]
     max_idx = np.argmax(side_lengths)
     pt1, pt2 = box[max_idx], box[(max_idx + 1) % 4]
     dx, dy = pt2[0] - pt1[0], pt2[1] - pt1[1]
@@ -125,7 +129,8 @@ def analyze_contour(contour: np.ndarray, orientation: str, strategy=None) -> dic
     extent = area / (width * height) if width * height != 0 else 0
 
     M = cv2.moments(contour)
-    centroid = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"])) if M["m00"] != 0 else (0, 0)
+    centroid = (int(M["m10"] / M["m00"]), int(M["m01"] /
+                M["m00"])) if M["m00"] != 0 else (0, 0)
 
     logger.debug(
         f"Contour analysis:\n"
@@ -165,4 +170,3 @@ def analyze_contour(contour: np.ndarray, orientation: str, strategy=None) -> dic
         "centroid": centroid,
         "strategy": getattr(strategy, "value", strategy) if strategy else None
     }
-
