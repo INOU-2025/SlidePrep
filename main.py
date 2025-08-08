@@ -1,8 +1,7 @@
 import os
 import cv2
 from glob import glob
-from core import bootstrap, get_config, get_logger, Container
-from core.context import PipelineContext
+from core import bootstrap, get_config, get_logger, get_pipeline_context
 from core.pipeline import Pipeline
 from steps import BinarizationStep, GridDetectionStep, GridRefinementStep
 from utils import get_supported_image_patterns, filter_images_by_suffix
@@ -11,23 +10,22 @@ from utils import get_supported_image_patterns, filter_images_by_suffix
 def run_pipeline(config_path: str):
     """
     Run the complete image processing pipeline.
-    
+
     This is the main production pipeline that processes images through configured steps:
     1. Bootstrap initializes all services via dependency injection
     2. Each step is instantiated with its specific configuration
     3. Steps validate input and return processed results consistently
     4. No drawer is attached for production runs (debug mode disabled)
-    
+
     Args:
         config_path: Path to the configuration file
     """
     try:
         bootstrap(config_path)
-
+        context = get_pipeline_context()
         cfg = get_config()
         logger = get_logger()
-        context = PipelineContext()
-        Container.register_singleton("pipeline_context", context)
+
     except Exception as e:
         print(f"Failed to initialize application: {e}")
         return False
@@ -64,7 +62,8 @@ def run_pipeline(config_path: str):
 
     images = filter_images_by_suffix(images, suffix_filter)
     if suffix_filter:
-        logger.debug(f"Applied suffix filter '{suffix_filter}', found {len(images)} matching images")
+        logger.debug(
+            f"Applied suffix filter '{suffix_filter}', found {len(images)} matching images")
 
     if not images:
         logger.warning(f"No images found in {input_folder}")
@@ -75,12 +74,14 @@ def run_pipeline(config_path: str):
     successful_count = 0
     for image_path in images:
         fname = os.path.basename(image_path)
-        context.current_image_path = image_path
         logger.debug(f"Loading image: {fname}")
         gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
         if gray is None:
             logger.error(f"Could not read {fname}")
             continue
+
+        # We update the pipeline context with the current image. It is not necessary to update the image shape since it is already set during bootstrapping.
+        context.input_image_path = image_path
 
         result = pipeline.run(gray)
         if result is not None:

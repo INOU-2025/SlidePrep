@@ -1,8 +1,8 @@
 {
   "general": {
     "input_path": "/Users/irconde/Downloads/V2_170225_exp250225",
-    "output_path": "",
     "suffix_filter": "_ch00",
+    "output_path": "",
     "output_suffix": "_bin",
     "log": true,
     "debug": true

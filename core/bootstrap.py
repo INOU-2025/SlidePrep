@@ -9,9 +9,15 @@ from core.container import Container
 from core.logger import Logger
 from core.debugger import Debugger
 from core.app_config_manager import AppConfigManager
+from utils import config_manager
 from utils.debug.drawer import Drawer
 from utils.debug.result_writer import ResultWriter
 from typing import Optional
+from core.context import PipelineContext
+import os
+import cv2
+import glob
+from utils import get_supported_image_patterns
 
 
 def bootstrap(config_path: str, drawer: Optional[Drawer] = None, writer: Optional[ResultWriter] = None) -> None:
@@ -36,6 +42,23 @@ def bootstrap(config_path: str, drawer: Optional[Drawer] = None, writer: Optiona
                         config_manager.debug_active, drawer=drawer, writer=writer)
     Container.register_singleton("debugger", debugger)
 
+    context = PipelineContext()
+    input_path = config_manager.general_config.input_path
+    image_shape = None
+    if input_path and os.path.isdir(input_path):
+        patterns = get_supported_image_patterns()
+        for pattern in patterns:
+            for fname in glob.glob(os.path.join(input_path, pattern)):
+                img = cv2.imread(fname, cv2.IMREAD_GRAYSCALE)
+                if img is not None:
+                    image_shape = (img.shape[0], img.shape[1])
+                    break
+            if image_shape is not None:
+                break
+    context.image_shape = image_shape
+
+    Container.register_singleton("pipeline_context", context)
+
 
 def get_config() -> AppConfigManager:
     """Get the configuration manager from container."""
@@ -50,3 +73,8 @@ def get_logger() -> Logger:
 def get_debugger() -> Debugger:
     """Get the debugger from container."""
     return Container.resolve("debugger")
+
+
+def get_pipeline_context() -> PipelineContext:
+    """Get the pipeline context from container."""
+    return Container.resolve("pipeline_context")

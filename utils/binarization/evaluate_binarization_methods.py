@@ -23,7 +23,6 @@ def evaluate_binarization_methods(config_path: str):
     # Get services from container
     cfg = get_config()
     logger = get_logger()
-    debugger = get_debugger()
 
     # Get input folder from config
     input_folder = cfg.general_config.input_path

@@ -1,8 +1,8 @@
 {
   "general": {
     "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/bin-select",
-    "output_path": "",
     "suffix_filter": "",
+    "output_path": "",
     "output_suffix": "_detection",
     "log": true,
     "debug": true

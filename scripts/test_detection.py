@@ -9,11 +9,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.debug.detection_drawer import DetectionDrawer
 from scripts.module_test_runner import StepTestRunner
 from steps.grid_detection import GridDetectionStep
+from utils.debug.detection_writer import DetectionResultWriter
 
 
 def main(config_path: str):
     adaptive_drawer = DetectionDrawer()
-    runner = StepTestRunner(config_path, adaptive_drawer)
+    detection_writer = DetectionResultWriter()
+    
+    runner = StepTestRunner(config_path, adaptive_drawer, detection_writer)
 
     step = GridDetectionStep(
         config=runner.cfg.grid_detection_config,

@@ -4,7 +4,7 @@ from .logger import Logger
 from .step import PipelineStep
 from .pipeline import Pipeline
 from .container import Container
-from .bootstrap import bootstrap, get_config, get_logger, get_debugger
+from .bootstrap import bootstrap, get_config, get_logger, get_debugger, get_pipeline_context
 
 __all__ = [
     "AppConfigManager",
@@ -16,5 +16,6 @@ __all__ = [
     "bootstrap",
     "get_config",
     "get_logger",
-    "get_debugger"
+    "get_debugger",
+    "get_pipeline_context"
 ]

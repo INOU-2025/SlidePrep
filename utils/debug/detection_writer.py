@@ -2,7 +2,7 @@ from typing import Any
 import logging
 
 from .result_writer import ResultWriter
-from utils.detection.contour_analysis import analyze_all_contours_from_results, save_aggregated_analysis_to_csv
+from utils.detection.contour_analysis import analyze_all_contours_for_batch, save_aggregated_analysis_to_csv
 
 
 class DetectionResultWriter(ResultWriter):
@@ -28,20 +28,9 @@ class DetectionResultWriter(ResultWriter):
             if isinstance(metadata, dict):
                 image_shape = metadata.get("image_shape")
 
-            analysis_results = analyze_all_contours_from_results(
+            analysis_results = analyze_all_contours_for_batch(
                 results, image_shape=image_shape
             )
-            if not analysis_results:
-                return
-
-            # Convert enums to their string value for CSV friendliness
-            enum_fields = {"orientation", "computed_orientation", "strategy", "zone"}
-            for row in analysis_results:
-                for field in enum_fields:
-                    value = row.get(field)
-                    if hasattr(value, "value"):
-                        row[field] = value.value
-
             save_aggregated_analysis_to_csv(analysis_results, path)
         except Exception as e:
             logging.warning(f"Failed to write grid detection results to CSV: {e}")

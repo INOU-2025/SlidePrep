@@ -246,9 +246,9 @@ def has_orientation_mismatch(passed_orientation, computed_orientation):
     return passed != computed
 
 
-def analyze_all_contours_from_results(results, image_shape=None):
+def analyze_all_contours_for_image(results, image_shape=None):
     """
-    Iterate through contours in grid detection results and analyze each contour.
+    Iterate through contours in grid detection results obtained for am image and analyze each contour.
     Args:
         results: dict with 'detections' (orientation -> list of contour dicts)
         image_shape: tuple (height, width) of image (optional, for proximity metrics)
@@ -269,6 +269,29 @@ def analyze_all_contours_from_results(results, image_shape=None):
     return aggregated
 
 
+def analyze_all_contours_for_batch(batch_results, image_shape=None):
+    """
+    Analyze all contours for a batch of images, assuming a common image_shape.
+
+    Args:
+        batch_results: List of dicts, each with 'filename' and 'result' (grid detection output).
+        image_shape: tuple (height, width) for proximity metrics (applied to all images).
+
+    Returns:
+        List of aggregated analysis results for all contours in all images.
+        Each result dict will include a 'filename' field for traceability.
+    """
+    aggregated = []
+    for i, item in enumerate(batch_results):
+        results = item.get('result')
+        filename = item.get('filename', f"image_{i}")
+        image_aggregated = analyze_all_contours_for_image(results, image_shape=image_shape)
+        for analysis in image_aggregated:
+            analysis['filename'] = filename
+            aggregated.append(analysis)
+    return aggregated
+
+
 def save_aggregated_analysis_to_csv(analysis_results, csv_path):
     """
     Save aggregated contour analysis results to a CSV file.
@@ -278,6 +301,15 @@ def save_aggregated_analysis_to_csv(analysis_results, csv_path):
     """
     if not analysis_results:
         raise ValueError("No analysis results to save.")
+
+    # Convert enums to their string value for CSV friendliness
+    enum_fields = {"orientation", "computed_orientation", "strategy", "zone"}
+    for row in analysis_results:
+        for field in enum_fields:
+                value = row.get(field)
+                if hasattr(value, "value"):
+                    row[field] = value.value
+
     # Use keys from the first result as CSV columns
     fieldnames = list(analysis_results[0].keys())
     with open(csv_path, 'w', newline='') as csvfile:

@@ -5,7 +5,6 @@ Grid detection step using the adaptive line detector.
 import cv2
 import numpy as np
 from typing import Any
-from pathlib import Path
 from core.step import PipelineStep
 from config.config_schema import GridDetectionConfig
 from utils.detection.adaptive_detector import AdaptiveLineDetector
@@ -60,15 +59,6 @@ class GridDetectionStep(PipelineStep):
             preprocessing_total = cache_stats['preprocessing_cache_hits'] + cache_stats['preprocessing_cache_misses']
             self.debug(f"Cache performance - Template: {cache_stats['template_cache_hits']}/{template_total}, "
                       f"Preprocessing: {cache_stats['preprocessing_cache_hits']}/{preprocessing_total}")
-            
-            # Analyze contours and save results
-            try:
-                # TODO. Metadata does not contain the image shape
-                metadata['image_shape'] = data.shape
-                # TODO. The file name should be defined in the configuration file.
-                self.debugger.save_results(results, metadata)
-            except Exception:
-                pass
 
             return results, metadata
             
