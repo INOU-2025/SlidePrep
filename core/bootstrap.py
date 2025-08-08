@@ -32,7 +32,7 @@ def bootstrap(config_path: str, drawer: Optional[Drawer] = None, writer: Optiona
     )
     Container.register_singleton("logger", logger)
 
-    debugger = Debugger(config_manager.debug_config,
+    debugger = Debugger(logger, config_manager.debug_config,
                         config_manager.debug_active, drawer=drawer, writer=writer)
     Container.register_singleton("debugger", debugger)
 

@@ -2,20 +2,23 @@ import os
 from typing import Optional, Any
 import numpy as np
 import cv2
+import logging
 
 from config.config_schema import DebugConfig
 from utils.debug.drawer import Drawer
 from utils.debug.result_writer import ResultWriter
+from core.logger import Logger
 
 
 class Debugger:
     """Debugger with optional drawer for enhanced visualization and optional result writer."""
 
-    def __init__(self, debug_config: DebugConfig, debug_enabled: bool = True, drawer: Optional[Drawer] = None, writer: Optional[ResultWriter] = None):
+    def __init__(self, logger: Logger, debug_config: DebugConfig, debug_enabled: bool = True, drawer: Optional[Drawer] = None, writer: Optional[ResultWriter] = None):
         self._enabled = debug_enabled
         self._save_composite = debug_config.save_composite
         self._output_dir = debug_config.output_dir
         self._save_results = debug_config.save_results
+        self._logger = logger
         self._drawer = drawer
         self._writer = writer
         if self._enabled and self._output_dir:
@@ -47,8 +50,8 @@ class Debugger:
                 image_to_save = image
 
             cv2.imwrite(output_path, image_to_save)
-        except Exception:
-            pass
+        except Exception as e:
+            self._logger.warning(f"Failed to save image to {output_path}: {e}")
 
     def save_debug_image(self, filename: str, image: np.ndarray, results=None, metadata=None) -> None:
         """Save a debug image, using drawer if available."""
@@ -64,8 +67,8 @@ class Debugger:
                 # When no drawer, save the results (processed image) instead of original
                 image_to_save = results if results is not None else image
                 self._save_image(filename, image_to_save)
-        except Exception:
-            pass
+        except Exception as e:
+            self._logger.warning(f"Failed to save debug image {filename}: {e}")
     
     def save_results(self, filename: str, results: Any, metadata: Any = None) -> None:
         """Save processing results using attached writer if available."""
@@ -73,6 +76,11 @@ class Debugger:
             return
 
         if self._writer is None:
+            self._logger.warning("No result writer attached; results not saved.")
+            return
+
+        if not filename:
+            self._logger.warning("No filename provided for saving results.")
             return
 
         try:
@@ -82,5 +90,5 @@ class Debugger:
                 else filename
             )
             self._writer.write(output_path, results, metadata)
-        except Exception:
-            pass
+        except Exception as e:
+            self._logger.warning(f"Failed to save results to {output_path}: {e}")

@@ -93,9 +93,9 @@ class AdaptiveLineDetector:
 
         # Strategy configurations from config
         self.configs = {
-            DetectionStrategy.GENERAL: grid_config.general,
-            DetectionStrategy.THICK_BORDER: grid_config.thick_border,
-            DetectionStrategy.THIN_BORDER: grid_config.thin_border
+            DetectionStrategy.GENERAL: grid_config.general or {},
+            DetectionStrategy.THICK_BORDER: grid_config.thick_border or {},
+            DetectionStrategy.THIN_BORDER: grid_config.thin_border or {}
         }
 
         # Initialize caches
@@ -123,12 +123,14 @@ class AdaptiveLineDetector:
             cache_config = {**config, 'threshold': self.threshold, 'angles': self.angles}
             return self.template_cache.get_templates(strategy, orientation.value, cache_config)
 
+        # Use global angles, fallback to empty list if None
+        angles = self.angles if self.angles is not None else []
         return [generate_blurred_template(
             config['template_length'],
             config['thickness'],
             angle,
             orientation.value
-        ) for angle in self.angles]  # Use global angles
+        ) for angle in angles]  # Use global angles
 
     def _apply_template_offset_correction(self, contour_dicts: List[dict], 
                                         config: Dict[str, Any], orientation: Orientation) -> List[dict]:

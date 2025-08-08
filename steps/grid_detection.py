@@ -5,6 +5,7 @@ Grid detection step using the adaptive line detector.
 import cv2
 import numpy as np
 from typing import Any
+from pathlib import Path
 from core.step import PipelineStep
 from config.config_schema import GridDetectionConfig
 from utils.detection.adaptive_detector import AdaptiveLineDetector
@@ -41,25 +42,10 @@ class GridDetectionStep(PipelineStep):
             # Run adaptive detection
             results = self.detector.detect_lines(data)
 
-            # Extract detection counts and strategies
-            detections = results['detections']
-            strategies = results['strategies']
+            self.log(f"Detection completed.")
 
+            strategies = results['strategies']
             metadata = self.detector.get_detection_metadata()
-            
-            horizontal_count = 0
-            vertical_count = 0
-            
-            if 'horizontal' in detections:
-                contours = detections['horizontal']
-                horizontal_count = len(contours)  # Contours are pre-filtered by detector
-            
-            if 'vertical' in detections:
-                contours = detections['vertical']
-                vertical_count = len(contours)  # Contours are pre-filtered by detector
-            
-            # Log results
-            self.log(f"Detection completed: {horizontal_count} horizontal lines, {vertical_count} vertical lines")
             
             for orientation, strategy in strategies.items():
                 orientation_str = orientation.value if hasattr(orientation, 'value') else str(orientation)
@@ -75,6 +61,15 @@ class GridDetectionStep(PipelineStep):
             self.debug(f"Cache performance - Template: {cache_stats['template_cache_hits']}/{template_total}, "
                       f"Preprocessing: {cache_stats['preprocessing_cache_hits']}/{preprocessing_total}")
             
+            # Analyze contours and save results
+            try:
+                # TODO. Metadata does not contain the image shape
+                metadata['image_shape'] = data.shape
+                # TODO. The file name should be defined in the configuration file.
+                self.debugger.save_results(results, metadata)
+            except Exception:
+                pass
+
             return results, metadata
             
         except Exception as e:
