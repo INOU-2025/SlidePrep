@@ -51,6 +51,6 @@
     "output_dir": "debug_output/development",
     "save_composite": true,
     "save_results": true,
-    "result_file_name": "results.csv"
+    "result_file_name": "results"
   }
 }

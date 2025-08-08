@@ -22,6 +22,10 @@ class DetectionResultWriter(ResultWriter):
         if not path or results is None:
             return
 
+        # Ensure .csv extension
+        if not path.lower().endswith(".csv"):
+            path += ".csv"
+
         try:
 
             image_shape = None
