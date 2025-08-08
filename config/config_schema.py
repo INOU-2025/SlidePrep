@@ -178,6 +178,7 @@ class DebugConfig:
     output_dir: str = "debug_output"  # Directory for debug artifacts
     save_composite: bool = False  # Generate composite visualization images
     save_results: bool = False  # Save numeric results to a file
+    result_file_name: str = "results.csv"  # Filename for aggregated results
 
 
 @dataclass

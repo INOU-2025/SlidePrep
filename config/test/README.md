@@ -22,6 +22,7 @@ These configurations are separate from the main pipeline configuration (`init_co
   - No output path defined (testing focuses on debug visualization)
   - Debug and logging always enabled for analysis
   - Debug output directory: `debug_output/test_binarization`
+  - Result file name: `results.csv`
 
 - **`grid_detection.json`**: Configuration for testing grid detection algorithms
   - Contains only: `general`, `grid_detection`, `log`, `debug` sections
@@ -30,6 +31,7 @@ These configurations are separate from the main pipeline configuration (`init_co
   - No output path defined (testing focuses on debug visualization)
   - Debug and logging always enabled for analysis
   - Debug output directory: `debug_output/test_grid_detection`
+  - Result file name: `results.csv`
   - No binarization section - expects pre-binarized images
 
 ### Legacy Test Configurations
@@ -89,7 +91,8 @@ Test configurations should only include sections relevant to the step being test
   "log": { ... },
   "debug": {
     "output_dir": "debug_output/test_binarization",
-    "save_results": false
+    "save_results": false,
+    "result_file_name": "results.csv"
   }
 }
 ```
@@ -108,7 +111,8 @@ Test configurations should only include sections relevant to the step being test
   "log": { ... },
   "debug": {
     "output_dir": "debug_output/test_grid_detection",
-    "save_results": true
+    "save_results": true,
+    "result_file_name": "results.csv"
   }
 }
 ```

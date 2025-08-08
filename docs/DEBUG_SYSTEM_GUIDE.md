@@ -158,7 +158,8 @@ Debug visualization is controlled by the debug configuration:
   "debug": {
     "save_composite": false,
     "output_dir": "/path/to/debug/output",
-    "save_results": false
+    "save_results": false,
+    "result_file_name": "results.csv"
   }
 }
 ```
@@ -166,6 +167,7 @@ Debug visualization is controlled by the debug configuration:
 - **`save_composite`**: Create side-by-side comparisons when possible
 - **`output_dir`**: Directory where debug images are saved
 - **`save_results`**: Save step results using a configured writer
+- **`result_file_name`**: Name of the file used to store aggregated results
 
 ## Usage Patterns
 
