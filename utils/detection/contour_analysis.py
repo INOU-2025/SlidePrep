@@ -4,6 +4,7 @@ from typing import List, Tuple
 from core.container import Container
 from utils.detection.models import DetectionRegion, Orientation
 from typing import Optional
+import csv
 
 
 def corner_proximity_from_box(box, W, H):
@@ -243,3 +244,46 @@ def has_orientation_mismatch(passed_orientation, computed_orientation):
     passed = passed_orientation.value if hasattr(passed_orientation, 'value') else str(passed_orientation)
     computed = computed_orientation.value if hasattr(computed_orientation, 'value') else str(computed_orientation)
     return passed != computed
+
+
+def analyze_all_contours_from_results(results, image_shape=None):
+    """
+    Iterate through contours in grid detection results and analyze each contour.
+    Args:
+        results: dict with 'detections' (orientation -> list of contour dicts)
+        image_shape: tuple (height, width) of image (optional, for proximity metrics)
+    Returns:
+        List of aggregated analysis results for all contours.
+    """
+    aggregated = []
+    detections = results.get('detections', {})
+    for orientation, contour_dicts in detections.items():
+        for item in contour_dicts:
+            contour = item['contour']
+            zone = item.get('zone', None)
+            # Pass orientation as enum or string, strategy if available
+            strategy = results.get('strategies', {}).get(orientation, None)
+            analysis = analyze_contour(contour, orientation, strategy=strategy, image_shape=image_shape)
+            analysis['zone'] = zone
+            aggregated.append(analysis)
+    return aggregated
+
+
+def save_aggregated_analysis_to_csv(analysis_results, csv_path):
+    """
+    Save aggregated contour analysis results to a CSV file.
+    Args:
+        analysis_results: List of analysis result dicts (from analyze_all_contours_from_results)
+        csv_path: Path to output CSV file
+    """
+    if not analysis_results:
+        raise ValueError("No analysis results to save.")
+    # Use keys from the first result as CSV columns
+    fieldnames = list(analysis_results[0].keys())
+    with open(csv_path, 'w', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in analysis_results:
+            # Flatten any numpy arrays or lists for CSV compatibility
+            flat_row = {k: (v.tolist() if hasattr(v, 'tolist') else v) for k, v in row.items()}
+            writer.writerow(flat_row)
