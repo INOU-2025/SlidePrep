@@ -120,6 +120,15 @@ class PipelineStep(ABC):
         except KeyError:
             return None
 
+    @property
+    def current_image_path(self) -> Optional[str]:
+        """Path of the image currently being processed in the pipeline."""
+        try:
+            context = Container.resolve("pipeline_context")
+            return context.current_image_path
+        except KeyError:
+            return None
+
     def _validate_image_input(self, data: Any) -> None:
         """
         Validate that input data is a well-formed image.

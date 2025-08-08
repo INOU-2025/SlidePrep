@@ -1,7 +1,8 @@
 import os
 import cv2
 from glob import glob
-from core import bootstrap, get_config, get_logger
+from core import bootstrap, get_config, get_logger, Container
+from core.context import PipelineContext
 from core.pipeline import Pipeline
 from steps import BinarizationStep, GridDetectionStep, GridRefinementStep
 from utils import get_supported_image_patterns, filter_images_by_suffix
@@ -22,9 +23,11 @@ def run_pipeline(config_path: str):
     """
     try:
         bootstrap(config_path)
-        
+
         cfg = get_config()
         logger = get_logger()
+        context = PipelineContext()
+        Container.register_singleton("pipeline_context", context)
     except Exception as e:
         print(f"Failed to initialize application: {e}")
         return False
@@ -72,6 +75,7 @@ def run_pipeline(config_path: str):
     successful_count = 0
     for image_path in images:
         fname = os.path.basename(image_path)
+        context.current_image_path = image_path
         logger.debug(f"Loading image: {fname}")
         gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
         if gray is None:
