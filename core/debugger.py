@@ -1,23 +1,23 @@
 import os
-from typing import Optional
+from typing import Optional, Any
 import numpy as np
 import cv2
 
 from config.config_schema import DebugConfig
-from utils.debug.base_drawer import BaseDrawer
+from utils.debug.drawer import Drawer
+from utils.debug.result_writer import ResultWriter
 
 
 class Debugger:
-    """
-    Debugger with optional drawer for enhanced visualization.
+    """Debugger with optional drawer for enhanced visualization and optional result writer."""
 
-    """
-
-    def __init__(self, debug_config: DebugConfig, debug_enabled: bool = True, drawer: Optional[BaseDrawer] = None):
+    def __init__(self, debug_config: DebugConfig, debug_enabled: bool = True, drawer: Optional[Drawer] = None, writer: Optional[ResultWriter] = None):
         self._enabled = debug_enabled
         self._save_composite = debug_config.save_composite
         self._output_dir = debug_config.output_dir
+        self._save_results = debug_config.save_results
         self._drawer = drawer
+        self._writer = writer
         if self._enabled and self._output_dir:
             os.makedirs(self._output_dir, exist_ok=True)
 
@@ -64,5 +64,23 @@ class Debugger:
                 # When no drawer, save the results (processed image) instead of original
                 image_to_save = results if results is not None else image
                 self._save_image(filename, image_to_save)
+        except Exception:
+            pass
+    
+    def save_results(self, filename: str, results: Any, metadata: Any = None) -> None:
+        """Save processing results using attached writer if available."""
+        if not self._enabled or not self._save_results:
+            return
+
+        if self._writer is None:
+            return
+
+        try:
+            output_path = (
+                os.path.join(self._output_dir, filename)
+                if self._output_dir
+                else filename
+            )
+            self._writer.write(output_path, results, metadata)
         except Exception:
             pass

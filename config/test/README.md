@@ -88,7 +88,8 @@ Test configurations should only include sections relevant to the step being test
   },
   "log": { ... },
   "debug": {
-    "output_dir": "debug_output/test_binarization"
+    "output_dir": "debug_output/test_binarization",
+    "save_results": false
   }
 }
 ```
@@ -106,7 +107,8 @@ Test configurations should only include sections relevant to the step being test
   },
   "log": { ... },
   "debug": {
-    "output_dir": "debug_output/test_grid_detection"
+    "output_dir": "debug_output/test_grid_detection",
+    "save_results": true
   }
 }
 ```

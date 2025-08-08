@@ -1,11 +1,11 @@
 import cv2
 import numpy as np
 from typing import Any, Optional, List
-from utils.debug.base_drawer import BaseDrawer
+from utils.debug.drawer import Drawer
 from utils.detection.models import DetectionStrategy, Orientation
 
 
-class DetectionDrawer(BaseDrawer):
+class DetectionDrawer(Drawer):
     """
     Debug drawer for adaptive line detection visualization.
 

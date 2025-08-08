@@ -3,7 +3,7 @@ import numpy as np
 from typing import Optional, Any
 
 
-class BaseDrawer(ABC):
+class Drawer(ABC):
     """Base class for all step-specific debug visualization drawers."""
 
     @abstractmethod

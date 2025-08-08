@@ -340,7 +340,7 @@ for method_name in methods.get_available_methods():
 4. Add to main pipeline
 
 ### Custom Debug Outputs
-1. Create custom drawer inheriting from `BaseDrawer`
+1. Create custom drawer inheriting from `Drawer`
 2. Implement the `draw(image, results, metadata)` method
 3. Register with debugger: `Debugger.register_drawer("step_name", DrawerClass)`
 4. Use automatic integration: `debugger.save_debug_image("step_name", filename, image, results)`

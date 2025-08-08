@@ -49,6 +49,7 @@
   },
   "debug": {
     "output_dir": "debug_output",
-    "save_composite": false
+    "save_composite": false,
+    "save_results": false
   }
 }

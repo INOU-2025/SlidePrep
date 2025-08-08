@@ -64,7 +64,7 @@ class GridDetectionConfig:
     """
     # Global template matching settings
     threshold: float = 0.1
-    angles: List[float] = None
+    angles: Optional[List[float]] = None
     
     # Performance optimizations
     enable_early_exit: bool = True
@@ -73,9 +73,9 @@ class GridDetectionConfig:
     cache_max_size: int = 50
     
     # Strategy configurations - must be provided in JSON
-    general: Dict[str, Any] = None
-    thick_border: Dict[str, Any] = None
-    thin_border: Dict[str, Any] = None
+    general: Optional[Dict[str, Any]] = None
+    thick_border: Optional[Dict[str, Any]] = None
+    thin_border: Optional[Dict[str, Any]] = None
     
     def __post_init__(self) -> None:
         """Validate settings and ensure all required configurations are provided."""
@@ -167,6 +167,7 @@ class DebugConfig:
     """
     output_dir: str = "debug_output"  # Directory for debug artifacts
     save_composite: bool = False  # Generate composite visualization images
+    save_results: bool = False  # Save numeric results to a file
 
 @dataclass
 class LogConfig:

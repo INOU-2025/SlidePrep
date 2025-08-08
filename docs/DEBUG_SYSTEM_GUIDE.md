@@ -10,7 +10,7 @@ The SlidePrep pipeline includes a comprehensive debug visualization system. Each
 
 The debug system uses a registry-based factory pattern for extensible drawer creation:
 
-- **`BaseDrawer`**: Abstract base class that all drawers inherit from
+- **`Drawer`**: Abstract base class that all drawers inherit from
 - **`Debugger`**: Registry-based factory for creating step-specific drawers
 - **Dynamic Registration**: New drawer types can be registered at runtime
 
@@ -25,17 +25,23 @@ The debug system uses a registry-based factory pattern for extensible drawer cre
 
 The debug system includes specialized drawers for different pipeline steps, each organized in its own module:
 
-- **`BaseDrawer`** (`utils/debug/base_drawer.py`): Abstract base class for all drawers
+- **`Drawer`** (`utils/debug/drawer.py`): Abstract base class for all drawers
 - **`DetectionDrawer`** (`utils/debug/detection_drawer.py`): Specialized for grid detection step debugging (now expects results and metadata, not legacy objects)
+
+### Result Writers
+
+To persist step outputs in human-readable formats, the debug system supports attachable result writers. Each writer implements the `ResultWriter` interface and provides a `write()` method to store results (e.g., JSON or CSV). Writers attach to the `Debugger` and can be invoked via `debugger.save_results()`.
 
 **Import Structure:**
 ```python
 # Import from individual modules (recommended)
-from utils.debug.base_drawer import BaseDrawer
+from utils.debug.drawer import Drawer
 from utils.debug.detection_drawer import DetectionDrawer
+from utils.debug.result_writer import ResultWriter
 
 # Or import from the debug package (convenience)
-from utils.debug import BaseDrawer, DetectionDrawer
+from utils.debug import Drawer, DetectionDrawer, ResultWriter
+
 ```
 
 
@@ -82,14 +88,14 @@ This mapping is handled automatically by the `DetectionStatus.get_color()` utili
 
 The debug system uses a registry-based factory pattern that allows you to easily add new drawer types for custom analysis steps.
 
-#### 1. Implement BaseDrawer Interface
+#### 1. Implement Drawer Interface
 ```python
-from utils.debug.base_drawer import BaseDrawer
+from utils.debug.drawer import Drawer
 from typing import Optional, Any
 import numpy as np
 import cv2
 
-class CustomAnalysisDrawer(BaseDrawer):
+class CustomAnalysisDrawer(Drawer):
     def __init__(self, enabled: bool = True):
         super().__init__(enabled)
     
@@ -137,7 +143,7 @@ debugger.save_debug_image("custom_analysis", "output.png", image, analysis_resul
 
 ### Best Practices
 
-1. **Follow BaseDrawer Contract**: Always inherit from `BaseDrawer` and implement the `draw()` method
+1. **Follow Drawer Contract**: Always inherit from `Drawer` and implement the `draw()` method
 2. **Use Descriptive Names**: Choose clear, descriptive names for your drawer types in the registry
 3. **Handle Edge Cases**: Ensure your drawer handles invalid inputs gracefully
 4. **Fail Gracefully**: Wrap drawing code in try-except to avoid disrupting the main pipeline
@@ -150,16 +156,16 @@ Debug visualization is controlled by the debug configuration:
 ```json
 {
   "debug": {
-    "enabled": true,
     "save_composite": false,
-    "output_dir": "/path/to/debug/output"
+    "output_dir": "/path/to/debug/output",
+    "save_results": false
   }
 }
 ```
 
-- **`enabled`**: Master switch for debugging features
 - **`save_composite`**: Create side-by-side comparisons when possible
 - **`output_dir`**: Directory where debug images are saved
+- **`save_results`**: Save step results using a configured writer
 
 ## Usage Patterns
 

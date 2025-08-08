@@ -19,7 +19,7 @@ from pathlib import Path
 from core.bootstrap import bootstrap, get_config, get_logger, get_debugger
 from core.step import PipelineStep
 from core.debugger import Debugger
-from utils.debug.base_drawer import BaseDrawer
+from utils.debug.drawer import Drawer
 from utils.image_utils import get_supported_image_formats
 
 
@@ -28,7 +28,7 @@ class StepTestRunner:
     """Simple test runner for processing images with pipeline steps."""
 
     _config_path: str
-    _drawer: Optional[BaseDrawer] = None
+    _drawer: Optional[Drawer] = None
 
     def __post_init__(self) -> None:
         bootstrap(self._config_path, self._drawer)

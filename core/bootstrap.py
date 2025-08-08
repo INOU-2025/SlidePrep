@@ -9,17 +9,19 @@ from core.container import Container
 from core.logger import Logger
 from core.debugger import Debugger
 from core.app_config_manager import AppConfigManager
-from utils.debug.base_drawer import BaseDrawer
+from utils.debug.drawer import Drawer
+from utils.debug.result_writer import ResultWriter
 from typing import Optional
 
 
-def bootstrap(config_path: str, drawer: Optional[BaseDrawer] = None) -> None:
+def bootstrap(config_path: str, drawer: Optional[Drawer] = None, writer: Optional[ResultWriter] = None) -> None:
     """
     Initialize the application container with all required services.
 
     Args:
         config_path: Path to the configuration file
         drawer: Optional drawer to attach to the debugger
+        writer: Optional result writer to attach to the debugger
     """
     config_manager = AppConfigManager(config_path)
     Container.register_singleton("config", config_manager)
@@ -31,7 +33,7 @@ def bootstrap(config_path: str, drawer: Optional[BaseDrawer] = None) -> None:
     Container.register_singleton("logger", logger)
 
     debugger = Debugger(config_manager.debug_config,
-                        config_manager.debug_active, drawer=drawer)
+                        config_manager.debug_active, drawer=drawer, writer=writer)
     Container.register_singleton("debugger", debugger)
 
 
