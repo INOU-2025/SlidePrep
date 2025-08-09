@@ -1,0 +1,6 @@
+orientation_mismatch
+long_side_angle
+aspect_ratio
+corner_proximity
+area
+length

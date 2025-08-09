@@ -136,16 +136,21 @@ def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy=None
 
     min_rect = cv2.minAreaRect(contour)
     ((cx, cy), (rect_w, rect_h), raw_angle) = min_rect
-    box = cv2.boxPoints(min_rect)
-    box = box.astype(np.intp)
+    
+    # Box for geometry; int version only for drawing/proximity
+    box_f = cv2.boxPoints(min_rect)           # float32
+    box_i = box_f.astype(np.intp)             # for display/proximity ONLY
+
+    # --- Keep OpenCV order: width=rect_w, height=rect_h (NO max/min) ---
+    width  = float(rect_w)
+    height = float(rect_h)
 
     # Calculate side lengths and find the longest side
-    side_lengths = [np.linalg.norm(box[i] - box[(i + 1) % 4])
-                    for i in range(4)]
-    max_idx = np.argmax(side_lengths)
-    pt1, pt2 = box[max_idx], box[(max_idx + 1) % 4]
-    dx, dy = pt2[0] - pt1[0], pt2[1] - pt1[1]
-    long_side_angle = np.degrees(np.arctan2(dy, dx))
+    edges = [(box_f[i], box_f[(i + 1) % 4]) for i in range(4)]
+    lens  = [np.linalg.norm(p2 - p1) for p1, p2 in edges]
+    max_i = int(np.argmax(lens))
+    p1, p2 = edges[max_i]
+    long_side_angle = np.degrees(np.arctan2(p2[1] - p1[1], p2[0] - p1[0]))
 
     # Normalize angle to [-90, 90)
     if long_side_angle >= 90:
@@ -153,10 +158,8 @@ def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy=None
     elif long_side_angle < -90:
         long_side_angle += 180
 
-    width = max(side_lengths)
-    height = min(side_lengths)
     aspect_ratio = width / height if height != 0 else 0
-    length = width
+    length = max(width, height)
 
     # Compute orientation based on longest side angle
     if -45 <= long_side_angle <= 45:
@@ -166,18 +169,17 @@ def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy=None
 
     hull = cv2.convexHull(contour)
     hull_area = cv2.contourArea(hull)
-    solidity = area / hull_area if hull_area != 0 else 0
-    extent = area / (width * height) if width * height != 0 else 0
+    solidity = area / hull_area if hull_area else 0.0
+    extent   = area / (width * height) if (width * height) else 0.0
 
     M = cv2.moments(contour)
-    centroid = (int(M["m10"] / M["m00"]), int(M["m01"] /
-                M["m00"])) if M["m00"] != 0 else (0, 0)
+    centroid = ((M["m10"] / M["m00"], M["m01"] / M["m00"])) if M["m00"] != 0 else (0.0, 0.0)
 
     # Proximity metrics (if image_shape is provided)
     if image_shape is not None:
         H, W = image_shape[:2]
-        corner_proximity = corner_proximity_from_box(box, W, H)
-        border_proximity = border_proximity_from_box(box, W, H)
+        corner_proximity = corner_proximity_from_box(box_i, W, H)
+        border_proximity = border_proximity_from_box(box_i, W, H)
     else:
         corner_proximity = None
         border_proximity = None
@@ -190,14 +192,14 @@ def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy=None
         f"  Orientation (passed): {orientation.value}\n"
         f"  Orientation (computed): {computed_orientation.value}\n"
         f"  Orientation mismatch: {orientation_mismatch}\n"
-        f"  Area: {area}\n"
-        f"  Perimeter: {perimeter}\n"
-        f"  Min area rect: center=({cx:.1f}, {cy:.1f}), size=({rect_w:.1f}, {rect_h:.1f}), raw_angle={raw_angle:.1f}\n"
+        f"  Area: {area:.3f}\n"
+        f"  Perimeter: {perimeter:.3f}\n"
+        f"  Min area rect: center=({cx:.3f}, {cy:.3f}), size=({rect_w:.3f}, {rect_h:.3f}), raw_angle={raw_angle:.3f}\n"
         f"  Longest side angle: {long_side_angle:.1f}\n"
-        f"  Box points: {box.tolist()}\n"
-        f"  Width: {width:.1f}, Height: {height:.1f}\n"
+        f"  Box points: {box_i.tolist()}\n"
+        f"  Width: {width:.3f}, Height: {height:.3f}\n"
         f"  Aspect ratio: {aspect_ratio:.3f}\n"
-        f"  Length: {length:.1f}\n"
+        f"  Length: {length:.3f}\n"
         f"  Solidity: {solidity:.3f}\n"
         f"  Extent: {extent:.3f}\n"
         f"  Centroid: {centroid}\n"
@@ -212,7 +214,7 @@ def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy=None
         "area": area,
         "perimeter": perimeter,
         "min_area_rect": min_rect,
-        "box_points": box.tolist(),
+        "box_points": box_i.tolist(),
         "width": width,
         "height": height,
         "aspect_ratio": aspect_ratio,
