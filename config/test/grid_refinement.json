@@ -1,25 +1,15 @@
 {
   "general": {
-    "input_path": "",
+    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/bin-select",
     "suffix_filter": "",
-    "output_path": "output",
-    "output_suffix": "",
+    "output_path": "",
+    "output_suffix": "_detection",
     "log": true,
-    "debug": false
-  },
-  "log": {
-    "log_to_file": true,
-    "log_to_console": false,
-    "log_file_name": "slideprep.log",
-    "log_level": "WARNING",
-    "output_dir": "logs"
-  },
-  "binarization": {
-    "threshold_method": "combined_differential"
+    "debug": true
   },
   "grid_detection": {
     "threshold": 0.1,
-    "angles": [2.0, -2.0],
+    "angles": [-2.0],
     "enable_early_exit": true,
     "enable_template_cache": true,
     "enable_preprocessing_cache": true,
@@ -27,20 +17,19 @@
     "general": {
       "template_length": 300,
       "thickness": 20,
-      "border_thickness": 0,
       "min_contour_area": 100
     },
     "thick_border": {
-      "template_length": 100,
+      "template_length": 60,
       "thickness": 7,
-      "border_thickness": 35,
-      "min_contour_area": 100
+      "border_thickness": 30,
+      "min_contour_area": 2
     },
     "thin_border": {
       "template_length": 30,
       "thickness": 7,
       "border_thickness": 20,
-      "min_contour_area": 100
+      "min_contour_area": 1
     }
   },
   "grid_refinement": {
@@ -57,10 +46,17 @@
       "threshold": 0.5
     }
   },
+  "log": {
+    "log_to_file": true,
+    "log_to_console": false,
+    "log_file_name": "grid_detection_test.log",
+    "log_level": "DEBUG",
+    "output_dir": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection-select"
+  },
   "debug": {
-    "output_dir": "debug_output",
+    "output_dir": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection-select",
     "save_composite": false,
-    "save_results": false,
+    "save_results": true,
     "result_file_name": "results"
   }
 }

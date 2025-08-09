@@ -44,8 +44,18 @@
     }
   },
   "grid_refinement": {
-    "analyze_thick_border": true,
-    "analyze_thin_border": true
+    "classifier": {
+      "model_path": "models/rf_detection_classifier.joblib",
+      "features": [
+        "orientation_mismatch",
+        "long_side_angle",
+        "aspect_ratio",
+        "corner_proximity",
+        "area",
+        "length"
+      ],
+      "threshold": 0.5
+    }
   },
   "debug": {
     "output_dir": "debug_output/development",

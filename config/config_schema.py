@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
 import os
 
@@ -152,18 +152,27 @@ class GridDetectionConfig:
 
 
 @dataclass
+class GridRefinementClassifierConfig:
+    """Classifier configuration for grid refinement."""
+    model_path: str = ""
+    features: List[str] = field(default_factory=list)
+    threshold: float = 0.5
+
+
+@dataclass
 class GridRefinementConfig:
     """Configuration for grid refinement step."""
-
-    analyze_thick_border: bool = True
-    analyze_thin_border: bool = True
+    classifier: GridRefinementClassifierConfig = field(default_factory=GridRefinementClassifierConfig)
 
     def __post_init__(self) -> None:
-        """Validate boolean flags."""
-        for field in ("analyze_thick_border", "analyze_thin_border"):
-            value = getattr(self, field)
-            if not isinstance(value, bool):
-                raise ValueError(f"{field} must be a boolean, got: {value}")
+        if self.classifier is None:
+            raise ValueError("classifier configuration is required for grid refinement")
+        if self.classifier.model_path and not os.path.isfile(self.classifier.model_path):
+            raise ValueError(f"classifier.model_path does not exist: {self.classifier.model_path}")
+        if not self.classifier.features:
+            raise ValueError("classifier.features must not be empty")
+        if not (0.0 <= self.classifier.threshold <= 1.0):
+            raise ValueError("classifier.threshold must be between 0 and 1")
 
 
 @dataclass
