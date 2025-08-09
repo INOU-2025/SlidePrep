@@ -62,7 +62,9 @@ class GridRefinementStep(PipelineStep):
             self.debug(
                 f"Analyzing {len(contour_dicts)} {orientation_name} contours from {getattr(strategy, 'value', strategy)} detection")
 
-            valid_contours: List[dict] = []
+            # Collect contours that meet the classifier threshold along with their
+            # associated probabilities so we can later rank them.
+            scored_contours: List[tuple[float, dict]] = []
             for idx, item in enumerate(contour_dicts):
                 contour = item.get("contour")
                 if contour is None:
@@ -88,12 +90,20 @@ class GridRefinementStep(PipelineStep):
                     f"Contour {idx + 1}: probability={probability:.3f}, threshold={self.config.classifier.threshold}")
 
                 if probability > self.config.classifier.threshold:
-                    valid_contours.append(item)
+                    scored_contours.append((probability, item))
+
+            # Rank remaining contours by probability and keep only the top one per
+            # orientation to ensure a single detection.
+            if scored_contours:
+                scored_contours.sort(key=lambda x: x[0], reverse=True)
+                top_contours = [scored_contours[0][1]]
+            else:
+                top_contours = []
 
             self.debug(
-                f"Kept {len(valid_contours)}/{len(contour_dicts)} {orientation_name} contours after refinement"
+                f"Kept {len(top_contours)}/{len(contour_dicts)} {orientation_name} contours after refinement"
             )
-            refined[orientation] = valid_contours
+            refined[orientation] = top_contours
 
         refined_results = {"detections": refined, "strategies": strategies}
         return refined_results, metadata
