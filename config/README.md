@@ -52,8 +52,8 @@ python main.py --config config/production.json
 python main.py --config config/development.json
 
 # Test specific components
-python scripts/test_binarization.py config/test/binarization.json
-python scripts/test_grid_detection.py config/test/grid_detection.json
+python src/scripts/test_binarization.py config/test/binarization.json
+python src/scripts/test_detection.py config/test/grid_detection.json
 ```
 
 ## 🔧 Key Differences

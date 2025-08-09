@@ -16,10 +16,10 @@ This script is designed for:
 
 ```bash
 # Use default test configuration
-python scripts/evaluate_binarization_methods.py
+python src/utils/binarization/evaluate_binarization_methods.py
 
 # Use custom configuration
-python scripts/evaluate_binarization_methods.py path/to/config.json
+python src/utils/binarization/evaluate_binarization_methods.py path/to/config.json
 ```
 
 ## Output

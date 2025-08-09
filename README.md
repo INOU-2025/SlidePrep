@@ -41,22 +41,23 @@ SlidePrep/
 ├── config/                       # Configuration schemas and settings
 │   ├── config_schema.py         # Typed configuration classes
 │   └── init_config.json         # Default production settings
-├── core/                        # Core pipeline infrastructure  
-│   ├── context.py              # Shared pipeline state
-│   ├── step.py                 # Base pipeline step classes
-│   ├── logger.py               # Logging system
-│   └── debugger.py             # Debug visualization
-├── steps/                       # Processing steps (clean & focused)
-│   ├── binarization.py         # 59 lines - Production binarization
-│   └── grid_detection.py       # Grid pattern detection
-├── utils/                       # Utility modules
-│   ├── binarization/          # Thresholding methods package
-│   ├── image_utils.py          # Image processing utilities
-│   └── detection/              # Grid detection utilities
-├── scripts/                     # Testing and validation
-│   ├── test_binarization.py    # Production method testing
-│   └── run_grid_detection.py   # Grid detection testing
 ├── docs/                        # Comprehensive documentation
+├── src/                         # Source code
+│   ├── core/                    # Core pipeline infrastructure
+│   │   ├── context.py           # Shared pipeline state
+│   │   ├── step.py              # Base pipeline step classes
+│   │   ├── logger.py            # Logging system
+│   │   └── debugger.py          # Debug visualization
+│   ├── steps/                   # Processing steps (clean & focused)
+│   │   ├── binarization.py      # 59 lines - Production binarization
+│   │   └── grid_detection.py    # Grid pattern detection
+│   ├── utils/                   # Utility modules
+│   │   ├── binarization/        # Thresholding methods package
+│   │   ├── image_utils.py       # Image processing utilities
+│   │   └── detection/           # Grid detection utilities
+│   └── scripts/                 # Testing and validation
+│       ├── test_binarization.py # Production method testing
+│       └── test_detection.py    # Grid detection testing
 ├── demo_binarization_methods.py # Interactive method comparison ⭐
 └── main.py                      # Production pipeline entry point
 ```
@@ -111,12 +112,10 @@ python main.py --input /path/to/tiles --config my_config.json
 ### Individual Step Testing
 ```bash
 # Test binarization on sample images
-python scripts/test_binarization.py --input /path/to/images
+python src/scripts/test_binarization.py --config config/test/binarization.json
 
-# Test grid detection with visualization  
-python scripts/run_grid_detection.py \
-  --input /path/to/tiles \
-  --config config/test_grid_detection_config.json
+# Test grid detection with visualization
+python src/scripts/test_detection.py config/test/grid_detection.json
 ```
 
 ---
@@ -125,7 +124,7 @@ python scripts/run_grid_detection.py \
 
 ### Production Configuration (Simple)
 ```python
-from steps.binarization import BinarizationStep
+from src.steps import BinarizationStep
 from config.config_schema import BinarizationConfig
 
 # Uses optimized defaults automatically
@@ -135,7 +134,7 @@ step = BinarizationStep(config)
 
 ### Research Configuration (Full Control)
 ```python
-from utils.binarization import BinarizationMethods, ThresholdMethod
+from src.utils.binarization import BinarizationMethods, ThresholdMethod
 
 methods = BinarizationMethods()
 

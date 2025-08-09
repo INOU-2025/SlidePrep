@@ -9,7 +9,7 @@ The `utils.binarization` package provides a comprehensive collection of image bi
 ### Basic Usage
 
 ```python
-from utils.binarization import BinarizationMethods, ThresholdMethod
+from src.utils.binarization import BinarizationMethods, ThresholdMethod
 import cv2
 
 # Load your image
@@ -237,7 +237,7 @@ The demo script will:
 The production system automatically uses Combined Differential:
 
 ```python
-from steps.binarization import BinarizationStep
+from src.steps import BinarizationStep
 from config.config_schema import BinarizationConfig
 import numpy as np
 
@@ -251,9 +251,9 @@ result: np.ndarray = step.run(image_array)  # Returns binary image directly
 If you need to use a different method in a production-like context:
 
 ```python
-from utils.binarization import BinarizationMethods
-from core.bootstrap import bootstrap
-from steps.binarization import BinarizationStep
+from src.utils.binarization import BinarizationMethods
+from src.core.bootstrap import bootstrap
+from src.steps import BinarizationStep
 from config.config_schema import BinarizationConfig
 import numpy as np
 
@@ -347,7 +347,7 @@ This will show:
 ```python
 import cv2
 import numpy as np
-from utils.binarization import BinarizationMethods, ThresholdMethod
+from src.utils.binarization import BinarizationMethods, ThresholdMethod
 
 # Load your grid image
 image = cv2.imread('grid_image.png', cv2.IMREAD_GRAYSCALE)

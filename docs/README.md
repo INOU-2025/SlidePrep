@@ -17,7 +17,7 @@ Welcome to the SlidePrep documentation. This folder contains essential guides fo
 The system uses the **Combined Differential** method by default - just use `BinarizationConfig()`:
 
 ```python
-from steps.binarization import BinarizationStep
+from src.steps import BinarizationStep
 from config.config_schema import BinarizationConfig
 import numpy as np
 
@@ -30,7 +30,7 @@ result: np.ndarray = step.run(image_array)  # Returns binary image directly
 Use the binarization utilities for access to all 7 methods:
 
 ```python
-from utils.binarization import BinarizationMethods, ThresholdMethod
+from src.utils.binarization import BinarizationMethods, ThresholdMethod
 
 methods = BinarizationMethods()
 binary = methods.apply_method(ThresholdMethod.MULTI_OTSU, image)
@@ -120,11 +120,12 @@ class BinarizationStep(PipelineStep):
 ```
 SlidePrep/
 ├── config/          # Configuration schemas and files
-├── core/           # Core pipeline interfaces and utilities  
-├── steps/          # Individual processing steps
-├── utils/          # Utility modules (binarization, image processing, etc.)
-├── scripts/        # Testing and validation scripts
 ├── docs/           # This documentation folder
+├── src/            # Source code
+│   ├── core/       # Core pipeline interfaces and utilities
+│   ├── steps/      # Individual processing steps
+│   ├── utils/      # Utility modules (binarization, image processing, etc.)
+│   └── scripts/    # Testing and validation scripts
 ```
 
 ## 🆘 Getting Help

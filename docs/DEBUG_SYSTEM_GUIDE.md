@@ -25,8 +25,8 @@ The debug system uses a registry-based factory pattern for extensible drawer cre
 
 The debug system includes specialized drawers for different pipeline steps, each organized in its own module:
 
-- **`Drawer`** (`utils/debug/drawer.py`): Abstract base class for all drawers
-- **`DetectionDrawer`** (`utils/debug/detection_drawer.py`): Specialized for grid detection step debugging (now expects results and metadata, not legacy objects)
+- **`Drawer`** (`src/utils/debug/drawer.py`): Abstract base class for all drawers
+- **`DetectionDrawer`** (`src/utils/debug/detection_drawer.py`): Specialized for grid detection step debugging (now expects results and metadata, not legacy objects)
 
 ### Result Writers
 
@@ -35,12 +35,12 @@ To persist step outputs in human-readable formats, the debug system supports att
 **Import Structure:**
 ```python
 # Import from individual modules (recommended)
-from utils.debug.drawer import Drawer
-from utils.debug.detection_drawer import DetectionDrawer
-from utils.debug.result_writer import ResultWriter
+from src.utils.debug.drawer import Drawer
+from src.utils.debug.detection_drawer import DetectionDrawer
+from src.utils.debug.result_writer import ResultWriter
 
 # Or import from the debug package (convenience)
-from utils.debug import Drawer, DetectionDrawer, ResultWriter
+from src.utils.debug import Drawer, DetectionDrawer, ResultWriter
 
 ```
 
@@ -90,7 +90,7 @@ The debug system uses a registry-based factory pattern that allows you to easily
 
 #### 1. Implement Drawer Interface
 ```python
-from utils.debug.drawer import Drawer
+from src.utils.debug.drawer import Drawer
 from typing import Optional, Any
 import numpy as np
 import cv2
@@ -132,7 +132,7 @@ class CustomAnalysisDrawer(Drawer):
 ```
 ### 2. Register the Custom Drawer
 ```python
-from core.debugger import Debugger
+from src.core.debugger import Debugger
 
 # Register your custom drawer with the global registry
 Debugger.register_drawer("custom_analysis", CustomAnalysisDrawer)

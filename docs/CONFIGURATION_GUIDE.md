@@ -162,12 +162,12 @@ Controls debug visualization and output:
 
 **Grid Detection Testing:**
 ```bash
-python scripts/test_detection.py config/test/grid_detection.json
+python src/scripts/test_detection.py config/test/grid_detection.json
 ```
 
 **Binarization Testing:**
 ```bash
-python scripts/test_binarization.py config/test/binarization.json
+python src/scripts/test_binarization.py config/test/binarization.json
 ```
 
 ## 🔧 Usage Patterns
@@ -194,7 +194,7 @@ python main.py --input /path/to/images --suffix "_ch00"
 ### Programmatic Usage
 
 ```python
-from core.bootstrap import bootstrap, get_config
+from src.core.bootstrap import bootstrap, get_config
 
 # Bootstrap with different configurations
 bootstrap("config/production.json")   # Production optimized

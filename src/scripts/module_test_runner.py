@@ -16,11 +16,11 @@ from dataclasses import dataclass
 from typing import Optional, List, Dict
 import numpy as np
 
-from core.bootstrap import bootstrap, get_config, get_logger, get_debugger, get_pipeline_context
-from core.step import PipelineStep
-from utils.debug.drawer import Drawer
-from utils.debug.result_writer import ResultWriter
-from utils.image_utils import get_supported_image_formats
+from src.core.bootstrap import bootstrap, get_config, get_logger, get_debugger, get_pipeline_context
+from src.core.step import PipelineStep
+from src.utils.debug.drawer import Drawer
+from src.utils.debug.result_writer import ResultWriter
+from src.utils.image_utils import get_supported_image_formats
 
 
 @dataclass

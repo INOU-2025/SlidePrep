@@ -3,13 +3,13 @@ import sys
 from pathlib import Path
 
 # Add project root to Python path FIRST
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 # Now import project modules
-from utils.debug.detection_drawer import DetectionDrawer
-from scripts.module_test_runner import StepTestRunner
-from steps.grid_detection import GridDetectionStep
-from utils.debug.detection_writer import DetectionResultWriter
+from src.utils.debug.detection_drawer import DetectionDrawer
+from src.scripts.module_test_runner import StepTestRunner
+from src.steps import GridDetectionStep
+from src.utils.debug.detection_writer import DetectionResultWriter
 
 
 def main(config_path: str):

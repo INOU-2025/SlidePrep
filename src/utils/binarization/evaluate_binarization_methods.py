@@ -1,17 +1,17 @@
-from glob import glob
-from utils.image_utils import get_supported_image_patterns, filter_images_by_suffix
-from steps.binarization import BinarizationStep
-from core.bootstrap import bootstrap, get_config, get_logger, get_debugger
 import argparse
-import numpy as np
 import os
-import cv2
 import sys
 from pathlib import Path
+from glob import glob
+import numpy as np
+import cv2
 
-# Add project root to path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
+# Ensure project root is on path
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+
+from src.utils.image_utils import get_supported_image_patterns, filter_images_by_suffix
+from src.steps import BinarizationStep
+from src.core.bootstrap import bootstrap, get_config, get_logger, get_debugger
 
 
 def evaluate_binarization_methods(config_path: str):

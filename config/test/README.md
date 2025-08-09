@@ -53,12 +53,12 @@ Test configurations are designed for algorithm development and validation:
 
 ```bash
 # 1. Test binarization on raw grayscale images
-python scripts/test_binarization.py config/test/binarization.json
+python src/scripts/test_binarization.py config/test/binarization.json
 # Input: image001_raw.png → Debug: debug_output/test_binarization/image001_raw_binarized.png
 # Result suffix: _binarized
 
-# 2. Test grid detection on pre-binarized images  
-python scripts/test_grid_detection.py config/test/grid_detection.json
+# 2. Test grid detection on pre-binarized images
+python src/scripts/test_detection.py config/test/grid_detection.json
 # Input: image001_binarized.png → Debug: debug_output/test_grid_detection/image001_binarized_grid_detected.png
 # Result suffix: _grid_detected
 ```

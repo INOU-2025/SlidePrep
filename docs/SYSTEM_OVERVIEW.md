@@ -20,20 +20,21 @@ SlidePrep is a modular image processing pipeline designed to generate high-quali
 ```
 SlidePrep/
 ├── config/                 # Configuration schemas and settings
-│   ├── config_schema.py   # Typed configuration classes
-│   └── init_config.json   # Default configuration values
-├── core/                   # Core pipeline infrastructure
-│   ├── context.py         # Shared pipeline state management
-│   ├── step.py            # Base classes for pipeline steps
-│   ├── logger.py          # Logging system
-│   └── debugger.py        # Debug visualization system
-├── steps/                  # Individual processing steps
-│   ├── binarization.py    # Binary conversion (59 lines, optimized)
-│   └── grid_detection.py  # Grid pattern detection
-├── utils/                  # Utility modules
-│   ├── binarization/          # Thresholding methods package
-│   ├── image_utils.py     # Image processing utilities
-│   └── detection/         # Grid detection utilities
+├── docs/                   # Documentation and guides
+├── src/                    # Source code
+│   ├── core/               # Core pipeline infrastructure
+│   │   ├── context.py      # Shared pipeline state management
+│   │   ├── step.py         # Base classes for pipeline steps
+│   │   ├── logger.py       # Logging system
+│   │   └── debugger.py     # Debug visualization system
+│   ├── steps/              # Individual processing steps
+│   │   ├── binarization.py # Binary conversion (59 lines, optimized)
+│   │   └── grid_detection.py  # Grid pattern detection
+│   ├── utils/              # Utility modules
+│   │   ├── binarization/   # Thresholding methods package
+│   │   ├── image_utils.py  # Image processing utilities
+│   │   └── detection/      # Grid detection utilities
+│   └── scripts/            # Testing and validation scripts
 └── main.py                # Main pipeline entry point
 ```
 
@@ -43,7 +44,7 @@ SlidePrep/
 The system is optimized for production with sensible defaults:
 
 ```python
-from steps.binarization import BinarizationStep
+from src.steps import BinarizationStep
 from config.config_schema import BinarizationConfig
 import numpy as np
 
@@ -63,7 +64,7 @@ result: np.ndarray = step.run(image_array)  # Returns binary image directly
 Full access to all methods for experimentation:
 
 ```python
-from utils.binarization import BinarizationMethods, ThresholdMethod
+from src.utils.binarization import BinarizationMethods, ThresholdMethod
 
 methods = BinarizationMethods()
 # Access all 7 methods: global, otsu, adaptive, multi_otsu, 
@@ -162,9 +163,9 @@ Default settings stored in JSON with schema validation:
 The pipeline uses a **direct input-output function chaining** approach with **dependency injection**:
 
 ```python
-from core.bootstrap import bootstrap
-from steps.binarization import BinarizationStep
-from steps.grid_detection import GridDetectionStep
+from src.core.bootstrap import bootstrap
+from src.steps import BinarizationStep
+from src.steps import GridDetectionStep
 
 # Initialize services once at startup
 bootstrap(config_path)
@@ -193,7 +194,7 @@ for step in steps:
 Integrated debug output with automatic drawer integration:
 
 ```python
-from core.bootstrap import bootstrap_application
+from src.core.bootstrap import bootstrap_application
 
 container = bootstrap_application(config_path)
 step = BinarizationStep(
@@ -228,7 +229,7 @@ runner.run_on_directory(step, "grid_detection")
 Comprehensive logging for monitoring and debugging:
 
 ```python
-from core.logger import Logger
+from src.core.logger import Logger
 
 logger = Logger(level="DEBUG", output_file="pipeline.log")
 step = BinarizationStep(config, logger=logger)
@@ -242,7 +243,7 @@ step = BinarizationStep(config, logger=logger)
 Simple validation of the production method:
 
 ```bash
-python scripts/test_binarization.py --input /path/to/images
+python src/scripts/test_binarization.py config/test/binarization.json
 ```
 
 ### Interactive Exploration
@@ -256,18 +257,16 @@ python demo_binarization_methods.py --image /path/to/image.png
 Validate grid detection separately:
 
 ```bash
-python scripts/run_grid_detection.py \
-  --input /path/to/tiles \
-  --config config/test_grid_detection_config.json
+python src/scripts/test_detection.py config/test/grid_detection.json
 ```
 
 ## 🎮 Usage Patterns
 
 ### Basic Pipeline Usage
 ```python
-from core.bootstrap import bootstrap, get_config
-from steps.binarization import BinarizationStep
-from steps.grid_detection import GridDetectionStep
+from src.core.bootstrap import bootstrap, get_config
+from src.steps import BinarizationStep
+from src.steps import GridDetectionStep
 
 # Initialize application services
 bootstrap(config_path)
@@ -287,8 +286,8 @@ for step in steps:
 
 ### Individual Step Usage
 ```python
-from core.bootstrap import bootstrap
-from steps.binarization import BinarizationStep
+from src.core.bootstrap import bootstrap
+from src.steps import BinarizationStep
 import numpy as np
 
 # Initialize services first
@@ -303,7 +302,7 @@ result: np.ndarray = step.run(input_image)
 
 ### Method Research
 ```python
-from utils.binarization import BinarizationMethods
+from src.utils.binarization import BinarizationMethods
 
 # Research different methods
 methods = BinarizationMethods()

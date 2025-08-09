@@ -3,18 +3,17 @@ import os
 import time
 from pathlib import Path
 
-# Add project root to Python path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
+# Ensure project root is on Python path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import cv2
 import numpy as np
 from glob import glob
-from utils.detection.adaptive_detector import AdaptiveLineDetector
-from utils.detection.models import DetectionRegion, Orientation
-from utils.debug.detection_drawer import DetectionDrawer
-from core.bootstrap import bootstrap, get_logger, get_debugger, get_config
-from core.app_config_manager import AppConfigManager
+from src.utils.detection.adaptive_detector import AdaptiveLineDetector
+from src.utils.detection.models import DetectionRegion, Orientation
+from src.utils.debug.detection_drawer import DetectionDrawer
+from src.core.bootstrap import bootstrap, get_logger, get_debugger, get_config
+from src.core.app_config_manager import AppConfigManager
 from typing import Optional
 
 
