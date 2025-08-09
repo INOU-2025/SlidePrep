@@ -1,10 +1,10 @@
 import os
 import cv2
 from glob import glob
-from core import bootstrap, get_config, get_logger, get_pipeline_context
-from core.pipeline import Pipeline
-from steps import BinarizationStep, GridDetectionStep, GridRefinementStep
-from utils import get_supported_image_patterns, filter_images_by_suffix
+from src.core import bootstrap, get_config, get_logger, get_pipeline_context
+from src.core.pipeline import Pipeline
+from src.steps import BinarizationStep, GridDetectionStep, GridRefinementStep
+from src.utils import get_supported_image_patterns, filter_images_by_suffix
 
 
 def run_pipeline(config_path: str):
