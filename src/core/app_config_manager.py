@@ -1,9 +1,9 @@
 from typing import List, Optional
 from config.config_schema import (
     GeneralConfig,
+    BinarizationConfig,
     GridDetectionConfig,
     GridRefinementConfig,
-    BinarizationConfig,
     LogConfig,
     DebugConfig,
 )

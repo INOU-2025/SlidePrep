@@ -20,7 +20,7 @@ class BinarizationStep(PipelineStep):
             config: Binarization configuration specifying threshold method and parameters.
             **kwargs: Additional arguments passed to parent class.
         """
-        super().__init__(name="Binarization", config=config, **kwargs)
+        super().__init__(name="binarization", config=config, **kwargs)
         self.methods = BinarizationMethods(debug_callback=self.debug)
 
     def run(self, data: np.ndarray) -> np.ndarray:

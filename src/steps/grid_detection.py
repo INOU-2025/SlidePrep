@@ -14,7 +14,7 @@ from typing import Optional
 class GridDetectionStep(PipelineStep):
     """Pipeline step for adaptive grid detection."""
     
-    def __init__(self, name: str = "adaptive_grid_detection", config: Optional[GridDetectionConfig] = None, **kwargs):
+    def __init__(self, name: str = "grid_detection", config: Optional[GridDetectionConfig] = None, **kwargs):
         """Initialize adaptive grid detection step."""
         super().__init__(name, config, **kwargs)
         
