@@ -9,52 +9,28 @@ from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 import joblib
+import ast
 
 
 def parse_box(box_str: str):
     """
-    Parse 'x1, y1|x2, y2|x3, y3|x4, y4' -> [(x1,y1),...,(x4,y4)] as floats.
-    Returns None if parsing fails.
+    Parse stringified list of coordinates: '[[x1, y1], [x2, y2], ...]'
+    Returns list of (x, y) tuples as floats.
     """
-    if not isinstance(box_str, str) or "|" not in box_str:
-        return None
     try:
-        return [tuple(map(float, pair.strip().split(","))) for pair in box_str.split("|")]
+        points = ast.literal_eval(box_str)
+        return [tuple(map(float, pt)) for pt in points]
     except Exception:
         return None
 
-def parse_min_area_rect(rect_str: str):
-    """
-    Parse string like '((cx, cy), (w, h), angle)' to tuple.
-    Returns None if parsing fails.
-    """
-    try:
-        # Remove outer quotes and parentheses
-        rect_str = rect_str.strip().replace('"', '')
-        # Split into three parts
-        parts = rect_str.split('), (')
-        if len(parts) != 2 and len(parts) != 3:
-            return None
-        # First part: center
-        center = tuple(map(float, parts[0].replace('(', '').split(',')))
-        # Second part: size
-        size_angle = parts[1].split('), ')
-        size = tuple(map(float, size_angle[0].replace('(', '').split(',')))
-        # Third part: angle
-        angle = float(size_angle[1].replace(')', '')) if len(size_angle) > 1 else float(parts[2].replace(')', ''))
-        return (center, size, angle)
-    except Exception:
-        return None
 
 def load_and_prepare(path_in: Path):
-    # Load CSV instead of Excel
     df = pd.read_csv(path_in)
 
-    # Parse box_points column (string to list of tuples)
     df["_box"] = df["box_points"].map(parse_box)
 
-    # Use is_detection column (boolean) as label
-    df["is_detection"] = df["is_detection"].astype(float)
+    # Convert is_detection to int (handles TRUE/FALSE, 1/0, etc.)
+    df["is_detection"] = df["is_detection"].astype(str).str.upper().map({"TRUE": 1, "FALSE": 0, "1": 1, "0": 0}).astype(int)
 
     # Drop rows with missing label
     df = df.dropna(subset=["is_detection"]).copy()
