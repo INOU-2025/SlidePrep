@@ -61,10 +61,10 @@ def evaluate_binarization_methods(config_path: str):
     logger.info(f"Found {len(images)} images to process in {input_folder}")
 
     # Get output directory from debug config
-    output_base_dir = cfg.debug_config.output_dir
+    output_base_dir = cfg.debug_config.output_path
 
     if not output_base_dir:
-        logger.error("debug_config.output_dir must be specified in config")
+        logger.error("debug_config.output_path must be specified in config")
         return
 
     logger.info(f"Output will be saved to: {output_base_dir}")

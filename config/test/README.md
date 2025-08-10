@@ -90,7 +90,7 @@ Test configurations should only include sections relevant to the step being test
   },
   "log": { ... },
   "debug": {
-    "output_dir": "debug_output/test_binarization",
+    "output_path": "debug_output/test_binarization",
     "save_results": false,
     "result_file_name": "results.csv"
   }
@@ -110,7 +110,7 @@ Test configurations should only include sections relevant to the step being test
   },
   "log": { ... },
   "debug": {
-    "output_dir": "debug_output/test_grid_detection",
+    "output_path": "debug_output/test_grid_detection",
     "save_results": true,
     "result_file_name": "results.csv"
   }

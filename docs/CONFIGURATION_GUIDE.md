@@ -112,7 +112,7 @@ Controls logging output and verbosity:
     "log_to_console": false,            // Enable console logging
     "log_file_name": "app.log",         // Log filename
     "log_level": "INFO",                // Logging level
-    "output_dir": "logs"                // Log output directory
+    "output_path": "logs"                // Log output directory
   }
 }
 ```
@@ -131,7 +131,7 @@ Controls debug visualization and output:
 ```json
 {
   "debug": {
-    "output_dir": "debug_output",       // Debug output directory
+    "output_path": "debug_output",       // Debug output directory
     "save_composite": false             // Save side-by-side comparisons
   }
 }
@@ -140,7 +140,7 @@ Controls debug visualization and output:
 **Debug Options:**
 - Debug enablement is controlled by `general.debug` (single source of truth)
 - `save_composite`: Creates before/after comparison images
-- `output_dir`: All debug images saved here
+- `output_path`: All debug images saved here
 
 ## 📁 Configuration Files
 
@@ -268,7 +268,7 @@ ValueError: Input path does not exist: /nonexistent/path
   },
   "debug": {
     "save_composite": true,   // Helpful for analysis
-    "output_dir": "debug_output/experiment_name"
+    "output_path": "debug_output/experiment_name"
   },
   "log": {
     "log_level": "DEBUG",    // Maximum detail
