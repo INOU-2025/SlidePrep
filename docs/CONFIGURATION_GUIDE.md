@@ -131,8 +131,11 @@ Controls debug visualization and output:
 ```json
 {
   "debug": {
-    "path": "debug",             // Debug output directory
-    "save_composite": false             // Save side-by-side comparisons
+    "path": "debug",                            // Debug output directory
+    "save_composite": false                     // Save side-by-side comparisons
+    "save_composite": false,                    // Save side-by-side comparisons
+    "output_result_file_name": "results.json",  // Filename for JSON to save intermediate detection results
+    "input_result_file_name": "results.json",   // Filename for JSON to retrieve intermediate detection results for refinement-only runs
   }
 }
 ```
