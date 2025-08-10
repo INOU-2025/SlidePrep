@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 from typing import Any, Optional, List
-from utils.debug.drawer import Drawer
-from utils.detection.models import DetectionStrategy, Orientation
+from src.utils.debug.drawer import Drawer
+from src.utils.detection.models import DetectionStrategy, Orientation
 
 
 class DetectionDrawer(Drawer):

@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from src.utils.debug.detection_drawer import DetectionDrawer
 from src.scripts.module_test_runner import StepTestRunner
 from src.steps import GridDetectionStep
-from src.utils.debug.detection_writer import DetectionResultWriter
+from src.utils.debug.detection_result_writer import DetectionResultWriter
 
 
 def main(config_path: str):

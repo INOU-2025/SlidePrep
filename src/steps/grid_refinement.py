@@ -2,11 +2,11 @@
 
 from typing import Any, Dict, List, Optional
 
-from core.step import PipelineStep
+from src.core.step import PipelineStep
 from config.config_schema import GridRefinementConfig
-from utils.detection.models import DetectionStrategy, Orientation
-from utils.detection.contour_analysis import analyze_contour
-from core.container import Container
+from src.utils.detection.models import DetectionStrategy, Orientation
+from src.utils.detection.contour_analysis import analyze_contour
+from src.core.container import Container
 
 import joblib
 

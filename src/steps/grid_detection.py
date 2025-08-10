@@ -5,9 +5,9 @@ Grid detection step using the adaptive line detector.
 import cv2
 import numpy as np
 from typing import Any
-from core.step import PipelineStep
+from src.core.step import PipelineStep
 from config.config_schema import GridDetectionConfig
-from utils.detection.adaptive_detector import AdaptiveLineDetector
+from src.utils.detection.adaptive_detector import AdaptiveLineDetector
 from typing import Optional
 
 

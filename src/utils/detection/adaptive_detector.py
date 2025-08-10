@@ -7,7 +7,7 @@ from .models import DetectionStrategy, DetectionRegion, Orientation
 from .template_utils import generate_blurred_template, perform_template_matching
 from .image_preprocessing import create_detection_mask, ImagePreprocessingCache
 from .contour_analysis import filter_contours_by_border_zone, analyze_contour
-from core.container import Container
+from src.core.container import Container
 from typing import Optional
 
 

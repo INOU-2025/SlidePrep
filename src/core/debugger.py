@@ -2,12 +2,11 @@ import os
 from typing import Optional, Any
 import numpy as np
 import cv2
-import logging
 
 from config.config_schema import DebugConfig
-from utils.debug.drawer import Drawer
-from utils.debug.result_writer import ResultWriter
-from core.logger import Logger
+from src.utils.debug.drawer import Drawer
+from src.utils.debug.result_writer import ResultWriter
+from src.core.logger import Logger
 
 
 class Debugger:

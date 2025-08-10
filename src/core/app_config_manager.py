@@ -7,7 +7,7 @@ from config.config_schema import (
     LogConfig,
     DebugConfig,
 )
-from utils.config_manager import ConfigManager
+from src.utils.config_manager import ConfigManager
 
 
 class AppConfigManager(ConfigManager):

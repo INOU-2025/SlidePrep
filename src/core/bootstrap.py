@@ -5,19 +5,19 @@ Sets up the dependency injection container with all required services.
 Call bootstrap() once at application startup to initialize services.
 """
 
-from core.container import Container
-from core.logger import Logger
-from core.debugger import Debugger
-from core.app_config_manager import AppConfigManager
-from utils import config_manager
-from utils.debug.drawer import Drawer
-from utils.debug.result_writer import ResultWriter
+from src.core.container import Container
+from src.core.logger import Logger
+from src.core.debugger import Debugger
+from src.core.app_config_manager import AppConfigManager
+from src.utils import config_manager
+from src.utils.debug.drawer import Drawer
+from src.utils.debug.result_writer import ResultWriter
 from typing import Optional
-from core.context import PipelineContext
+from src.core.context import PipelineContext
 import os
 import cv2
 import glob
-from utils import get_supported_image_patterns
+from src.utils import get_supported_image_patterns
 
 
 def bootstrap(config_path: str, drawer: Optional[Drawer] = None, writer: Optional[ResultWriter] = None) -> None:

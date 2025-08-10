@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Union, Tuple, Optional
 import numpy as np
-from core.container import Container
+from src.core.container import Container
 
 
 class PipelineStep(ABC):

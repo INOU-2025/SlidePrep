@@ -1,10 +1,9 @@
 import cv2
 import numpy as np
 from typing import List, Tuple
-from core.container import Container
-from utils.detection.models import DetectionRegion, Orientation
+from src.core.container import Container
+from src.utils.detection.models import DetectionRegion, Orientation
 from typing import Optional
-import csv
 
 
 def corner_proximity_from_box(box, W, H):
@@ -20,13 +19,14 @@ def corner_proximity_from_box(box, W, H):
         float: normalized proximity (0=corner, ~1=center)
     """
     FULL_DIAG = np.hypot(W, H)
-    corners = [(0,0), (W,0), (0,H), (W,H)]
+    corners = [(0, 0), (W, 0), (0, H), (W, H)]
     dmin = min(
         np.hypot(px - cx, py - cy)
         for (px, py) in box
         for (cx, cy) in corners
     )
     return float(dmin / FULL_DIAG)
+
 
 def border_proximity_from_box(box, W, H):
     """
@@ -136,18 +136,18 @@ def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy=None
 
     min_rect = cv2.minAreaRect(contour)
     ((cx, cy), (rect_w, rect_h), raw_angle) = min_rect
-    
+
     # Box for geometry; int version only for drawing/proximity
     box_f = cv2.boxPoints(min_rect)           # float32
     box_i = box_f.astype(np.intp)             # for display/proximity ONLY
 
     # --- Keep OpenCV order: width=rect_w, height=rect_h (NO max/min) ---
-    width  = float(rect_w)
+    width = float(rect_w)
     height = float(rect_h)
 
     # Calculate side lengths and find the longest side
     edges = [(box_f[i], box_f[(i + 1) % 4]) for i in range(4)]
-    lens  = [np.linalg.norm(p2 - p1) for p1, p2 in edges]
+    lens = [np.linalg.norm(p2 - p1) for p1, p2 in edges]
     max_i = int(np.argmax(lens))
     p1, p2 = edges[max_i]
     long_side_angle = np.degrees(np.arctan2(p2[1] - p1[1], p2[0] - p1[0]))
@@ -170,10 +170,11 @@ def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy=None
     hull = cv2.convexHull(contour)
     hull_area = cv2.contourArea(hull)
     solidity = area / hull_area if hull_area else 0.0
-    extent   = area / (width * height) if (width * height) else 0.0
+    extent = area / (width * height) if (width * height) else 0.0
 
     M = cv2.moments(contour)
-    centroid = ((M["m10"] / M["m00"], M["m01"] / M["m00"])) if M["m00"] != 0 else (0.0, 0.0)
+    centroid = ((M["m10"] / M["m00"], M["m01"] / M["m00"])
+                ) if M["m00"] != 0 else (0.0, 0.0)
 
     # Proximity metrics (if image_shape is provided)
     if image_shape is not None:
@@ -185,7 +186,8 @@ def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy=None
         border_proximity = None
 
     # Orientation mismatch
-    orientation_mismatch = has_orientation_mismatch(orientation, computed_orientation)
+    orientation_mismatch = has_orientation_mismatch(
+        orientation, computed_orientation)
 
     logger.debug(
         f"Contour analysis:\n"
@@ -243,8 +245,10 @@ def has_orientation_mismatch(passed_orientation, computed_orientation):
         bool: True if mismatch, False otherwise
     """
     # Normalize to string for comparison
-    passed = passed_orientation.value if hasattr(passed_orientation, 'value') else str(passed_orientation)
-    computed = computed_orientation.value if hasattr(computed_orientation, 'value') else str(computed_orientation)
+    passed = passed_orientation.value if hasattr(
+        passed_orientation, 'value') else str(passed_orientation)
+    computed = computed_orientation.value if hasattr(
+        computed_orientation, 'value') else str(computed_orientation)
     return passed != computed
 
 
@@ -265,7 +269,8 @@ def analyze_all_contours_for_image(results, image_shape=None):
             zone = item.get('zone', None)
             # Pass orientation as enum or string, strategy if available
             strategy = results.get('strategies', {}).get(orientation, None)
-            analysis = analyze_contour(contour, orientation, strategy=strategy, image_shape=image_shape)
+            analysis = analyze_contour(
+                contour, orientation, strategy=strategy, image_shape=image_shape)
             analysis['zone'] = zone
             aggregated.append(analysis)
     return aggregated
@@ -287,37 +292,9 @@ def analyze_all_contours_for_batch(batch_results, image_shape=None):
     for i, item in enumerate(batch_results):
         results = item.get('result')
         filename = item.get('filename', f"image_{i}")
-        image_aggregated = analyze_all_contours_for_image(results, image_shape=image_shape)
+        image_aggregated = analyze_all_contours_for_image(
+            results, image_shape=image_shape)
         for analysis in image_aggregated:
             analysis['filename'] = filename
             aggregated.append(analysis)
     return aggregated
-
-
-def save_aggregated_analysis_to_csv(analysis_results, csv_path):
-    """
-    Save aggregated contour analysis results to a CSV file.
-    Args:
-        analysis_results: List of analysis result dicts (from analyze_all_contours_from_results)
-        csv_path: Path to output CSV file
-    """
-    if not analysis_results:
-        raise ValueError("No analysis results to save.")
-
-    # Convert enums to their string value for CSV friendliness
-    enum_fields = {"orientation", "computed_orientation", "strategy", "zone"}
-    for row in analysis_results:
-        for field in enum_fields:
-                value = row.get(field)
-                if hasattr(value, "value"):
-                    row[field] = value.value
-
-    # Use keys from the first result as CSV columns
-    fieldnames = list(analysis_results[0].keys())
-    with open(csv_path, 'w', newline='') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        for row in analysis_results:
-            # Flatten any numpy arrays or lists for CSV compatibility
-            flat_row = {k: (v.tolist() if hasattr(v, 'tolist') else v) for k, v in row.items()}
-            writer.writerow(flat_row)
