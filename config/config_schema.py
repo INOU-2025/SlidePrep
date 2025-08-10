@@ -184,7 +184,7 @@ class DebugConfig:
     images, composite visualizations, and detailed processing logs
     for development and troubleshooting purposes.
     """
-    output_path: str = "debug_output"  # Directory for debug artifacts
+    path: str = "debug"  # Directory for debug artifacts
     save_composite: bool = False  # Generate composite visualization images
     save_results: bool = False  # Save numeric results to a file
     result_file_name: str = "results.csv"  # Filename for aggregated results
@@ -203,7 +203,7 @@ class LogConfig:
     log_to_console: bool = True  # Enable console logging output
     log_file_name: str = "app.log"  # Log file name
     log_level: str = "INFO"  # Minimum log level to capture
-    output_path: str = "logs"  # Directory for log files
+    path: str = "logs"  # Directory for log files
 
     def __post_init__(self) -> None:
         """

@@ -21,7 +21,7 @@ These configurations are separate from the main pipeline configuration (`init_co
   - Output suffix: `_binarized` (generates binarized results)
   - No output path defined (testing focuses on debug visualization)
   - Debug and logging always enabled for analysis
-  - Debug output directory: `debug_output/test_binarization`
+  - Debug output directory: `debug/test_binarization`
   - Result file name: `results.csv`
 
 - **`grid_detection.json`**: Configuration for testing grid detection algorithms
@@ -30,7 +30,7 @@ These configurations are separate from the main pipeline configuration (`init_co
   - Output suffix: `_grid_detected` (generates detection results)
   - No output path defined (testing focuses on debug visualization)
   - Debug and logging always enabled for analysis
-  - Debug output directory: `debug_output/test_grid_detection`
+  - Debug output directory: `debug/test_grid_detection`
   - Result file name: `results.csv`
   - No binarization section - expects pre-binarized images
 
@@ -54,12 +54,12 @@ Test configurations are designed for algorithm development and validation:
 ```bash
 # 1. Test binarization on raw grayscale images
 python src/scripts/test_binarization.py config/test/binarization.json
-# Input: image001_raw.png → Debug: debug_output/test_binarization/image001_raw_binarized.png
+# Input: image001_raw.png → Debug: debug/test_binarization/image001_raw_binarized.png
 # Result suffix: _binarized
 
 # 2. Test grid detection on pre-binarized images
 python src/scripts/test_detection.py config/test/grid_detection.json
-# Input: image001_binarized.png → Debug: debug_output/test_grid_detection/image001_binarized_grid_detected.png
+# Input: image001_binarized.png → Debug: debug/test_grid_detection/image001_binarized_grid_detected.png
 # Result suffix: _grid_detected
 ```
 
@@ -90,7 +90,7 @@ Test configurations should only include sections relevant to the step being test
   },
   "log": { ... },
   "debug": {
-    "output_path": "debug_output/test_binarization",
+    "path": "debug/test_binarization",
     "save_results": false,
     "result_file_name": "results.csv"
   }
@@ -110,7 +110,7 @@ Test configurations should only include sections relevant to the step being test
   },
   "log": { ... },
   "debug": {
-    "output_path": "debug_output/test_grid_detection",
+    "path": "debug/test_grid_detection",
     "save_results": true,
     "result_file_name": "results.csv"
   }

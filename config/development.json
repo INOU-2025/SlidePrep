@@ -12,7 +12,7 @@
     "log_to_console": true,
     "log_file_name": "dev.log",
     "log_level": "DEBUG",
-    "output_path": "logs"
+    "path": "logs"
   },
   "binarization": {
     "threshold_method": "combined_differential"
@@ -58,7 +58,7 @@
     }
   },
   "debug": {
-    "output_path": "debug_output/development",
+    "path": "debug",
     "save_composite": true,
     "save_results": true,
     "result_file_name": "results"

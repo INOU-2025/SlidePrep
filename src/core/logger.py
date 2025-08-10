@@ -107,10 +107,10 @@ class Logger:
         formatter = logging.Formatter(log_format)
 
         if log_config.log_to_file and log_config.log_file_name:
-            output_path = log_config.output_path or "."
-            os.makedirs(output_path, exist_ok=True)
+            log_path = log_config.path or "."
+            os.makedirs(log_path, exist_ok=True)
             file_handler = logging.FileHandler(os.path.join(
-                output_path, log_config.log_file_name), mode='w')
+                log_path, log_config.log_file_name), mode='w')
             file_handler.setFormatter(formatter)
             self.logger.addHandler(file_handler)
 

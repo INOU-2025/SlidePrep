@@ -15,10 +15,10 @@
     "log_to_console": false,
     "log_file_name": "binarization_test.log",
     "log_level": "DEBUG",
-    "output_path": "/Users/irconde/Downloads/V2_170225_exp250225/bin"
+    "path": "/Users/irconde/Downloads/V2_170225_exp250225/bin"
   },
   "debug": {
-    "output_path": "/Users/irconde/Downloads/V2_170225_exp250225/bin",
+    "path": "/Users/irconde/Downloads/V2_170225_exp250225/bin",
     "save_composite": false,
     "save_results": false,
     "result_file_name": "results"

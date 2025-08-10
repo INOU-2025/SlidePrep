@@ -60,8 +60,8 @@ python src/scripts/test_detection.py config/test/grid_detection.json
 
 | Config | Debug | Log Level | Log Output | Save Composite | Debug Dir |
 |--------|-------|-----------|------------|----------------|-----------|
-| production | ❌ | WARNING | File only | ❌ | debug_output |
-| development | ✅ | DEBUG | File + Console | ✅ | debug_output/development |
-| test/* | Varies | INFO | Console | ❌ | debug_output/test_* |
+| production | ❌ | WARNING | File only | ❌ | debug |
+| development | ✅ | DEBUG | File + Console | ✅ | debug/development |
+| test/* | Varies | INFO | Console | ❌ | debug/test_* |
 
 This structure provides clear separation of concerns and makes it easy to choose the right configuration for any use case.

@@ -157,7 +157,7 @@ Debug visualization is controlled by the debug configuration:
 {
   "debug": {
     "save_composite": false,
-    "output_path": "/path/to/debug/output",
+    "path": "/path/to/debug/output",
     "save_results": false,
     "result_file_name": "results.csv"
   }
@@ -165,7 +165,7 @@ Debug visualization is controlled by the debug configuration:
 ```
 
 - **`save_composite`**: Create side-by-side comparisons when possible
-- **`output_path`**: Directory where debug images are saved
+- **`path`**: Directory where debug images are saved
 - **`save_results`**: Save step results using a configured writer
 - **`result_file_name`**: Name of the file used to store aggregated results
 
@@ -236,7 +236,7 @@ Use consistent naming patterns for debug files:
 
 **Debug images not created**
 - Check `debug.enabled` in config
-- Verify `output_path` exists and is writable
+- Verify `path` exists and is writable
 - Check that drawer is registered: `Debugger.get_registered_drawers()`
 - Ensure `debugger.save_debug_image()` is called with correct step key
 

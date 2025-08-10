@@ -15,13 +15,13 @@ class Debugger:
     def __init__(self, logger: Logger, debug_config: DebugConfig, debug_enabled: bool = True, drawer: Optional[Drawer] = None, writer: Optional[ResultWriter] = None):
         self._enabled = debug_enabled
         self._save_composite = debug_config.save_composite
-        self._output_path = debug_config.output_path
+        self._path = debug_config.path
         self._save_results = debug_config.save_results
         self._logger = logger
         self._drawer = drawer
         self._writer = writer
-        if self._enabled and self._output_path:
-            os.makedirs(self._output_path, exist_ok=True)
+        if self._enabled and self._path:
+            os.makedirs(self._path, exist_ok=True)
 
     def _save_image(self, filename: str, image: np.ndarray, original: Optional[np.ndarray] = None) -> None:
         """Save an image to the debug output directory."""
@@ -30,8 +30,8 @@ class Debugger:
 
         try:
             output_path = (
-                os.path.join(self._output_path, filename)
-                if self._output_path
+                os.path.join(self._path, filename)
+                if self._path
                 else filename
             )
 
@@ -84,8 +84,8 @@ class Debugger:
 
         try:
             output_path = (
-                os.path.join(self._output_path, filename)
-                if self._output_path
+                os.path.join(self._path, filename)
+                if self._path
                 else filename
             )
             self._writer.write(output_path, results, metadata)

@@ -126,11 +126,11 @@ class StepTestRunner:
         if self._writer and len(aggregated_results) > 0:
             metadata = {"image_shape": get_pipeline_context().image_shape}
             result_filename = self._cfg.debug_config.result_file_name
-            output_path = self._cfg.debug_config.output_path
-            output_path = (
-                os.path.join(output_path, result_filename)
-                if output_path
+            debug_path = self._cfg.debug_config.path
+            debug_path = (
+                os.path.join(debug_path, result_filename)
+                if debug_path
                 else result_filename
             )
-            os.makedirs(output_path, exist_ok=True) if output_path else None
-            self._writer.write(output_path, aggregated_results, metadata)
+            os.makedirs(debug_path, exist_ok=True) if debug_path else None
+            self._writer.write(debug_path, aggregated_results, metadata)

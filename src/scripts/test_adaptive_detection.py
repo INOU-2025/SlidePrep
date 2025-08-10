@@ -113,22 +113,22 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Optional
     debugger.save_debug_image(debug_filename, image, results, metadata)
     
     # Verify the debug image was actually saved
-    debug_output_path = os.path.join(debugger._output_path, debug_filename) if debugger._output_path else debug_filename
-    if os.path.exists(debug_output_path):
-        logger.debug(f"✓ Debug image successfully saved: {debug_output_path}")
+    debug_path = os.path.join(debugger._path, debug_filename) if debugger._path else debug_filename
+    if os.path.exists(debug_path):
+        logger.debug(f"✓ Debug image successfully saved: {debug_path}")
     else:
         logger.warning(f"✗ Debug image NOT saved for {debug_filename}")
-        logger.warning(f"  Expected path: {debug_output_path}")
+        logger.warning(f"  Expected path: {debug_path}")
         logger.warning(f"  Debugger enabled: {debugger._enabled}")
         logger.warning(f"  Drawer available: {debugger._drawer is not None}")
     
     # Only copy to output_path if specified and not empty
     if output_path and output_path.strip():
-        if os.path.exists(debug_output_path):
+        if os.path.exists(debug_path):
             import shutil
-            shutil.copy2(debug_output_path, output_path)
+            shutil.copy2(debug_path, output_path)
         else:
-            logger.warning(f"Debug output not found at {debug_output_path}")
+            logger.warning(f"Debug output not found at {debug_path}")
     
     return {
         'filename': filename,
@@ -203,7 +203,7 @@ def compare_performance_configs(baseline_config_path: str, optimized_config_path
     debugger = get_debugger()
     
     logger.info("Testing BASELINE configuration...")
-    logger.info(f"Debug output: {debugger._output_path}")
+    logger.info(f"Debug output: {debugger._path}")
     
     config_manager = get_config()  # Use the singleton config manager
     detector_baseline = AdaptiveLineDetector(config_manager.grid_detection_config)
@@ -223,8 +223,8 @@ def compare_performance_configs(baseline_config_path: str, optimized_config_path
     debugger = get_debugger()
     
     logger.info("Testing OPTIMIZED configuration...")
-    logger.info(f"Debug output: {debugger._output_path}")
-    
+    logger.info(f"Debug output: {debugger._path}")
+
     config_manager = get_config()  # Use the new singleton config manager
     detector_optimized = AdaptiveLineDetector(config_manager.grid_detection_config)
     
@@ -321,8 +321,8 @@ def process_batch_adaptive(config_path: str, ext: str = "png") -> None:
     
     logger.info(f"Using configuration from: {config_path}")
     logger.info(f"Input folder: {input_folder}")
-    logger.info(f"Debug output will be saved to: {debugger._output_path}")
-    
+    logger.info(f"Debug output will be saved to: {debugger._path}")
+
     image_paths = glob(os.path.join(input_folder, f"*.{ext}"))
     
     if not image_paths:

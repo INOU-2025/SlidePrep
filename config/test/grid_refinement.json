@@ -51,10 +51,10 @@
     "log_to_console": false,
     "log_file_name": "grid_detection_test.log",
     "log_level": "DEBUG",
-    "output_path": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection-select"
+    "path": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection-select"
   },
   "debug": {
-    "output_path": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection-select",
+    "path": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection-select",
     "save_composite": false,
     "save_results": true,
     "result_file_name": "results"

@@ -38,7 +38,7 @@ The SlidePrep pipeline uses a sophisticated logging system following industry st
     "log_to_console": true,
     "log_to_file": true,
     "log_file_name": "slideprep_production.log",
-    "output_path": "logs"
+    "path": "logs"
   }
 }
 ```
@@ -50,7 +50,7 @@ The SlidePrep pipeline uses a sophisticated logging system following industry st
     "log_level": "DEBUG",
     "log_to_console": true,
     "log_to_file": false,
-    "output_path": "logs"
+    "path": "logs"
   }
 }
 ```

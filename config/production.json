@@ -12,7 +12,7 @@
     "log_to_console": false,
     "log_file_name": "slideprep.log",
     "log_level": "WARNING",
-    "output_path": "logs"
+    "path": "logs"
   },
   "binarization": {
     "threshold_method": "combined_differential"
@@ -58,7 +58,7 @@
     }
   },
   "debug": {
-    "output_path": "debug_output",
+    "path": "debug",
     "save_composite": false,
     "save_results": false,
     "result_file_name": "results"
