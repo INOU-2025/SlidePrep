@@ -190,7 +190,7 @@ class DebugConfig:
     path: str = "debug"  # Directory for debug artifacts
     save_composite: bool = False  # Generate composite visualization images
     save_results: bool = False  # Save numeric results to a file
-    # Filename to save aggregated results
+    # Filename for aggregated results. If None, a separate file is written per input image.
     output_result_file_name: Optional[str] = None
     # Filename to read input intermediate results for debugging
     input_result_file_name: Optional[str] = None

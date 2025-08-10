@@ -42,7 +42,6 @@
   "debug": {
     "path": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection-select",
     "save_composite": false,
-    "save_results": true,
-    "output_result_file_name": "results"
+    "save_results": true
   }
 }

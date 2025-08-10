@@ -90,6 +90,9 @@ class StepTestRunner:
 
         processed = 0
         output_suffix = self._cfg.general_config.output_suffix or step.name.lower().replace(" ", "_")
+
+        result_filename = self._cfg.debug_config.output_result_file_name
+
         aggregated_results: List[Dict] = []
 
         for fname in image_files:
@@ -105,14 +108,18 @@ class StepTestRunner:
 
                 result, metadata = step.run(image)
 
-                debug_filename = f"{base_name}{output_suffix}.png"
-                self._debugger.save_debug_image(debug_filename, image, result, metadata)
+                base_debug_filename = f"{base_name}{output_suffix}"
+                image_debug_filename = f"{base_debug_filename}.png"
+                self._debugger.save_debug_image(image_debug_filename, image, result, metadata)
                 
                 if not isinstance(result, (np.ndarray,)):
-                    aggregated_results.append({
-                        "filename": fname,
-                        "result": result
-                    })
+                    if result_filename:
+                        aggregated_results.append({
+                            "filename": fname,
+                            "result": result
+                        })
+                    else:
+                        self._debugger.save_results(base_debug_filename, result)
 
                 self._logger.debug(f"Successfully processed {fname}")
                 processed += 1
@@ -123,14 +130,6 @@ class StepTestRunner:
         self._logger.info(
             f"Batch processing completed: {processed}/{len(image_files)} images processed successfully")
 
-        if self._writer and len(aggregated_results) > 0:
+        if result_filename and len(aggregated_results) > 0:
             metadata = {"image_shape": get_pipeline_context().image_shape}
-            result_filename = self._cfg.debug_config.output_result_file_name
-            debug_path = self._cfg.debug_config.path
-            debug_path = (
-                os.path.join(debug_path, result_filename)
-                if debug_path
-                else result_filename
-            )
-            os.makedirs(debug_path, exist_ok=True) if debug_path else None
-            self._writer.write(debug_path, aggregated_results, metadata)
+            self._debugger.save_results(result_filename, aggregated_results, metadata, data_is_aggregated=True)

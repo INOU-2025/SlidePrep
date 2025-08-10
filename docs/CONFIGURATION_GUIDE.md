@@ -132,10 +132,10 @@ Controls debug visualization and output:
 {
   "debug": {
     "path": "debug",                            // Debug output directory
-    "save_composite": false                     // Save side-by-side comparisons
     "save_composite": false,                    // Save side-by-side comparisons
-    "output_result_file_name": "results.json",  // Filename for JSON to save intermediate detection results
-    "input_result_file_name": "results.json",   // Filename for JSON to retrieve intermediate detection results for refinement-only runs
+    "save_results": true,                       // Enable result writers
+    "output_result_file_name": "results.json", // (Optional) aggregated results file name
+    "input_result_file_name": "results.json"   // Filename for JSON to retrieve intermediate detection results for refinement-only runs
   }
 }
 ```
@@ -144,6 +144,7 @@ Controls debug visualization and output:
 - Debug enablement is controlled by `general.debug` (single source of truth)
 - `save_composite`: Creates before/after comparison images
 - `path`: All debug images saved here
+- `save_results`: Persist step outputs. If `output_result_file_name` is omitted, one file per image is produced using the image name.
 
 ## 📁 Configuration Files
 
