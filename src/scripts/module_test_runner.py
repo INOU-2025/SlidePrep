@@ -125,7 +125,7 @@ class StepTestRunner:
 
         if self._writer and len(aggregated_results) > 0:
             metadata = {"image_shape": get_pipeline_context().image_shape}
-            result_filename = self._cfg.debug_config.result_file_name
+            result_filename = self._cfg.debug_config.output_result_file_name
             debug_path = self._cfg.debug_config.path
             debug_path = (
                 os.path.join(debug_path, result_filename)

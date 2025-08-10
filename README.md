@@ -116,6 +116,10 @@ python src/scripts/test_binarization.py --config config/test/binarization.json
 
 # Test grid detection with visualization
 python src/scripts/test_detection.py config/test/grid_detection.json
+
+# Run grid refinement on serialized detection output
+# (set `debug.input_result_file_name` in your config)
+python main.py --config config/development.json
 ```
 
 ---

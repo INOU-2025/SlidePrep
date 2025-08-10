@@ -92,7 +92,7 @@ Test configurations should only include sections relevant to the step being test
   "debug": {
     "path": "debug/test_binarization",
     "save_results": false,
-    "result_file_name": "results.csv"
+    "output_result_file_name": "results"
   }
 }
 ```
@@ -112,7 +112,7 @@ Test configurations should only include sections relevant to the step being test
   "debug": {
     "path": "debug/test_grid_detection",
     "save_results": true,
-    "result_file_name": "results.csv"
+    "output_result_file_name": "results"
   }
 }
 ```

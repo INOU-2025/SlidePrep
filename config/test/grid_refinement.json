@@ -57,6 +57,6 @@
     "path": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection-select",
     "save_composite": false,
     "save_results": true,
-    "result_file_name": "results"
+    "input_result_file_name": "results.json"
   }
 }

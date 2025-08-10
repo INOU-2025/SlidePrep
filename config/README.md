@@ -42,6 +42,11 @@ config/
 - **Note:** No binarization config - expects pre-binarized images
 - **Use for:** Testing grid detection algorithms on binarized inputs
 
+#### Using Serialized Intermediate Results
+- **Purpose:** Test grid refinement directly from saved detection results
+- **Configuration:** Set `debug.input_result_file_name` to a JSON file produced by the detection step
+- **Effect:** Pipeline bypasses image loading and runs only the refinement step
+
 ## 🚀 Quick Usage
 
 ```bash

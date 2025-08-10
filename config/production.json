@@ -60,7 +60,6 @@
   "debug": {
     "path": "debug",
     "save_composite": false,
-    "save_results": false,
-    "result_file_name": "results"
+    "save_results": false
   }
 }
