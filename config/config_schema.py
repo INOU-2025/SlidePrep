@@ -166,6 +166,7 @@ class GridRefinementConfig:
         default_factory=GridRefinementClassifierConfig)
     target_inclination_angles: Dict[str, float] = field(default_factory=dict)
     target_thickness: int = 22
+    thickness_bias: float = 0.90
 
     def __post_init__(self) -> None:
         # Convert classifier dict to dataclass if needed
@@ -194,6 +195,8 @@ class GridRefinementConfig:
                         f"target_inclination_angles[{k}] must be a float")
         if not isinstance(self.target_thickness, int) or self.target_thickness <= 0:
             raise ValueError("target_thickness must be a positive integer")
+        if not (0.0 <= self.thickness_bias <= 1.0):
+            raise ValueError("thickness_bias must be between 0 and 1")
 
 
 @dataclass

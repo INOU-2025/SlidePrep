@@ -50,7 +50,8 @@
       "vertical": -88.3,
       "tolerance": 1.0
     },
-    "target_thickness": 22
+    "target_thickness": 23,
+    "thickness_bias": 0.90
   },
   "log": {
     "log_to_file": true,

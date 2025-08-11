@@ -163,7 +163,8 @@ def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy: Det
         computed_orientation = Orientation.VERTICAL
 
     M = cv2.moments(contour)
-    centroid = ((M["m10"] / M["m00"], M["m01"] / M["m00"])) if M["m00"] != 0 else (0.0, 0.0)
+    centroid = ((M["m10"] / M["m00"], M["m01"] / M["m00"])
+                ) if M["m00"] != 0 else (0.0, 0.0)
 
     if image_shape is not None and strategy in [DetectionStrategy.THICK_BORDER, DetectionStrategy.THIN_BORDER]:
         H, W = image_shape[:2]
@@ -173,7 +174,8 @@ def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy: Det
         corner_proximity = None
         border_proximity = None
 
-    orientation_mismatch = has_orientation_mismatch(orientation, computed_orientation)
+    orientation_mismatch = has_orientation_mismatch(
+        orientation, computed_orientation)
 
     logger.debug(
         f"Contour analysis:\n"
