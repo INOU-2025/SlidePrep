@@ -11,12 +11,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from src.scripts.module_test_runner import StepTestRunner
 from src.steps import GridRefinementStep
 from src.utils.debug.detection_drawer import DetectionDrawer
+from src.utils.debug.detection_result_writer import DetectionResultWriter
 
 
 def main(config_path: str) -> None:
     drawer = DetectionDrawer()
+    detection_writer = DetectionResultWriter()
 
-    runner = StepTestRunner(config_path, drawer)
+    runner = StepTestRunner(config_path, drawer, detection_writer)
 
     step = GridRefinementStep(
         config=runner.cfg.grid_refinement_config,
