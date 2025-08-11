@@ -164,29 +164,36 @@ class GridRefinementConfig:
     """Configuration for grid refinement step."""
     classifier: GridRefinementClassifierConfig = field(
         default_factory=GridRefinementClassifierConfig)
-    target_inclination_angles: Optional[Dict[str, float]] = field(default_factory=dict)
+    target_inclination_angles: Dict[str, float] = field(default_factory=dict)
+    target_thickness: int = 22
 
     def __post_init__(self) -> None:
         # Convert classifier dict to dataclass if needed
         if isinstance(self.classifier, dict):
             self.classifier = GridRefinementClassifierConfig(**self.classifier)
         if self.classifier is None:
-            raise ValueError("classifier configuration is required for grid refinement")
+            raise ValueError(
+                "classifier configuration is required for grid refinement")
         if self.classifier.model_path and not os.path.isfile(self.classifier.model_path):
-            raise ValueError(f"classifier.model_path does not exist: {self.classifier.model_path}")
+            raise ValueError(
+                f"classifier.model_path does not exist: {self.classifier.model_path}")
         if not self.classifier.features:
             raise ValueError("classifier.features must not be empty")
         if not (0.0 <= self.classifier.threshold <= 1.0):
             raise ValueError("classifier.threshold must be between 0 and 1")
-        # Validate target_inclination_angles
         if self.target_inclination_angles:
             required_keys = {"horizontal", "vertical", "tolerance"}
-            missing = required_keys - set(self.target_inclination_angles.keys())
+            missing = required_keys - \
+                set(self.target_inclination_angles.keys())
             if missing:
-                raise ValueError(f"target_inclination_angles missing keys: {missing}")
+                raise ValueError(
+                    f"target_inclination_angles missing keys: {missing}")
             for k, v in self.target_inclination_angles.items():
                 if not isinstance(v, (float, int)):
-                    raise ValueError(f"target_inclination_angles[{k}] must be a float")
+                    raise ValueError(
+                        f"target_inclination_angles[{k}] must be a float")
+        if not isinstance(self.target_thickness, int) or self.target_thickness <= 0:
+            raise ValueError("target_thickness must be a positive integer")
 
 
 @dataclass
@@ -201,7 +208,8 @@ class DebugConfig:
     path: str = "debug"  # Directory for debug artifacts
     save_composite: bool = False  # Generate composite visualization images
     save_results: bool = False  # Save numeric results to a file
-    read_intermediate_results: Optional[bool] = False  # Read intermediate results for debugging
+    # Read intermediate results for debugging
+    read_intermediate_results: Optional[bool] = False
     # Filename for aggregated results. If None, a separate file is written per input image.
     output_result_file_name: Optional[str] = None
     # Filename to read input intermediate results for debugging
