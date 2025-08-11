@@ -108,7 +108,7 @@ class GridRefinementStep(PipelineStep):
                 self.debug(
                     f"Keeping {len(contour_dicts)} {orientation_name} contours from general detection"
                 )
-                # refined[orientation] = contour_dicts
+
                 contours = [c.get("contour") for c in contour_dicts if c.get("contour") is not None]
 
                 if len(contours) > 1:

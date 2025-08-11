@@ -10,10 +10,11 @@ SlidePrep is a modular image processing pipeline designed to generate high-quali
 
 1. **Grayscale Conversion** - Standardize input images to grayscale
 2. **Image Binarization** - Convert to binary using optimized thresholding ⭐
-3. **Grid Line Detection** - Detect horizontal and vertical grid patterns  
-4. **Grid Mask Generation** - Create masks for removing detected grid lines
-5. **Grid Removal** - Apply masks to clean grid artifacts from images
-6. **Whole Slide Stitching** - Reconstruct full slide from cleaned tiles (via Ashlar)
+3. **Grid Line Detection** - Detect horizontal and vertical grid patterns
+4. **Detection Refinement** - Merge overlapping segments from general detection
+5. **Grid Mask Generation** - Create masks for removing detected grid lines
+6. **Grid Removal** - Apply masks to clean grid artifacts from images
+7. **Whole Slide Stitching** - Reconstruct full slide from cleaned tiles (via Ashlar)
 
 ### Core Components
 
@@ -28,8 +29,9 @@ SlidePrep/
 │   │   ├── logger.py       # Logging system
 │   │   └── debugger.py     # Debug visualization system
 │   ├── steps/              # Individual processing steps
-│   │   ├── binarization.py # Binary conversion (59 lines, optimized)
-│   │   └── grid_detection.py  # Grid pattern detection
+│   │   ├── binarization.py     # Binary conversion (59 lines, optimized)
+│   │   ├── grid_detection.py   # Grid pattern detection
+│   │   └── grid_refinement.py  # Post-process detection results
 │   ├── utils/              # Utility modules
 │   │   ├── binarization/   # Thresholding methods package
 │   │   ├── image_utils.py  # Image processing utilities
