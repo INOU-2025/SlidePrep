@@ -143,6 +143,9 @@ Controls debug visualization and output:
 **Debug Options:**
 - Debug enablement is controlled by `general.debug` (single source of truth)
 - `save_composite`: Creates before/after comparison images
+- `input_result_file_name`: JSON file containing intermediate step outputs.
+  When `read_intermediate_results` is enabled in `StepTestRunner.run_on_directory`,
+  entries from this file are paired with each image and passed to the step.
 - `path`: All debug images saved here
 - `save_results`: Persist step outputs. If `output_result_file_name` is omitted, one file per image is produced using the image name.
 

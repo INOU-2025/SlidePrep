@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Any
+from typing import Any, Optional
 
 from src.core.step import PipelineStep
 from config.config_schema import BinarizationConfig
@@ -23,7 +23,7 @@ class BinarizationStep(PipelineStep):
         super().__init__(name="binarization", config=config, **kwargs)
         self.methods = BinarizationMethods(debug_callback=self.debug)
 
-    def run(self, data: np.ndarray) -> np.ndarray:
+    def run(self, data: Any) -> tuple[Any, Optional[dict]]:
         """Convert grayscale image to binary using configured thresholding method.
         
         Automatically converts color images to grayscale before applying binarization.

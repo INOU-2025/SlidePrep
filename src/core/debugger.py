@@ -69,7 +69,7 @@ class Debugger:
         except Exception as e:
             self._logger.warning(f"Failed to save debug image {filename}: {e}")
 
-    def save_results(self, filename: str, results: Any, metadata: Any = None, data_is_aggregated: bool = False) -> None:
+    def save_results(self, filename: str, results: Any, metadata: Any = None) -> None:
         """Save processing results using attached writer if available."""
         if not self._enabled or not self._save_results:
             return
@@ -88,6 +88,6 @@ class Debugger:
                 if self._path
                 else filename
             )
-            self._writer.write(output_path, results, metadata, data_is_aggregated=data_is_aggregated)
+            self._writer.write(output_path, results, metadata)
         except Exception as e:
             self._logger.warning(f"Failed to save results to {output_path}: {e}")

@@ -1,0 +1,106 @@
+import json
+from enum import Enum
+from collections.abc import MutableMapping, Mapping
+from typing import Any, Dict, Mapping as TMapping
+import numpy as np
+from .models import Orientation, DetectionRegion, DetectionStrategy
+
+# ---- Registry built from real class names (avoids typos/dupes) ----
+_ENUM_CLASSES = (Orientation, DetectionRegion, DetectionStrategy)
+ENUM_REGISTRY: TMapping[str, type[Enum]] = {
+    cls.__name__: cls for cls in _ENUM_CLASSES}
+
+
+def _enum_to_str(e: Enum) -> str:
+    return f"{e.__class__.__name__}.{e.name}"
+
+
+def _str_to_enum(s: str) -> Enum:
+    cls_name, member_name = s.split(".", 1)
+    return ENUM_REGISTRY[cls_name][member_name]
+
+# ---- Encode/Decode ----
+
+
+def _encode(obj: Any) -> Any:
+    # Enums (keys and values)
+    if isinstance(obj, Enum):
+        return _enum_to_str(obj)
+    # NumPy arrays -> tagged
+    if isinstance(obj, np.ndarray):
+        return {"__ndarray__": obj.tolist(), "dtype": str(obj.dtype), "shape": obj.shape}
+    # NumPy scalars -> Python scalars
+    if isinstance(obj, (np.integer, np.floating, np.bool_)):
+        return obj.item()
+    # Containers
+    if isinstance(obj, dict):
+        return {(_enum_to_str(k) if isinstance(k, Enum) else k): _encode(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_encode(x) for x in obj]
+    if isinstance(obj, tuple):
+        return {"__tuple__": [_encode(x) for x in obj]}
+    # Sets etc. (optional)
+    if isinstance(obj, set):
+        return [_encode(x) for x in obj]
+    return obj
+
+
+def _decode(obj: Any) -> Any:
+    # Tagged enum string as value
+    if isinstance(obj, str) and "." in obj:
+        cls_name, member = obj.split(".", 1)
+        if cls_name in ENUM_REGISTRY and member in ENUM_REGISTRY[cls_name].__members__:
+            return _str_to_enum(obj)
+    if isinstance(obj, dict):
+        # ndarray tag
+        if "__ndarray__" in obj and "dtype" in obj and "shape" in obj:
+            arr = np.array(obj["__ndarray__"], dtype=np.dtype(obj["dtype"]))
+            if tuple(arr.shape) != tuple(obj["shape"]):
+                arr = arr.reshape(tuple(obj["shape"]))
+            return arr
+        # tuple tag
+        if "__tuple__" in obj:
+            return tuple(_decode(x) for x in obj["__tuple__"])
+        # generic dict (decode keys + values)
+        return {(_decode(k) if isinstance(k, str) else k): _decode(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_decode(x) for x in obj]
+    return obj
+
+
+def _plainify(obj: Any):
+    if isinstance(obj, (Enum, np.ndarray)):
+        return obj
+    if isinstance(obj, Mapping):
+        return {_plainify(k): _plainify(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return type(obj)(_plainify(x) for x in obj)
+    return obj
+
+# ---- Wrapper ----
+
+
+class DetectionResultDict(MutableMapping):
+    def __init__(self, *args, **kwargs):
+        self._data: Dict[Any, Any] = dict(*args, **kwargs)
+
+    def __getitem__(self, key): return self._data[key]
+    def __setitem__(self, key, value): self._data[key] = value
+    def __delitem__(self, key): del self._data[key]
+    def __iter__(self): return iter(self._data)
+    def __len__(self): return len(self._data)
+
+    def to_json(self, path: str, *, indent: int | None = 2) -> None:
+        # single pass: handles enums, arrays, scalars, etc.
+        payload = _encode(self._data)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=indent)
+
+    @classmethod
+    def from_json(cls, path: str) -> "DetectionResultDict":
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return cls(_decode(data))
+
+    def to_plain_dict(self) -> dict:
+        return _plainify(self._data)

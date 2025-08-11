@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from src.core.step import PipelineStep
 from config.config_schema import GridRefinementConfig
-from src.utils.detection.models import DetectionStrategy, Orientation
+from src.utils.detection.models import DetectionStrategy, Orientation, DetectionRegion
 from src.utils.detection.contour_analysis import analyze_contour
 from src.core.container import Container
 
@@ -29,21 +29,17 @@ class GridRefinementStep(PipelineStep):
         """Refine detection results by analyzing non-general contours.
 
         Args:
-            data: Tuple of (results, metadata) from grid detection step.
+            data: results dict from grid detection step.
 
         Returns:
             Tuple containing refined results and original metadata.
         """
-        if not isinstance(data, tuple) or len(data) != 2:
-            raise TypeError(
-                "GridRefinementStep expects (results, metadata) tuple")
-
-        results, metadata = data
-        if not isinstance(results, dict):
+        if not isinstance(data, dict):
             raise TypeError("GridRefinementStep expects results dictionary")
 
-        detections = results.get("detections", {})
-        strategies = results.get("strategies", {})
+        detections = data.get("detections", {})
+        strategies = data.get("strategies", {})
+
         refined: Dict[Orientation, Any] = {}
 
         for orientation, contour_dicts in detections.items():
@@ -74,7 +70,8 @@ class GridRefinementStep(PipelineStep):
                     contour,
                     orientation=orientation,
                     strategy=strategy,
-                    image_shape=Container.resolve("image_shape").shape
+                    image_shape=Container.resolve(
+                        "pipeline_context").image_shape
                 )
 
                 feature_values = []
@@ -106,4 +103,4 @@ class GridRefinementStep(PipelineStep):
             refined[orientation] = top_contours
 
         refined_results = {"detections": refined, "strategies": strategies}
-        return refined_results, metadata
+        return refined_results, None

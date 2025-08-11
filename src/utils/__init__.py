@@ -1,5 +1,5 @@
 from .config_manager import ConfigManager
-from .conversion_utils import make_json_serializable, make_csv_serializable
+from .conversion_utils import make_csv_serializable
 from .image_utils import (
     get_supported_image_formats,
     get_supported_image_patterns,
@@ -9,7 +9,6 @@ from .image_utils import (
 
 __all__ = [
     "ConfigManager",
-    "make_json_serializable",
     "make_csv_serializable",
     "get_supported_image_formats",
     "get_supported_image_patterns",
