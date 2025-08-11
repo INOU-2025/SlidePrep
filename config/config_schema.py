@@ -164,6 +164,7 @@ class GridRefinementConfig:
     """Configuration for grid refinement step."""
     classifier: GridRefinementClassifierConfig = field(
         default_factory=GridRefinementClassifierConfig)
+    target_inclination_angles: Optional[Dict[str, float]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         # Convert classifier dict to dataclass if needed
@@ -177,6 +178,15 @@ class GridRefinementConfig:
             raise ValueError("classifier.features must not be empty")
         if not (0.0 <= self.classifier.threshold <= 1.0):
             raise ValueError("classifier.threshold must be between 0 and 1")
+        # Validate target_inclination_angles
+        if self.target_inclination_angles:
+            required_keys = {"horizontal", "vertical", "tolerance"}
+            missing = required_keys - set(self.target_inclination_angles.keys())
+            if missing:
+                raise ValueError(f"target_inclination_angles missing keys: {missing}")
+            for k, v in self.target_inclination_angles.items():
+                if not isinstance(v, (float, int)):
+                    raise ValueError(f"target_inclination_angles[{k}] must be a float")
 
 
 @dataclass

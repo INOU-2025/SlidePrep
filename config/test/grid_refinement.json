@@ -44,6 +44,11 @@
         "length"
       ],
       "threshold": 0.5
+    },
+    "target_inclination_angles": {
+      "horizontal": 1.7,
+      "vertical": -88.3,
+      "tolerance": 1.0
     }
   },
   "log": {
