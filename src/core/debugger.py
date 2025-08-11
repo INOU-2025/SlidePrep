@@ -10,9 +10,25 @@ from src.core.logger import Logger
 
 
 class Debugger:
-    """Debugger with optional drawer for enhanced visualization and optional result writer."""
+    """Debugger with optional drawer for enhanced visualization and result persistence."""
 
-    def __init__(self, logger: Logger, debug_config: DebugConfig, debug_enabled: bool = True, drawer: Optional[Drawer] = None, writer: Optional[ResultWriter] = None):
+    def __init__(
+        self,
+        logger: Logger,
+        debug_config: DebugConfig,
+        debug_enabled: bool = True,
+        drawer: Optional[Drawer] = None,
+        writer: Optional[ResultWriter] = None,
+    ) -> None:
+        """Create a debugger instance.
+
+        Args:
+            logger: Application logger for reporting issues.
+            debug_config: Configuration controlling debug output behavior.
+            debug_enabled: Whether debugging features are active.
+            drawer: Optional drawer used to annotate images before saving.
+            writer: Optional result writer used to persist structured data.
+        """
         self._enabled = debug_enabled
         self._save_composite = debug_config.save_composite
         self._path = debug_config.path
@@ -23,8 +39,14 @@ class Debugger:
         if self._enabled and self._path:
             os.makedirs(self._path, exist_ok=True)
 
-    def _save_image(self, filename: str, image: np.ndarray, original: Optional[np.ndarray] = None) -> None:
-        """Save an image to the debug output directory."""
+    def _save_image(
+        self, filename: str, image: np.ndarray, original: Optional[np.ndarray] = None
+    ) -> None:
+        """Persist an image to the debug output directory.
+
+        Saves either the processed image or a side-by-side composite of the
+        original and processed images depending on configuration.
+        """
         if not self._enabled or image is None:
             return
 
@@ -52,8 +74,19 @@ class Debugger:
         except Exception as e:
             self._logger.warning(f"Failed to save image to {output_path}: {e}")
 
-    def save_debug_image(self, filename: str, image: np.ndarray, results=None, metadata=None) -> None:
-        """Save a debug image, using drawer if available."""
+    def save_debug_image(
+        self,
+        filename: str,
+        image: np.ndarray,
+        results: Any | None = None,
+        metadata: Any | None = None,
+    ) -> None:
+        """Generate and save a debug visualization.
+
+        Uses the attached drawer to overlay results on the original image when
+        available. If no drawer is provided, the processed image is saved
+        directly.
+        """
         if not self._enabled:
             return
 
@@ -70,12 +103,19 @@ class Debugger:
             self._logger.warning(f"Failed to save debug image {filename}: {e}")
 
     def save_results(self, filename: str, results: Any, metadata: Any = None) -> None:
-        """Save processing results using attached writer if available."""
+        """Serialize detection results using the configured writer.
+
+        Args:
+            filename: Name of the file where results will be stored.
+            results: Structured data produced by the pipeline step.
+            metadata: Optional extra information to persist alongside results.
+        """
         if not self._enabled or not self._save_results:
             return
 
         if self._writer is None:
-            self._logger.warning("No result writer attached; results not saved.")
+            self._logger.warning(
+                "No result writer attached; results not saved.")
             return
 
         if not filename:
@@ -90,4 +130,5 @@ class Debugger:
             )
             self._writer.write(output_path, results, metadata)
         except Exception as e:
-            self._logger.warning(f"Failed to save results to {output_path}: {e}")
+            self._logger.warning(
+                f"Failed to save results to {output_path}: {e}")

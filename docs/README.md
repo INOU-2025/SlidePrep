@@ -2,7 +2,7 @@
 
 Welcome to the SlidePrep documentation. This folder contains essential guides for using and understanding the SlidePrep microscopy image processing pipeline.
 
-## � Documentation Index
+## 📚 Documentation Index
 
 ### Core Guides
 - **[`SYSTEM_OVERVIEW.md`](SYSTEM_OVERVIEW.md)** - System architecture and development guide

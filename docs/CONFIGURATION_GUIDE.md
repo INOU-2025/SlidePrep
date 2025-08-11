@@ -155,12 +155,12 @@ Controls debug visualization and output:
 
 **File:** `config/production.json`
 - **Purpose:** Production-optimized configuration
-- **Usage:** `python main.py --config config/production.json`
+- **Usage:** `python main.py config/production.json`
 - **Settings:** Optimized for production (debug=false, minimal logging, WARNING level)
 
 **File:** `config/development.json`
 - **Purpose:** Development-friendly configuration
-- **Usage:** `python main.py --config config/development.json`
+- **Usage:** `python main.py config/development.json`
 - **Settings:** Developer-friendly (debug=true, verbose logging, DEBUG level, composite saves)
 
 ### Test Configurations
@@ -182,20 +182,14 @@ python src/scripts/test_binarization.py config/test/binarization.json
 ### Command Line Usage
 
 ```bash
-# Use default configuration
-python main.py --input /path/to/images
+# Run with the sample production configuration
+python main.py config/production.json
 
-# Use production configuration (optimized)
-python main.py --config config/production.json
+# Run with the development configuration
+python main.py config/development.json
 
-# Use development configuration (debug-friendly)
-python main.py --config config/development.json
-
-# Use custom configuration
-python main.py --config /path/to/custom_config.json
-
-# Override specific settings
-python main.py --input /path/to/images --suffix "_ch00"
+# Use a custom configuration file
+python main.py path/to/custom_config.json
 ```
 
 ### Programmatic Usage

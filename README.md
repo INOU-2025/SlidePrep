@@ -10,11 +10,11 @@ A modular, production-ready image processing pipeline for generating high-qualit
 
 ### Production Use (Recommended)
 ```bash
-# Process a directory of images with optimized defaults
-python main.py --input /path/to/your/tiles
+# Run the pipeline using a configuration file
+python main.py config/production.json
 
-# Filter specific files (e.g., only process files ending with '_ch00')
-python main.py --input /path/to/tiles --suffix "_ch00"
+# Edit the configuration to change paths or apply a suffix filter
+python main.py path/to/custom_config.json
 ```
 
 ---
@@ -40,7 +40,8 @@ python main.py --input /path/to/tiles --suffix "_ch00"
 SlidePrep/
 ├── config/                       # Configuration schemas and settings
 │   ├── config_schema.py         # Typed configuration classes
-│   └── init_config.json         # Default production settings
+│   ├── production.json          # Sample production configuration
+│   └── development.json         # Sample development configuration
 ├── docs/                        # Comprehensive documentation
 ├── src/                         # Source code
 │   ├── core/                    # Core pipeline infrastructure
@@ -99,27 +100,24 @@ pip install -r requirements.txt
 
 ### Complete Pipeline
 ```bash
-# Process all images in a directory
-python main.py --input /path/to/microscopy/tiles
+# Run with the sample production configuration
+python main.py config/production.json
 
-# Process only specific files (e.g., channel 0)
-python main.py --input /path/to/tiles --suffix "_ch00"
-
-# Use custom configuration
-python main.py --input /path/to/tiles --config my_config.json
+# Use a custom configuration file
+python main.py path/to/config.json
 ```
 
 ### Individual Step Testing
 ```bash
 # Test binarization on sample images
-python src/scripts/test_binarization.py --config config/test/binarization.json
+python src/scripts/test_binarization.py config/test/binarization.json
 
 # Test grid detection with visualization
 python src/scripts/test_detection.py config/test/grid_detection.json
 
 # Run grid refinement on serialized detection output
 # (set `debug.input_result_file_name` in your config)
-python main.py --config config/development.json
+python main.py config/development.json
 ```
 
 ---
