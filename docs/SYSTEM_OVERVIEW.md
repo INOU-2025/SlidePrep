@@ -227,10 +227,13 @@ step = GridDetectionStep(
 runner.run_on_directory(step, "grid_detection")
 ```
 
-If ``test.input_type`` is ``"data"``, ``StepTestRunner`` expects JSON files in
-``test.input_path`` and automatically pairs them with the original images from
-``general.input_path``. The pipeline context is refreshed for every file to
-emulate full pipeline execution.
+For each processed file, ``StepTestRunner`` searches ``general.input_path`` for
+an image with the same filename and stores its path in the pipeline context.
+This enables steps to load the original image even when their direct input is a
+mask or other intermediate data. If ``test.input_type`` is ``"data"``, the
+runner expects JSON files in ``test.input_path`` and pairs them with these
+source images, refreshing the pipeline context for every file to emulate full
+pipeline execution.
 
 ### Logging System
 Comprehensive logging for monitoring and debugging:

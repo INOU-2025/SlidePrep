@@ -69,9 +69,12 @@ class StepTestRunner:
 
         Behaviour depends on ``test.input_type``:
 
-        - ``"image"`` (default): images from ``test.input_path`` (or
-          ``general.input_path`` if unspecified) are passed directly to
-          ``step.run``.
+        - ``"image"`` (default): files from ``test.input_path`` are passed
+          directly to ``step.run``. For each file, the runner looks for a
+          source image with the same filename in ``general.input_path`` and
+          stores its path in the pipeline context. This allows steps to load the
+          original image independently (useful when the provided file is a
+          mask).
         - ``"data"``: JSON files from ``test.input_path`` are loaded and
           provided to ``step.run``. Corresponding source images are located in
           ``general.input_path`` and the pipeline context is updated with their
@@ -132,29 +135,35 @@ class StepTestRunner:
                 read_data = test_cfg and test_cfg.input_type == "data"
                 base_name = os.path.splitext(fname)[0]
 
-                ctx = get_pipeline_context()
-                ctx.input_image_path = None 
+                data_path = os.path.join(input_dir, fname)
 
-                if read_data:
-                    data_path = os.path.join(input_dir, fname)
-                    image_path = None
+                context_image_path = None
+                candidate = os.path.join(gen_cfg.input_path, fname)
+                if os.path.exists(candidate):
+                    context_image_path = candidate
+                else:
                     for ext in supported_formats:
                         candidate = os.path.join(gen_cfg.input_path, base_name + ext)
                         if os.path.exists(candidate):
-                            image_path = candidate
+                            context_image_path = candidate
                             break
-                    if image_path is None:
-                        self._logger.warning(
-                            f"No source image found for {fname} in {gen_cfg.input_path}"
-                        )
-                        continue
-                else:
-                    image_path = os.path.join(input_dir, fname)
 
-                image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-                if image is None:
-                    self._logger.warning(f"Could not load {image_path}")
+                if context_image_path is None:
+                    self._logger.warning(
+                        f"No source image found for {fname} in {gen_cfg.input_path}"
+                    )
                     continue
+
+                ctx = get_pipeline_context()
+                ctx.input_image_path = context_image_path
+
+                source_image = cv2.imread(context_image_path, cv2.IMREAD_GRAYSCALE)
+                if source_image is None:
+                    self._logger.warning(
+                        f"Could not load {context_image_path}"
+                    )
+                    continue
+                ctx.image_shape = (source_image.shape[1], source_image.shape[0])
 
                 self._logger.debug(f"Processing {fname}")
 
@@ -167,11 +176,18 @@ class StepTestRunner:
                         )
                     result, metadata = step.run(intermediate_data)
                 else:
-                    result, metadata = step.run(image)
+                    if data_path == context_image_path:
+                        data_image = source_image
+                    else:
+                        data_image = cv2.imread(data_path, cv2.IMREAD_GRAYSCALE)
+                        if data_image is None:
+                            self._logger.warning(f"Could not load {data_path}")
+                            continue
+                    result, metadata = step.run(data_image)
 
                 image_debug_filename = f"{base_name}.png"
                 self._debugger.save_debug_image(
-                    image_debug_filename, image, result, metadata
+                    image_debug_filename, source_image, result, metadata
                 )
 
                 if not isinstance(result, (np.ndarray,)):

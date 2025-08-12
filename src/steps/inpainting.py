@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image
 from simple_lama_inpainting import SimpleLama
 
+from src.core.bootstrap import get_pipeline_context
 from src.core.step import PipelineStep
 from config.config_schema import InpaintingConfig
 
@@ -22,20 +23,33 @@ class InpaintingStep(PipelineStep):
             raise ValueError(
                 f"Unsupported inpainting model: {self.config.model}")
 
-    def run(self, data: Any) -> tuple[np.ndarray, Optional[dict]]:
-        """Inpaint image regions defined by the mask."""
-        if not isinstance(data, dict):
-            raise TypeError(
-                "InpaintingStep expects a dict with 'image' and 'mask' entries")
+    def run(self, mask: Any) -> tuple[np.ndarray, Optional[dict]]:
+        """Inpaint image regions defined by ``mask``.
+        The source image is loaded from the pipeline context using
+        ``input_image_path``. Only the mask is provided as input data.
 
-        image = data.get("image")
-        mask = data.get("mask")
-        if image is None or mask is None:
-            raise ValueError(
-                "Input dictionary must contain 'image' and 'mask'")
+        Parameters
+        ----------
+        mask: Any
+            Binary mask where inpainted regions are marked.
 
-        self._validate_image_input(image)
+        Returns
+        -------
+        tuple[np.ndarray, Optional[dict]]
+            The inpainted image and optional metadata (``None``).
+        """
+
         self._validate_image_input(mask)
+
+        ctx = get_pipeline_context()
+        image_path = ctx.input_image_path
+        if not image_path:
+            raise ValueError(
+                "Pipeline context must contain 'input_image_path'")
+
+        image = Image.open(image_path).convert("RGB")
+        image = np.array(image)
+        self._validate_image_input(image)
 
         result = self._model(image, mask)
         if isinstance(result, Image.Image):
