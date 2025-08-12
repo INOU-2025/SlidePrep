@@ -199,6 +199,11 @@ step = MyStep(config=runner.cfg.my_config, debugger=runner.debugger, logger=runn
 runner.run_on_directory(step, "my_step_results")
 ```
 
+When ``test.input_type`` is set to ``"data"``, the runner reads JSON files from
+``test.input_path`` and locates the corresponding source images in
+``general.input_path``. The pipeline context is updated for each item to mimic
+full pipeline execution.
+
 ## Best Practices
 
 ### Error Handling

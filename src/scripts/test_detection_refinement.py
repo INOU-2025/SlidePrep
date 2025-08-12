@@ -8,7 +8,7 @@ import numpy as np
 # Ensure project root is on Python path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from src.scripts.module_test_runner import StepTestRunner
+from src.scripts.test_runner import StepTestRunner
 from src.steps import GridRefinementStep
 from src.utils.debug.detection_drawer import DetectionDrawer
 from src.utils.debug.detection_result_writer import DetectionResultWriter

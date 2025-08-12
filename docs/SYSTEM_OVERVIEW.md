@@ -214,7 +214,7 @@ result = step.run(image)
 Simplified testing with automatic debug output:
 
 ```python
-from scripts.module_test_runner import StepTestRunner
+from src.scripts.test_runner import StepTestRunner
 
 runner = StepTestRunner(config_path)
 step = GridDetectionStep(
@@ -226,6 +226,11 @@ step = GridDetectionStep(
 # Process entire directory with automatic debug visualization
 runner.run_on_directory(step, "grid_detection")
 ```
+
+If ``test.input_type`` is ``"data"``, ``StepTestRunner`` expects JSON files in
+``test.input_path`` and automatically pairs them with the original images from
+``general.input_path``. The pipeline context is refreshed for every file to
+emulate full pipeline execution.
 
 ### Logging System
 Comprehensive logging for monitoring and debugging:

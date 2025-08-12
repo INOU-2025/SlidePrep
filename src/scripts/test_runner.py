@@ -66,16 +66,28 @@ class StepTestRunner:
     ) -> None:
         """
         Process all items in the configured input directory.
-        When ``test.input_type`` is ``"data"``, the runner loads serialized
-        results (``*.json``) alongside each image and passes them to
-        ``step.run``.
+
+        Behaviour depends on ``test.input_type``:
+
+        - ``"image"`` (default): images from ``test.input_path`` (or
+          ``general.input_path`` if unspecified) are passed directly to
+          ``step.run``.
+        - ``"data"``: JSON files from ``test.input_path`` are loaded and
+          provided to ``step.run``. Corresponding source images are located in
+          ``general.input_path`` and the pipeline context is updated with their
+          paths before processing.
 
         Returns
         -------
-        If any non-image results are produced, returns a list of aggregated results.
-        Otherwise, returns None.
+        None
+            Aggregated results are written to disk when configured.
         """
-        input_dir = self._cfg.general_config.input_path
+        gen_cfg = self._cfg.general_config
+        test_cfg = self._cfg.test_config
+
+        input_dir = (
+            test_cfg.input_path if test_cfg and test_cfg.input_path else gen_cfg.input_path
+        )
         if not input_dir or not os.path.exists(input_dir):
             self._logger.error(
                 f"Input directory not found or not specified: {input_dir}"
@@ -83,23 +95,31 @@ class StepTestRunner:
             return
 
         supported_formats = get_supported_image_formats()
-        image_files = []
-        for fname in sorted(os.listdir(input_dir)):
-            if fname.lower().endswith(supported_formats):
-                if self._cfg.general_config.suffix_filter:
-                    name_without_ext = os.path.splitext(fname)[0]
-                    if not name_without_ext.endswith(
-                        self._cfg.general_config.suffix_filter
-                    ):
-                        continue
-                image_files.append(fname)
+        if test_cfg and test_cfg.input_type == "data":
+            files = []
+            for fname in sorted(os.listdir(input_dir)):
+                if fname.lower().endswith(".json"):
+                    if gen_cfg.suffix_filter:
+                        name_without_ext = os.path.splitext(fname)[0]
+                        if not name_without_ext.endswith(gen_cfg.suffix_filter):
+                            continue
+                    files.append(fname)
+        else:
+            files = []
+            for fname in sorted(os.listdir(input_dir)):
+                if fname.lower().endswith(supported_formats):
+                    if gen_cfg.suffix_filter:
+                        name_without_ext = os.path.splitext(fname)[0]
+                        if not name_without_ext.endswith(gen_cfg.suffix_filter):
+                            continue
+                    files.append(fname)
 
-        if not image_files:
-            self._logger.warning(f"No supported images found in {input_dir}")
+        if not files:
+            self._logger.warning(f"No supported inputs found in {input_dir}")
             return
 
         self._logger.info(
-            f"Starting batch processing of {len(image_files)} images from {input_dir}"
+            f"Starting batch processing of {len(files)} items from {input_dir}"
         )
 
         processed = 0
@@ -115,24 +135,40 @@ class StepTestRunner:
 
         aggregated_results: List[Dict] = []
 
-        for fname in image_files:
+        for fname in files:
             try:
-                image_path = os.path.join(input_dir, fname)
+                read_data = test_cfg and test_cfg.input_type == "data"
+                base_name = os.path.splitext(fname)[0]
+
+                if read_data:
+                    data_path = os.path.join(input_dir, fname)
+                    image_path = None
+                    for ext in supported_formats:
+                        candidate = os.path.join(gen_cfg.input_path, base_name + ext)
+                        if os.path.exists(candidate):
+                            image_path = candidate
+                            break
+                    if image_path is None:
+                        self._logger.warning(
+                            f"No source image found for {fname} in {gen_cfg.input_path}"
+                        )
+                        continue
+                else:
+                    image_path = os.path.join(input_dir, fname)
+
                 image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
                 if image is None:
-                    self._logger.warning(f"Could not load {fname}")
+                    self._logger.warning(f"Could not load {image_path}")
                     continue
 
-                base_name = os.path.splitext(fname)[0]
+                ctx = get_pipeline_context()
+                ctx.input_image_path = image_path
+                ctx.image_shape = (image.shape[1], image.shape[0])
+
                 self._logger.debug(f"Processing {fname}")
 
-                read_data = (
-                    self._cfg.test_config
-                    and self._cfg.test_config.input_type == "data"
-                )
                 if read_data:
-                    result_path = os.path.splitext(image_path)[0] + ".json"
-                    dict_with_enum = DetectionResultDict.from_json(result_path)
+                    dict_with_enum = DetectionResultDict.from_json(data_path)
                     intermediate_data = dict_with_enum.to_plain_dict()
                     if intermediate_data is None:
                         self._logger.warning(
@@ -160,7 +196,7 @@ class StepTestRunner:
                 self._logger.error(f"Error processing {fname}: {e}")
 
         self._logger.info(
-            f"Batch processing completed: {processed}/{len(image_files)} images processed successfully"
+            f"Batch processing completed: {processed}/{len(files)} items processed successfully"
         )
 
         if result_filename and len(aggregated_results) > 0:

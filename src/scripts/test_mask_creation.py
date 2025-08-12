@@ -1,5 +1,5 @@
 from src.steps import MaskCreationStep
-from src.scripts.module_test_runner import StepTestRunner
+from src.scripts.test_runner import StepTestRunner
 import argparse
 import sys
 from pathlib import Path
