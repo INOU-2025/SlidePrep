@@ -15,11 +15,16 @@
     "log_to_console": false,
     "log_file_name": "binarization_test.log",
     "log_level": "DEBUG",
-    "path": "/Users/irconde/Downloads/V2_170225_exp250225/bin"
+    "relative_path": "log"
   },
   "debug": {
-    "path": "/Users/irconde/Downloads/V2_170225_exp250225/bin",
-    "save_composite": false,
-    "save_results": false
+    "relative_path": "debug",
+    "saved_artifact_type": "image",
+    "save_composite_img": false,
+    "save_aggregated_data": false
+  },
+  "test": {
+    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225",
+    "output_path": "/Users/irconde/Downloads/V2_170225_exp250225/bin"
   }
 }

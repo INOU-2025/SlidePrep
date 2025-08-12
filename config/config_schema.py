@@ -13,6 +13,7 @@ class GeneralConfig:
     pipeline. Provides validation to ensure paths exist and settings are
     coherent before processing begins.
     """
+
     input_path: str = ""  # Source file or directory path
     output_path: str = "output"  # Destination directory for results
     suffix_filter: str = ""  # File suffix filter for batch processing
@@ -32,6 +33,19 @@ class GeneralConfig:
 
 
 @dataclass
+class TestConfig:
+    """Configuration overrides used when running isolated tests."""
+
+    input_path: str = ""  # Path containing test images
+    output_path: str = ""  # Directory where test results are written
+
+    def __post_init__(self) -> None:  # pragma: no cover - simple validation
+        if self.input_path and not os.path.exists(self.input_path):
+            raise ValueError(
+                f"Test input path does not exist: {self.input_path}")
+
+
+@dataclass
 class BinarizationConfig:
     """
     Configuration for image binarization processing step.
@@ -40,6 +54,7 @@ class BinarizationConfig:
     images to binary format. Supports both adaptive and global thresholding
     algorithms with automatic parameter selection or custom optimization.
     """
+
     threshold_method: str = "combined_differential"  # Binarization algorithm name
 
     def __post_init__(self) -> None:
@@ -50,12 +65,21 @@ class BinarizationConfig:
             ValueError: If threshold_method is not a supported algorithm
         """
         valid_methods = {
-            "otsu", "triangle", "li", "yen", "isodata", "minimum",
-            "combined_differential", "adaptive_gaussian", "adaptive_mean"
+            "otsu",
+            "triangle",
+            "li",
+            "yen",
+            "isodata",
+            "minimum",
+            "combined_differential",
+            "adaptive_gaussian",
+            "adaptive_mean",
         }
         if self.threshold_method.lower() not in valid_methods:
-            raise ValueError(f"Invalid threshold method: {self.threshold_method}. "
-                             f"Valid methods: {', '.join(sorted(valid_methods))}")
+            raise ValueError(
+                f"Invalid threshold method: {self.threshold_method}. "
+                f"Valid methods: {', '.join(sorted(valid_methods))}"
+            )
 
 
 @dataclass
@@ -65,6 +89,7 @@ class GridDetectionConfig:
 
     Contains all adaptive detector settings directly without extra nesting.
     """
+
     # Global template matching settings
     threshold: float = 0.1
     angles: Optional[List[float]] = None
@@ -84,7 +109,8 @@ class GridDetectionConfig:
         """Validate settings and ensure all required configurations are provided."""
         if self.cache_max_size <= 0:
             raise ValueError(
-                f"cache_max_size must be positive, got: {self.cache_max_size}")
+                f"cache_max_size must be positive, got: {self.cache_max_size}"
+            )
 
         # Set default angles if not provided
         if self.angles is None:
@@ -93,13 +119,15 @@ class GridDetectionConfig:
         # Validate global settings
         if not 0 <= self.threshold <= 1:
             raise ValueError(
-                f"threshold must be between 0 and 1, got: {self.threshold}")
+                f"threshold must be between 0 and 1, got: {self.threshold}"
+            )
         if not self.angles:
             raise ValueError("angles cannot be empty")
         for angle in self.angles:
             if not -45 <= angle <= 45:
                 raise ValueError(
-                    f"angles must be between -45 and 45 degrees, got: {angle}")
+                    f"angles must be between -45 and 45 degrees, got: {angle}"
+                )
 
         # Ensure all strategy configurations are provided
         if self.general is None:
@@ -113,7 +141,7 @@ class GridDetectionConfig:
         for strategy_name, strategy_config in [
             ("general", self.general),
             ("thick_border", self.thick_border),
-            ("thin_border", self.thin_border)
+            ("thin_border", self.thin_border),
         ]:
             self._validate_strategy_config(strategy_name, strategy_config)
 
@@ -154,6 +182,7 @@ class GridDetectionConfig:
 @dataclass
 class GridRefinementClassifierConfig:
     """Classifier configuration for grid refinement."""
+
     model_path: str = ""
     features: List[str] = field(default_factory=list)
     threshold: float = 0.5
@@ -162,8 +191,10 @@ class GridRefinementClassifierConfig:
 @dataclass
 class GridRefinementConfig:
     """Configuration for grid refinement step."""
+
     classifier: GridRefinementClassifierConfig = field(
-        default_factory=GridRefinementClassifierConfig)
+        default_factory=GridRefinementClassifierConfig
+    )
     target_inclination_angles: Dict[str, float] = field(default_factory=dict)
     target_thickness: int = 22
     thickness_bias: float = 0.90
@@ -175,9 +206,12 @@ class GridRefinementConfig:
         if self.classifier is None:
             raise ValueError(
                 "classifier configuration is required for grid refinement")
-        if self.classifier.model_path and not os.path.isfile(self.classifier.model_path):
+        if self.classifier.model_path and not os.path.isfile(
+            self.classifier.model_path
+        ):
             raise ValueError(
-                f"classifier.model_path does not exist: {self.classifier.model_path}")
+                f"classifier.model_path does not exist: {self.classifier.model_path}"
+            )
         if not self.classifier.features:
             raise ValueError("classifier.features must not be empty")
         if not (0.0 <= self.classifier.threshold <= 1.0):
@@ -213,62 +247,51 @@ class InpaintingConfig:
         if self.model.lower() not in valid_models:
             raise ValueError(
                 f"Invalid inpainting model: {self.model}. "
-                f"Valid models: {', '.join(sorted(valid_models))}")
+                f"Valid models: {', '.join(sorted(valid_models))}"
+            )
         if self.mask_path and not os.path.isdir(self.mask_path):
             raise ValueError(f"mask_path does not exist: {self.mask_path}")
 
 
 @dataclass
 class DebugConfig:
-    """
-    Configuration for debugging and visualization output.
+    """Debug configuration for controlling artifact generation."""
 
-    Controls the generation of debug artifacts including intermediate
-    images, composite visualizations, and detailed processing logs
-    for development and troubleshooting purposes.
-    """
-    path: str = "debug"  # Directory for debug artifacts
-    save_composite: bool = False  # Generate composite visualization images
-    save_results: bool = False  # Save numeric results to a file
-    # Read intermediate results for debugging
+    relative_path: str = "debug"  # Location inside the run's output directory
+    saved_artifact_type: str = "image"  # "image", "data", or "both"
+    save_composite_img: bool = False  # Generate composite visualization images
+    save_aggregated_data: bool = False  # Persist aggregated results
     read_intermediate_results: Optional[bool] = False
-    # Filename for aggregated results. If None, a separate file is written per input image.
-    output_result_file_name: Optional[str] = None
-    # Filename to read input intermediate results for debugging
     input_result_file_name: Optional[str] = None
+    result_file_name: str = field(default="aggregated_data.json", init=False)
+    path: str = field(init=False, default="")
 
-    def __post_init__(self) -> None:
-        if self.input_result_file_name:
-            full_path = os.path.join(self.path, self.input_result_file_name)
-            if not os.path.isfile(full_path):
-                raise ValueError(
-                    f"Intermediate results file does not exist: {full_path}"
-                )
+    def __post_init__(self) -> None:  # pragma: no cover - simple validation
+        valid_types = {"image", "data", "both"}
+        if self.saved_artifact_type not in valid_types:
+            raise ValueError(
+                "saved_artifact_type must be one of 'image', 'data', or 'both'"
+            )
+        # The actual path is resolved by AppConfigManager
+        self.path = self.relative_path
 
 
 @dataclass
 class LogConfig:
-    """
-    Configuration for application logging system.
+    """Configuration for application logging system."""
 
-    Defines log output destinations, verbosity levels, and file naming
-    conventions. Supports both console and file output with configurable
-    log levels for different deployment scenarios.
-    """
-    log_to_file: bool = False  # Enable file-based logging
-    log_to_console: bool = True  # Enable console logging output
-    log_file_name: str = "app.log"  # Log file name
-    log_level: str = "INFO"  # Minimum log level to capture
-    path: str = "logs"  # Directory for log files
+    log_to_file: bool = False
+    log_to_console: bool = True
+    log_file_name: str = "app.log"
+    log_level: str = "INFO"
+    relative_path: str = "log"
+    path: str = field(init=False, default="")
 
-    def __post_init__(self) -> None:
-        """
-        Validate logging configuration parameters.
-
-        Raises:
-            ValueError: If log_level is not a standard logging level
-        """
+    def __post_init__(self) -> None:  # pragma: no cover - simple validation
         valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
         if self.log_level.upper() not in valid_levels:
-            raise ValueError(f"Invalid log level: {self.log_level}. "
-                             f"Valid levels: {', '.join(sorted(valid_levels))}")
+            raise ValueError(
+                f"Invalid log level: {self.log_level}. "
+                f"Valid levels: {', '.join(sorted(valid_levels))}"
+            )
+        self.path = self.relative_path

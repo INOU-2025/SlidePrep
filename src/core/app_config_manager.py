@@ -1,6 +1,8 @@
 from typing import List, Optional
+import os
 from config.config_schema import (
     GeneralConfig,
+    TestConfig,
     BinarizationConfig,
     GridDetectionConfig,
     GridRefinementConfig,
@@ -27,6 +29,17 @@ class AppConfigManager(ConfigManager):
         """Extract and validate configuration values into typed objects with graceful handling."""
         try:
             self.general_config = GeneralConfig(**self.get("general", {}))
+            test_cfg = self.get("test")
+            self.test_config = TestConfig(**test_cfg) if test_cfg else None
+            if self.test_config:
+                if self.test_config.input_path:
+                    if not os.path.exists(self.test_config.input_path):
+                        raise ValueError(
+                            f"Test input path does not exist: {self.test_config.input_path}"
+                        )
+                    self.general_config.input_path = self.test_config.input_path
+                if self.test_config.output_path:
+                    self.general_config.output_path = self.test_config.output_path
 
             bin_config = self.get("binarization")
             self.binarization_config = (
@@ -51,9 +64,18 @@ class AppConfigManager(ConfigManager):
             self.log_config = LogConfig(**self.get("log", {}))
             self.debug_config = DebugConfig(**self.get("debug", {}))
 
+            base_output = self.general_config.output_path
+            self.log_config.path = os.path.join(
+                base_output, self.log_config.relative_path
+            )
+            self.debug_config.path = os.path.join(
+                base_output, self.debug_config.relative_path
+            )
+
         except TypeError as e:
             raise ValueError(
-                f"Error extracting config values. Malformed configuration: {e}") from e
+                f"Error extracting config values. Malformed configuration: {e}"
+            ) from e
 
     @property
     def logger_active(self) -> bool:

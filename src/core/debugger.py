@@ -20,19 +20,16 @@ class Debugger:
         drawer: Optional[Drawer] = None,
         writer: Optional[ResultWriter] = None,
     ) -> None:
-        """Create a debugger instance.
+        """Create a debugger instance."""
 
-        Args:
-            logger: Application logger for reporting issues.
-            debug_config: Configuration controlling debug output behavior.
-            debug_enabled: Whether debugging features are active.
-            drawer: Optional drawer used to annotate images before saving.
-            writer: Optional result writer used to persist structured data.
-        """
         self._enabled = debug_enabled
-        self._save_composite = debug_config.save_composite
+        self._save_images = debug_config.saved_artifact_type in {"image", "both"}
+        self._save_composite = debug_config.save_composite_img
         self._path = debug_config.path
-        self._save_results = debug_config.save_results
+        self._save_results = (
+            debug_config.saved_artifact_type in {"data", "both"}
+            and debug_config.save_aggregated_data
+        )
         self._logger = logger
         self._drawer = drawer
         self._writer = writer
@@ -47,15 +44,11 @@ class Debugger:
         Saves either the processed image or a side-by-side composite of the
         original and processed images depending on configuration.
         """
-        if not self._enabled or image is None:
+        if not self._enabled or not self._save_images or image is None:
             return
 
         try:
-            output_path = (
-                os.path.join(self._path, filename)
-                if self._path
-                else filename
-            )
+            output_path = os.path.join(self._path, filename) if self._path else filename
 
             if original is not None and self._save_composite:
                 base = original
@@ -114,8 +107,7 @@ class Debugger:
             return
 
         if self._writer is None:
-            self._logger.warning(
-                "No result writer attached; results not saved.")
+            self._logger.warning("No result writer attached; results not saved.")
             return
 
         if not filename:
@@ -123,12 +115,7 @@ class Debugger:
             return
 
         try:
-            output_path = (
-                os.path.join(self._path, filename)
-                if self._path
-                else filename
-            )
+            output_path = os.path.join(self._path, filename) if self._path else filename
             self._writer.write(output_path, results, metadata)
         except Exception as e:
-            self._logger.warning(
-                f"Failed to save results to {output_path}: {e}")
+            self._logger.warning(f"Failed to save results to {output_path}: {e}")

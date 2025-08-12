@@ -16,22 +16,18 @@ These configurations are separate from the main pipeline configuration (`init_co
 ### Current Test Configurations
 
 - **`binarization.json`**: Configuration for testing binarization methods
-  - Contains only: `general`, `binarization`, `log`, `debug` sections
+  - Contains: `general`, `binarization`, `log`, `debug`, `test` sections
   - Input filter: `_raw` suffix (processes raw grayscale images)
-  - Output suffix: `_binarized` (generates binarized results)
-  - No output path defined (testing focuses on debug visualization)
+  - Output suffix: `_binarized`
   - Debug and logging always enabled for analysis
-  - Debug output directory: `debug/test_binarization`
-  - Result file name: `results.csv`
+  - Debug artifacts stored under `<test.output_path>/debug`
 
 - **`grid_detection.json`**: Configuration for testing grid detection algorithms
-  - Contains only: `general`, `grid_detection`, `log`, `debug` sections
+  - Contains: `general`, `grid_detection`, `log`, `debug`, `test` sections
   - Input filter: `_binarized` suffix (processes pre-binarized images)
-  - Output suffix: `_grid_detected` (generates detection results)
-  - No output path defined (testing focuses on debug visualization)
+  - Output suffix: `_grid_detected`
   - Debug and logging always enabled for analysis
-  - Debug output directory: `debug/test_grid_detection`
-  - Result file name: `results.csv`
+  - Debug artifacts stored under `<test.output_path>/debug`
   - No binarization section - expects pre-binarized images
 
 ### Legacy Test Configurations
@@ -43,7 +39,7 @@ These configurations are separate from the main pipeline configuration (`init_co
 
 Test configurations are designed for algorithm development and validation:
 
-- **No output paths**: Testing focuses on debug visualization, not file output
+- **Explicit test paths**: `test.input_path` and `test.output_path` isolate test data and results
 - **Suffix filtering**: Process specific file types (e.g., `_raw` for grayscale, `_binarized` for binary)
 - **Debug always enabled**: Essential for understanding algorithm behavior
 - **Console logging**: Immediate feedback during testing
@@ -54,12 +50,12 @@ Test configurations are designed for algorithm development and validation:
 ```bash
 # 1. Test binarization on raw grayscale images
 python src/scripts/test_binarization.py config/test/binarization.json
-# Input: image001_raw.png → Debug: debug/test_binarization/image001_raw_binarized.png
+# Input: image001_raw.png → Debug: <test.output_path>/debug/image001_raw_binarized.png
 # Result suffix: _binarized
 
 # 2. Test grid detection on pre-binarized images
 python src/scripts/test_detection.py config/test/grid_detection.json
-# Input: image001_binarized.png → Debug: debug/test_grid_detection/image001_binarized_grid_detected.png
+# Input: image001_binarized.png → Debug: <test.output_path>/debug/image001_binarized_grid_detected.png
 # Result suffix: _grid_detected
 ```
 
@@ -70,9 +66,10 @@ This creates a clear pipeline: `raw` → `binarized` → `grid_detected`
 When creating new test configurations:
 
 1. **Follow naming convention**: `{step_name}_test_config.json`
-2. **Include debug settings**: Enable visualization and set appropriate output directories
-3. **Optimize for testing**: Focus on the specific step being tested
-4. **Document parameters**: Add comments or maintain this README
+2. **Include test paths**: Add a `test` section with `input_path` and `output_path`
+3. **Include debug settings**: Enable visualization and set relative directories
+4. **Optimize for testing**: Focus on the specific step being tested
+5. **Document parameters**: Add comments or maintain this README
 
 ## Structure
 
@@ -88,11 +85,18 @@ Test configurations should only include sections relevant to the step being test
   "binarization": {
     "threshold_method": "combined_differential"
   },
-  "log": { ... },
+  "log": {
+    "relative_path": "log"
+  },
   "debug": {
-    "path": "debug/test_binarization",
-    "save_results": false,
-    "output_result_file_name": "results"
+    "relative_path": "debug",
+    "saved_artifact_type": "image",
+    "save_composite_img": false,
+    "save_aggregated_data": false
+  },
+  "test": {
+    "input_path": "/path/to/test/images",
+    "output_path": "/path/to/test/output"
   }
 }
 ```
@@ -105,14 +109,21 @@ Test configurations should only include sections relevant to the step being test
     "debug": true
   },
   "grid_detection": {
-    "angle_deg": 2.0,
+    "angle_deg": 2.0
     // ... other grid detection parameters
   },
-  "log": { ... },
+  "log": {
+    "relative_path": "log"
+  },
   "debug": {
-    "path": "debug/test_grid_detection",
-    "save_results": true,
-    "output_result_file_name": "results"
+    "relative_path": "debug",
+    "saved_artifact_type": "both",
+    "save_composite_img": false,
+    "save_aggregated_data": true
+  },
+  "test": {
+    "input_path": "/path/to/test/images",
+    "output_path": "/path/to/test/output"
   }
 }
 ```

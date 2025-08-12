@@ -12,7 +12,7 @@
     "log_to_console": true,
     "log_file_name": "dev.log",
     "log_level": "DEBUG",
-    "path": "logs"
+    "relative_path": "log"
   },
   "binarization": {
     "threshold_method": "combined_differential"
@@ -63,8 +63,9 @@
     "mask_suffix": "_mask"
   },
   "debug": {
-    "path": "debug",
-    "save_composite": true,
-    "save_results": true
+    "relative_path": "debug",
+    "saved_artifact_type": "both",
+    "save_composite_img": true,
+    "save_aggregated_data": true
   }
 }

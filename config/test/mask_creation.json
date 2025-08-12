@@ -1,6 +1,6 @@
 {
   "general": {
-    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection-refined",
+    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225",
     "suffix_filter": "",
     "output_path": "",
     "output_suffix": "_mask",
@@ -12,12 +12,17 @@
     "log_to_console": false,
     "log_file_name": "mask_creation.log",
     "log_level": "DEBUG",
-    "path": "/Users/irconde/Downloads/V2_170225_exp250225/mask-generation"
+    "relative_path": "log"
   },
   "debug": {
-    "path": "/Users/irconde/Downloads/V2_170225_exp250225/mask-generation",
-    "save_composite": false,
-    "save_results": false,
+    "relative_path": "debug",
+    "saved_artifact_type": "image",
+    "save_composite_img": false,
+    "save_aggregated_data": false,
     "read_intermediate_results": true
+  },
+  "test": {
+    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection-refined",
+    "output_path": "/Users/irconde/Downloads/V2_170225_exp250225/mask-generation"
   }
 }

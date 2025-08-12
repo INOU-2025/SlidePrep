@@ -156,18 +156,18 @@ Debug visualization is controlled by the debug configuration:
 ```json
 {
   "debug": {
-    "save_composite": false,
-    "path": "/path/to/debug/output",
-    "save_results": true,
-    "output_result_file_name": "results"
+    "relative_path": "debug",
+    "saved_artifact_type": "both",
+    "save_composite_img": false,
+    "save_aggregated_data": true
   }
 }
 ```
 
-- **`save_composite`**: Create side-by-side comparisons when possible
-- **`path`**: Directory where debug images are saved
-- **`save_results`**: Save step results using a configured writer
-- **`output_result_file_name`**: Name of the file used to store aggregated results. If omitted, one file per input image is created using the image's base name.
+- **`relative_path`**: Directory inside the run's output where artifacts are stored
+- **`saved_artifact_type`**: Specify whether to save images, data, or both
+- **`save_composite_img`**: Create side-by-side comparisons when possible
+- **`save_aggregated_data`**: Persist step results to `aggregated_data.json`
 
 ## Usage Patterns
 
@@ -236,7 +236,7 @@ Use consistent naming patterns for debug files:
 
 **Debug images not created**
 - Check `debug.enabled` in config
-- Verify `path` exists and is writable
+- Verify output directory is writable
 - Check that drawer is registered: `Debugger.get_registered_drawers()`
 - Ensure `debugger.save_debug_image()` is called with correct step key
 

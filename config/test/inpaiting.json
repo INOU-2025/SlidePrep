@@ -1,6 +1,6 @@
 {
   "general": {
-    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/raw", 
+    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225", 
     "suffix_filter": "",
     "output_path": "",
     "output_suffix": "_inpainted",
@@ -8,20 +8,23 @@
     "debug": true
   },
   "inpainting": {
-    "model": "lama",
-    "mask_path": "/Users/irconde/Downloads/V2_170225_exp250225/mask-generation",
-    "mask_suffix": "_mask"
+    "model": "lama"
   },
-  "log": {
+   "log": {
     "log_to_file": true,
     "log_to_console": false,
     "log_file_name": "inpainting.log",
     "log_level": "DEBUG",
-    "path": "/Users/irconde/Downloads/V2_170225_exp250225/inpainting"
+    "relative_path": "log"
   },
   "debug": {
-    "path": "/Users/irconde/Downloads/V2_170225_exp250225/inpainting",
-    "save_composite": false,
-    "save_results": false
+    "relative_path": "debug",
+    "saved_artifact_type": "image",
+    "save_composite_img": false,
+    "save_aggregated_data": false
+  },
+  "test": {
+    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/mask-generation",
+    "output_path": "/Users/irconde/Downloads/V2_170225_exp250225/inpainted"
   }
 }

@@ -24,6 +24,9 @@ The configuration is organized into logical sections:
   },
   "debug": {       // Debug visualization settings
     // Output directories and options
+  },
+  "test": {        // Optional test overrides
+    // Input/output paths for isolated runs
   }
 }
 ```
@@ -50,6 +53,22 @@ Controls global behavior across all pipeline steps:
 **Validation:**
 - `input_path` must exist if specified
 - All boolean values default to appropriate settings
+
+### Test Configuration
+
+Overrides general paths for isolated test runs:
+
+```json
+{
+  "test": {
+    "input_path": "/path/to/test/images",
+    "output_path": "/path/to/test/output"
+  }
+}
+```
+
+If provided, values here replace `general.input_path` and
+`general.output_path`.
 
 ### Binarization Configuration
 
@@ -131,7 +150,7 @@ Controls logging output and verbosity:
     "log_to_console": false,            // Enable console logging
     "log_file_name": "app.log",         // Log filename
     "log_level": "INFO",                // Logging level
-    "path": "logs"                      // Log output directory
+    "relative_path": "log"             // Directory inside output path
   }
 }
 ```
@@ -150,23 +169,23 @@ Controls debug visualization and output:
 ```json
 {
   "debug": {
-    "path": "debug",                            // Debug output directory
-    "save_composite": false,                    // Save side-by-side comparisons
-    "save_results": true,                       // Enable result writers
-    "output_result_file_name": "results.json", // (Optional) aggregated results file name
-    "input_result_file_name": "results.json"   // Filename for JSON to retrieve intermediate detection results for refinement-only runs
+    "relative_path": "debug",                  // Directory inside output path
+    "saved_artifact_type": "image",            // "image" | "data" | "both"
+    "save_composite_img": false,                // Save side-by-side comparisons
+    "save_aggregated_data": true,               // Enable aggregated result saving
+    "input_result_file_name": "results.json"   // Filename for JSON to retrieve intermediate results for refinement-only runs
   }
 }
 ```
 
 **Debug Options:**
 - Debug enablement is controlled by `general.debug` (single source of truth)
-- `save_composite`: Creates before/after comparison images
+- `saved_artifact_type`: Determines whether images, data, or both are saved
+- `save_composite_img`: Creates before/after comparison images
 - `input_result_file_name`: JSON file containing intermediate step outputs.
   When `read_intermediate_results` is enabled in `StepTestRunner.run_on_directory`,
   entries from this file are paired with each image and passed to the step.
-- `path`: All debug images saved here
-- `save_results`: Persist step outputs. If `output_result_file_name` is omitted, one file per image is produced using the image name.
+- `save_aggregated_data`: Persist step outputs to `aggregated_data.json`
 
 ## 📁 Configuration Files
 
@@ -270,7 +289,8 @@ ValueError: Input path does not exist: /nonexistent/path
     "debug": false            // Disable debug visualization in production
   },
   "debug": {
-    "save_composite": false   // Reduces memory usage
+    "saved_artifact_type": "image",
+    "save_composite_img": false   // Reduces memory usage
   },
   "log": {
     "log_to_console": false,  // Faster than console output
@@ -287,8 +307,9 @@ ValueError: Input path does not exist: /nonexistent/path
     "debug": true             // Enable debug visualization
   },
   "debug": {
-    "save_composite": true,   // Helpful for analysis
-    "path": "debug/experiment_name"
+    "saved_artifact_type": "both",   // Helpful for analysis
+    "save_composite_img": true,
+    "relative_path": "debug/experiment_name"
   },
   "log": {
     "log_level": "DEBUG",    // Maximum detail

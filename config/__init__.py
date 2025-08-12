@@ -1,5 +1,6 @@
 from .config_schema import (
     GeneralConfig,
+    TestConfig,
     BinarizationConfig,
     GridDetectionConfig,
     GridRefinementConfig,
@@ -10,6 +11,7 @@ from .config_schema import (
 
 __all__ = [
     "GeneralConfig",
+    "TestConfig",
     "BinarizationConfig",
     "GridDetectionConfig",
     "GridRefinementConfig",

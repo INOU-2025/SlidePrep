@@ -1,6 +1,6 @@
 {
   "general": {
-    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection-select",
+    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225",
     "suffix_filter": "",
     "output_path": "",
     "output_suffix": "_refined",
@@ -58,12 +58,17 @@
     "log_to_console": false,
     "log_file_name": "grid_refinement_test.log",
     "log_level": "DEBUG",
-    "path": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection-refined"
+    "relative_path": "log"
   },
   "debug": {
-    "path": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection-refined",
-    "save_composite": false,
-    "save_results": true,
+    "relative_path": "debug",
+    "saved_artifact_type": "both",
+    "save_composite_img": false,
+    "save_aggregated_data": true,
     "read_intermediate_results": true
+  },
+  "test": {
+    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection",
+    "output_path": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection-refined"
   }
 }
