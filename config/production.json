@@ -57,6 +57,11 @@
       "threshold": 0.5
     }
   },
+  "inpainting": {
+    "model": "lama",
+    "mask_path": "",
+    "mask_suffix": "_mask"
+  },
   "debug": {
     "path": "debug",
     "save_composite": false,

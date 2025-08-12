@@ -24,8 +24,8 @@ python main.py path/to/custom_config.json
 **Current Implementation:**
 1. **Image Binarization** - Production-optimized Combined Differential method
 2. **Grid Line Detection** - Template matching with thick grid optimization
-3. **Grid Mask Generation** - Create precise masks for grid removal *(planned)*
-4. **Grid Removal from Tiles** - Clean grid artifacts from images *(planned)*
+3. **Grid Mask Generation** - Create precise masks for grid removal
+4. **Mask-Based Inpainting** - Remove grid artifacts using configurable models
 5. **Whole Slide Stitching** - Reconstruct full slide using Ashlar *(planned)*
 
 **Production vs Research:**
@@ -118,6 +118,9 @@ python src/scripts/test_detection.py config/test/grid_detection.json
 # Run grid refinement on serialized detection output
 # (set `debug.input_result_file_name` in your config)
 python main.py config/development.json
+
+# Test mask-based inpainting
+python src/scripts/test_inpainting.py config/test/inpainting.json
 ```
 
 ---

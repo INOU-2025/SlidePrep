@@ -3,6 +3,7 @@ from .config_schema import (
     BinarizationConfig,
     GridDetectionConfig,
     GridRefinementConfig,
+    InpaintingConfig,
     DebugConfig,
     LogConfig,
 )
@@ -12,6 +13,7 @@ __all__ = [
     "BinarizationConfig",
     "GridDetectionConfig",
     "GridRefinementConfig",
+    "InpaintingConfig",
     "DebugConfig",
     "LogConfig",
 ]

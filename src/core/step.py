@@ -125,7 +125,7 @@ class PipelineStep(ABC):
         """Path of the image currently being processed in the pipeline."""
         try:
             context = Container.resolve("pipeline_context")
-            return context.current_image_path
+            return context.input_image_path
         except KeyError:
             return None
 

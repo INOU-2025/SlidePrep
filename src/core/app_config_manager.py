@@ -4,6 +4,7 @@ from config.config_schema import (
     BinarizationConfig,
     GridDetectionConfig,
     GridRefinementConfig,
+    InpaintingConfig,
     LogConfig,
     DebugConfig,
 )
@@ -40,6 +41,11 @@ class AppConfigManager(ConfigManager):
             refine_config = self.get("grid_refinement")
             self.grid_refinement_config = (
                 GridRefinementConfig(**refine_config) if refine_config else None
+            )
+
+            inpaint_config = self.get("inpainting")
+            self.inpainting_config = (
+                InpaintingConfig(**inpaint_config) if inpaint_config else None
             )
 
             self.log_config = LogConfig(**self.get("log", {}))

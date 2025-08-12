@@ -200,6 +200,25 @@ class GridRefinementConfig:
 
 
 @dataclass
+class InpaintingConfig:
+    """Configuration for mask-based inpainting step."""
+
+    model: str = "lama"  # Inpainting algorithm identifier
+    mask_path: str = ""  # Directory containing mask images
+    mask_suffix: str = "_mask"  # Suffix appended to filename to locate mask
+
+    def __post_init__(self) -> None:
+        """Validate inpainting configuration parameters."""
+        valid_models = {"lama"}
+        if self.model.lower() not in valid_models:
+            raise ValueError(
+                f"Invalid inpainting model: {self.model}. "
+                f"Valid models: {', '.join(sorted(valid_models))}")
+        if self.mask_path and not os.path.isdir(self.mask_path):
+            raise ValueError(f"mask_path does not exist: {self.mask_path}")
+
+
+@dataclass
 class DebugConfig:
     """
     Configuration for debugging and visualization output.

@@ -1,0 +1,27 @@
+{
+  "general": {
+    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/raw", 
+    "suffix_filter": "",
+    "output_path": "",
+    "output_suffix": "_inpainted",
+    "log": true,
+    "debug": true
+  },
+  "inpainting": {
+    "model": "lama",
+    "mask_path": "/Users/irconde/Downloads/V2_170225_exp250225/mask-generation",
+    "mask_suffix": "_mask"
+  },
+  "log": {
+    "log_to_file": true,
+    "log_to_console": false,
+    "log_file_name": "inpainting.log",
+    "log_level": "DEBUG",
+    "path": "/Users/irconde/Downloads/V2_170225_exp250225/inpainting"
+  },
+  "debug": {
+    "path": "/Users/irconde/Downloads/V2_170225_exp250225/inpainting",
+    "save_composite": false,
+    "save_results": false
+  }
+}

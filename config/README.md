@@ -7,8 +7,11 @@ config/
 ├── production.json        # Production-optimized settings
 ├── development.json       # Development-friendly settings
 └── test/
-    ├── binarization.json     # Binarization testing
-    └── grid_detection.json   # Grid detection testing
+    ├── binarization.json       # Binarization testing
+    ├── grid_detection.json     # Grid detection testing
+    ├── grid_refinement.json    # Grid refinement testing
+    ├── mask_creation.json      # Mask generation testing
+    └── inpainting.json         # Inpainting testing
 ```
 
 ## 🎯 Configuration Selection Guide
@@ -41,6 +44,16 @@ config/
 - **Output:** No output path (debug visualization only)
 - **Note:** No binarization config - expects pre-binarized images
 - **Use for:** Testing grid detection algorithms on binarized inputs
+
+#### `test/mask_creation.json`
+- **Purpose:** Isolated mask generation testing
+- **Contents:** general, log and debug sections; reads refined detection results
+- **Use for:** Convert refined detection contours into binary masks
+
+#### `test/inpainting.json`
+- **Purpose:** Mask-based inpainting testing
+- **Contents:** general, inpainting, log and debug sections
+- **Use for:** Remove grid artifacts using LaMa inpainting
 
 #### Using Serialized Intermediate Results
 - **Purpose:** Test grid refinement directly from saved detection results
