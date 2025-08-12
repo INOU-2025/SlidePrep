@@ -38,7 +38,7 @@ class MaskCreationStep(PipelineStep):
         if image_shape is None:
             raise ValueError("Pipeline context lacks image shape information")
 
-        mask = np.zeros(image_shape, dtype=np.uint8)
+        mask = np.zeros((image_shape[1], image_shape[0]), dtype=np.uint8)
 
         for contour_list in detections.values():
             for item in contour_list:
