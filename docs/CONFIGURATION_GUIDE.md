@@ -56,7 +56,7 @@ Controls global behavior across all pipeline steps:
 
 ### Test Configuration
 
-Overrides general paths for isolated test runs:
+Provides isolated paths for test runs without altering general configuration:
 
 ```json
 {
@@ -68,9 +68,12 @@ Overrides general paths for isolated test runs:
 }
 ```
 
-If provided, values here replace `general.input_path` and
-`general.output_path`. The `input_type` field selects whether the step
-operates on image files or serialized data.
+If provided, these paths are used exclusively by test runners and do not
+modify the values in the `general` section. The `input_type` field selects
+whether the step operates on image files or serialized data. When
+`input_type` is set to `"data"`, test runners locate the corresponding
+source images in `general.input_path` while reading JSON files from
+`test.input_path`.
 
 ### Binarization Configuration
 

@@ -167,7 +167,7 @@ def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy: Det
                 ) if M["m00"] != 0 else (0.0, 0.0)
 
     if image_shape is not None and strategy in [DetectionStrategy.THICK_BORDER, DetectionStrategy.THIN_BORDER]:
-        H, W = image_shape[:2]
+        W, H = image_shape[:2]
         corner_proximity = corner_proximity_from_box(box_i, W, H)
         border_proximity = border_proximity_from_box(box_i, W, H)
     else:

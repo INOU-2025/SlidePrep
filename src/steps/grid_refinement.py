@@ -354,7 +354,7 @@ class GridRefinementStep(PipelineStep):
             for item in contour_dicts:
                 contour = item.get("contour")
                 if contour is not None:
-                    zone = item.get("zone", DetectionRegion.CENTER)
+                    zone = item.get("zone")
                     analysis = analyze_contour(
                         _as_cnt(contour), orientation, strategy, image_shape)
                     analyzed_contours.append(
@@ -367,7 +367,7 @@ class GridRefinementStep(PipelineStep):
             # Now process the filtered contours
             post_processed = []
             for item in top_contours:
-                zone = item.get("zone", DetectionRegion.CENTER)
+                zone = item.get("zone")
                 processed = self._process_contour(
                     item["contour"], orientation, strategy, target_angle, angle_tolerance, image_shape, zone
                 )

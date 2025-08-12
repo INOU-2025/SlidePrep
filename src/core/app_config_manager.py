@@ -31,15 +31,11 @@ class AppConfigManager(ConfigManager):
             self.general_config = GeneralConfig(**self.get("general", {}))
             test_cfg = self.get("test")
             self.test_config = TestConfig(**test_cfg) if test_cfg else None
-            if self.test_config:
-                if self.test_config.input_path:
-                    if not os.path.exists(self.test_config.input_path):
-                        raise ValueError(
-                            f"Test input path does not exist: {self.test_config.input_path}"
-                        )
-                    self.general_config.input_path = self.test_config.input_path
-                if self.test_config.output_path:
-                    self.general_config.output_path = self.test_config.output_path
+            if self.test_config and self.test_config.input_path:
+                if not os.path.exists(self.test_config.input_path):
+                    raise ValueError(
+                        f"Test input path does not exist: {self.test_config.input_path}"
+                    )
 
             bin_config = self.get("binarization")
             self.binarization_config = (
@@ -64,7 +60,11 @@ class AppConfigManager(ConfigManager):
             self.log_config = LogConfig(**self.get("log", {}))
             self.debug_config = DebugConfig(**self.get("debug", {}))
 
-            base_output = self.general_config.output_path
+            base_output = (
+                self.test_config.output_path
+                if self.test_config and self.test_config.output_path
+                else self.general_config.output_path
+            )
             self.log_config.path = (
                 os.path.join(base_output, self.log_config.relative_path)
                 if self.log_config.relative_path

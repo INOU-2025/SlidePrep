@@ -44,6 +44,9 @@ def bootstrap(config_path: str, drawer: Optional[Drawer] = None, writer: Optiona
 
     context = PipelineContext()
     input_path = config_manager.general_config.input_path
+    test_cfg = config_manager.test_config
+    if test_cfg and test_cfg.input_path and test_cfg.input_type != "data":
+        input_path = test_cfg.input_path
     image_shape = None
     if input_path and os.path.isdir(input_path):
         patterns = get_supported_image_patterns()
