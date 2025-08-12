@@ -25,6 +25,7 @@
   },
   "test": {
     "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/mask-generation",
-    "output_path": "/Users/irconde/Downloads/V2_170225_exp250225/inpainted"
+    "output_path": "/Users/irconde/Downloads/V2_170225_exp250225/inpainted",
+    "input_type": "image"
   }
 }

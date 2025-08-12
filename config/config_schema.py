@@ -38,11 +38,17 @@ class TestConfig:
 
     input_path: str = ""  # Path containing test images
     output_path: str = ""  # Directory where test results are written
+    input_type: str = "image"  # "image" or "data"
 
     def __post_init__(self) -> None:  # pragma: no cover - simple validation
         if self.input_path and not os.path.exists(self.input_path):
             raise ValueError(
                 f"Test input path does not exist: {self.input_path}")
+        valid_types = {"image", "data"}
+        if self.input_type not in valid_types:
+            raise ValueError(
+                f"input_type must be one of {valid_types}, got: {self.input_type}"
+            )
 
 
 @dataclass
@@ -257,11 +263,10 @@ class InpaintingConfig:
 class DebugConfig:
     """Debug configuration for controlling artifact generation."""
 
-    relative_path: str = "debug"  # Location inside the run's output directory
+    relative_path: Optional[str] = None  # Location inside the run's output directory
     saved_artifact_type: str = "image"  # "image", "data", or "both"
     save_composite_img: bool = False  # Generate composite visualization images
     save_aggregated_data: bool = False  # Persist aggregated results
-    read_intermediate_results: Optional[bool] = False
     input_result_file_name: Optional[str] = None
     result_file_name: str = field(default="aggregated_data.json", init=False)
     path: str = field(init=False, default="")
@@ -273,7 +278,7 @@ class DebugConfig:
                 "saved_artifact_type must be one of 'image', 'data', or 'both'"
             )
         # The actual path is resolved by AppConfigManager
-        self.path = self.relative_path
+        self.path = self.relative_path or ""
 
 
 @dataclass
@@ -284,7 +289,7 @@ class LogConfig:
     log_to_console: bool = True
     log_file_name: str = "app.log"
     log_level: str = "INFO"
-    relative_path: str = "log"
+    relative_path: Optional[str] = None
     path: str = field(init=False, default="")
 
     def __post_init__(self) -> None:  # pragma: no cover - simple validation
@@ -294,4 +299,4 @@ class LogConfig:
                 f"Invalid log level: {self.log_level}. "
                 f"Valid levels: {', '.join(sorted(valid_levels))}"
             )
-        self.path = self.relative_path
+        self.path = self.relative_path or ""

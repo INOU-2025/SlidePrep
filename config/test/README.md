@@ -86,17 +86,18 @@ Test configurations should only include sections relevant to the step being test
     "threshold_method": "combined_differential"
   },
   "log": {
-    "relative_path": "log"
+    "relative_path": "log"      // Optional
   },
   "debug": {
-    "relative_path": "debug",
+    "relative_path": "debug",   // Optional
     "saved_artifact_type": "image",
     "save_composite_img": false,
     "save_aggregated_data": false
   },
   "test": {
     "input_path": "/path/to/test/images",
-    "output_path": "/path/to/test/output"
+    "output_path": "/path/to/test/output",
+    "input_type": "image"
   }
 }
 ```
@@ -113,17 +114,18 @@ Test configurations should only include sections relevant to the step being test
     // ... other grid detection parameters
   },
   "log": {
-    "relative_path": "log"
+    "relative_path": "log"      // Optional
   },
   "debug": {
-    "relative_path": "debug",
+    "relative_path": "debug",   // Optional
     "saved_artifact_type": "both",
     "save_composite_img": false,
     "save_aggregated_data": true
   },
   "test": {
     "input_path": "/path/to/test/images",
-    "output_path": "/path/to/test/output"
+    "output_path": "/path/to/test/output",
+    "input_type": "image"
   }
 }
 ```

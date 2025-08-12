@@ -16,8 +16,8 @@ config/
 
 Test configuration files include a dedicated `test` section that defines
 where test images are read from and where results are written. The `log`
-and `debug` sections specify paths relative to the test run's
-`output_path`.
+and `debug` sections specify optional directories relative to the test
+run's `output_path`.
 
 ## 🎯 Configuration Selection Guide
 
@@ -68,7 +68,7 @@ and `debug` sections specify paths relative to the test run's
 
 #### Using Serialized Intermediate Results
 - **Purpose:** Test grid refinement directly from saved detection results
-- **Configuration:** Set `debug.input_result_file_name` to a JSON file produced by the detection step
+- **Configuration:** Set `test.input_type` to `"data"` so the step consumes serialized results instead of images
 - **Effect:** Pipeline bypasses image loading and runs only the refinement step
 
 ## 🚀 Quick Usage

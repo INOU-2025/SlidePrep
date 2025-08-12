@@ -65,11 +65,15 @@ class AppConfigManager(ConfigManager):
             self.debug_config = DebugConfig(**self.get("debug", {}))
 
             base_output = self.general_config.output_path
-            self.log_config.path = os.path.join(
-                base_output, self.log_config.relative_path
+            self.log_config.path = (
+                os.path.join(base_output, self.log_config.relative_path)
+                if self.log_config.relative_path
+                else base_output
             )
-            self.debug_config.path = os.path.join(
-                base_output, self.debug_config.relative_path
+            self.debug_config.path = (
+                os.path.join(base_output, self.debug_config.relative_path)
+                if self.debug_config.relative_path
+                else base_output
             )
 
         except TypeError as e:

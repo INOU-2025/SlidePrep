@@ -156,7 +156,7 @@ Debug visualization is controlled by the debug configuration:
 ```json
 {
   "debug": {
-    "relative_path": "debug",
+    "relative_path": "debug",      // Optional directory inside output path
     "saved_artifact_type": "both",
     "save_composite_img": false,
     "save_aggregated_data": true
@@ -164,7 +164,7 @@ Debug visualization is controlled by the debug configuration:
 }
 ```
 
-- **`relative_path`**: Directory inside the run's output where artifacts are stored
+- **`relative_path`**: Optional directory inside the run's output where artifacts are stored
 - **`saved_artifact_type`**: Specify whether to save images, data, or both
 - **`save_composite_img`**: Create side-by-side comparisons when possible
 - **`save_aggregated_data`**: Persist step results to `aggregated_data.json`

@@ -26,7 +26,7 @@ The configuration is organized into logical sections:
     // Output directories and options
   },
   "test": {        // Optional test overrides
-    // Input/output paths for isolated runs
+    // Input/output paths and types for isolated runs
   }
 }
 ```
@@ -62,13 +62,15 @@ Overrides general paths for isolated test runs:
 {
   "test": {
     "input_path": "/path/to/test/images",
-    "output_path": "/path/to/test/output"
+    "output_path": "/path/to/test/output",
+    "input_type": "image"            // "image" or "data"
   }
 }
 ```
 
 If provided, values here replace `general.input_path` and
-`general.output_path`.
+`general.output_path`. The `input_type` field selects whether the step
+operates on image files or serialized data.
 
 ### Binarization Configuration
 
@@ -150,7 +152,7 @@ Controls logging output and verbosity:
     "log_to_console": false,            // Enable console logging
     "log_file_name": "app.log",         // Log filename
     "log_level": "INFO",                // Logging level
-    "relative_path": "log"             // Directory inside output path
+    "relative_path": "log"             // Optional directory inside output path
   }
 }
 ```
@@ -169,11 +171,11 @@ Controls debug visualization and output:
 ```json
 {
   "debug": {
-    "relative_path": "debug",                  // Directory inside output path
+    "relative_path": "debug",                  // Optional directory inside output path
     "saved_artifact_type": "image",            // "image" | "data" | "both"
     "save_composite_img": false,                // Save side-by-side comparisons
     "save_aggregated_data": true,               // Enable aggregated result saving
-    "input_result_file_name": "results.json"   // Filename for JSON to retrieve intermediate results for refinement-only runs
+    "input_result_file_name": "results.json"   // Filename for serialized intermediate results
   }
 }
 ```
@@ -183,8 +185,7 @@ Controls debug visualization and output:
 - `saved_artifact_type`: Determines whether images, data, or both are saved
 - `save_composite_img`: Creates before/after comparison images
 - `input_result_file_name`: JSON file containing intermediate step outputs.
-  When `read_intermediate_results` is enabled in `StepTestRunner.run_on_directory`,
-  entries from this file are paired with each image and passed to the step.
+  Used when `test.input_type` is set to `"data"` to locate serialized results.
 - `save_aggregated_data`: Persist step outputs to `aggregated_data.json`
 
 ## 📁 Configuration Files

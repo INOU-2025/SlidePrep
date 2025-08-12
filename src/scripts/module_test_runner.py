@@ -10,7 +10,6 @@ It automatically loads images, processes them, and saves the results.
 This keeps individual test scripts compact and ensures a consistent workflow.
 """
 
-import json
 import os
 import cv2
 from dataclasses import dataclass
@@ -66,16 +65,10 @@ class StepTestRunner:
         step: PipelineStep,
     ) -> None:
         """
-        Process all images in the configured input directory.
-
-        Parameters
-        ----------
-        step:
-            Pipeline step to execute for each image.
-        read_intermediate_results:
-            When True, attempts to read intermediate results from the debug
-            directory (configured via ``debug.input_result_file_name``) and
-            passes them along with the image to ``step.run``.
+        Process all items in the configured input directory.
+        When ``test.input_type`` is ``"data"``, the runner loads serialized
+        results (``*.json``) alongside each image and passes them to
+        ``step.run``.
 
         Returns
         -------
@@ -137,7 +130,11 @@ class StepTestRunner:
                 base_name = os.path.splitext(fname)[0]
                 self._logger.debug(f"Processing {fname}")
 
-                if self._cfg.debug_config.read_intermediate_results:
+                read_data = (
+                    self._cfg.test_config
+                    and self._cfg.test_config.input_type == "data"
+                )
+                if read_data:
                     result_path = os.path.splitext(image_path)[0] + ".json"
                     dict_with_enum = DetectionResultDict.from_json(result_path)
                     intermediate_data = dict_with_enum.to_plain_dict()

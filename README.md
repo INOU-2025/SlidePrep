@@ -116,7 +116,7 @@ python src/scripts/test_binarization.py config/test/binarization.json
 python src/scripts/test_detection.py config/test/grid_detection.json
 
 # Run grid refinement on serialized detection output
-# (set `debug.input_result_file_name` in your config)
+# (set `test.input_type` to "data" in your config)
 python main.py config/development.json
 
 # Test mask-based inpainting

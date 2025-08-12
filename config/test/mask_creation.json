@@ -18,11 +18,11 @@
     "relative_path": "debug",
     "saved_artifact_type": "image",
     "save_composite_img": false,
-    "save_aggregated_data": false,
-    "read_intermediate_results": true
+    "save_aggregated_data": false
   },
   "test": {
     "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection-refined",
-    "output_path": "/Users/irconde/Downloads/V2_170225_exp250225/mask-generation"
+    "output_path": "/Users/irconde/Downloads/V2_170225_exp250225/mask-generation",
+    "input_type": "data"
   }
 }
