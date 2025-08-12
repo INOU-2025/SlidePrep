@@ -14,17 +14,15 @@
     "log_to_file": true,
     "log_to_console": false,
     "log_file_name": "inpainting.log",
-    "log_level": "DEBUG",
-    "relative_path": "log"
+    "log_level": "DEBUG"
   },
   "debug": {
-    "relative_path": "debug",
     "saved_artifact_type": "image",
     "save_composite_img": false,
     "save_aggregated_data": false
   },
   "test": {
-    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/mask-generation",
+    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/mask",
     "output_path": "/Users/irconde/Downloads/V2_170225_exp250225/inpainted",
     "input_type": "image"
   }

@@ -103,10 +103,6 @@ class StepTestRunner:
         )
 
         processed = 0
-        output_suffix = (
-            self._cfg.general_config.output_suffix
-            or step.name.lower().replace(" ", "_")
-        )
 
         debug_cfg = self._cfg.debug_config
         if debug_cfg.save_aggregated_data and debug_cfg.saved_artifact_type in {
@@ -146,8 +142,7 @@ class StepTestRunner:
                 else:
                     result, metadata = step.run(image)
 
-                base_debug_filename = f"{base_name}{output_suffix}"
-                image_debug_filename = f"{base_debug_filename}.png"
+                image_debug_filename = f"{base_name}.png"
                 self._debugger.save_debug_image(
                     image_debug_filename, image, result, metadata
                 )
@@ -156,7 +151,7 @@ class StepTestRunner:
                     if result_filename:
                         aggregated_results.append({"filename": fname, "result": result})
                     else:
-                        self._debugger.save_results(base_debug_filename, result)
+                        self._debugger.save_results(base_name, result)
 
                 self._logger.debug(f"Successfully processed {fname}")
                 processed += 1

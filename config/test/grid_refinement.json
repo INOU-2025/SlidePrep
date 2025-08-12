@@ -57,11 +57,9 @@
     "log_to_file": true,
     "log_to_console": false,
     "log_file_name": "grid_refinement_test.log",
-    "log_level": "DEBUG",
-    "relative_path": "log"
+    "log_level": "DEBUG"
   },
   "debug": {
-    "relative_path": "debug",
     "saved_artifact_type": "both",
     "save_composite_img": false,
     "save_aggregated_data": true

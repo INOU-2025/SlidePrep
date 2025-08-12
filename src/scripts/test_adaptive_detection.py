@@ -104,8 +104,7 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Optional
     
     # Get suffix from current bootstrapped config or fallback to provided config_manager
     current_config = get_config() if config_manager is None else config_manager
-    output_suffix = current_config.general_config.output_suffix or ""
-    debug_filename = f"{base_name}{output_suffix}{extension}"
+    debug_filename = f"{base_name}{extension}"
     
     logger.debug(f"Debug filename with suffix: {debug_filename}")
     
