@@ -132,6 +132,9 @@ class StepTestRunner:
                 read_data = test_cfg and test_cfg.input_type == "data"
                 base_name = os.path.splitext(fname)[0]
 
+                ctx = get_pipeline_context()
+                ctx.input_image_path = None 
+
                 if read_data:
                     data_path = os.path.join(input_dir, fname)
                     image_path = None
@@ -152,10 +155,6 @@ class StepTestRunner:
                 if image is None:
                     self._logger.warning(f"Could not load {image_path}")
                     continue
-
-                ctx = get_pipeline_context()
-                ctx.input_image_path = image_path
-                ctx.image_shape = (image.shape[1], image.shape[0])
 
                 self._logger.debug(f"Processing {fname}")
 
