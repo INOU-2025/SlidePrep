@@ -26,10 +26,8 @@ class Debugger:
         self._save_images = debug_config.saved_artifact_type in {"image", "both"}
         self._save_composite = debug_config.save_composite_img
         self._path = debug_config.path
-        self._save_results = (
-            debug_config.saved_artifact_type in {"data", "both"}
-            and debug_config.save_aggregated_data
-        )
+        self._save_results = debug_config.saved_artifact_type in {"data", "both"}
+        
         self._logger = logger
         self._drawer = drawer
         self._writer = writer
