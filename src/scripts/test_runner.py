@@ -99,19 +99,11 @@ class StepTestRunner:
             files = []
             for fname in sorted(os.listdir(input_dir)):
                 if fname.lower().endswith(".json"):
-                    if gen_cfg.suffix_filter:
-                        name_without_ext = os.path.splitext(fname)[0]
-                        if not name_without_ext.endswith(gen_cfg.suffix_filter):
-                            continue
                     files.append(fname)
         else:
             files = []
             for fname in sorted(os.listdir(input_dir)):
                 if fname.lower().endswith(supported_formats):
-                    if gen_cfg.suffix_filter:
-                        name_without_ext = os.path.splitext(fname)[0]
-                        if not name_without_ext.endswith(gen_cfg.suffix_filter):
-                            continue
                     files.append(fname)
 
         if not files:
