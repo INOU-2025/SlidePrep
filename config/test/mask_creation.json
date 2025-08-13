@@ -21,6 +21,7 @@
   "test": {
     "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection-refined",
     "output_path": "/Users/irconde/Downloads/V2_170225_exp250225/mask",
-    "input_type": "data"
+    "input_type": "data",
+    "max_images": 10
   }
 }

@@ -109,6 +109,15 @@ class StepTestRunner:
                 if fname.lower().endswith(supported_formats):
                     files.append(fname)
 
+        total_files = len(files)
+        if test_cfg and test_cfg.max_images is not None:
+            files = files[:test_cfg.max_images]
+            if len(files) < total_files:
+                self._logger.info(
+                    f"Limiting processing to {len(files)} items "
+                    f"(max_images={test_cfg.max_images})"
+                )
+
         if not files:
             self._logger.warning(f"No supported inputs found in {input_dir}")
             return

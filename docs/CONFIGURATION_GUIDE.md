@@ -63,7 +63,8 @@ Provides isolated paths for test runs without altering general configuration:
   "test": {
     "input_path": "/path/to/test/images",
     "output_path": "/path/to/test/output",
-    "input_type": "image"            // "image" or "data"
+    "input_type": "image",           // "image" or "data"
+    "max_images": 10                  // Optional limit on processed files
   }
 }
 ```
@@ -74,6 +75,9 @@ whether the step operates on image files or serialized data. When
 `input_type` is set to `"data"`, test runners locate the corresponding
 source images in `general.input_path` while reading JSON files from
 `test.input_path`.
+
+The optional `max_images` field limits how many files are processed during
+test runs. When omitted, all matching files are processed.
 
 ### Binarization Configuration
 

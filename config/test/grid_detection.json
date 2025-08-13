@@ -46,6 +46,7 @@
   "test": {
     "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/bin-select",
     "output_path": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection",
-    "input_type": "image"
+    "input_type": "image",
+    "max_images": 10
   }
 }

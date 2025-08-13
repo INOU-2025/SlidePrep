@@ -39,6 +39,7 @@ class TestConfig:
     input_path: str = ""  # Path containing test images
     output_path: str = ""  # Directory where test results are written
     input_type: str = "image"  # "image" or "data"
+    max_images: Optional[int] = None  # Maximum number of images to process
 
     def __post_init__(self) -> None:  # pragma: no cover - simple validation
         if self.input_path and not os.path.exists(self.input_path):
@@ -49,6 +50,8 @@ class TestConfig:
             raise ValueError(
                 f"input_type must be one of {valid_types}, got: {self.input_type}"
             )
+        if self.max_images is not None and self.max_images <= 0:
+            raise ValueError("max_images must be a positive integer")
 
 
 @dataclass

@@ -15,9 +15,10 @@ config/
 ```
 
 Test configuration files include a dedicated `test` section that defines
-where test images are read from and where results are written. The `log`
-and `debug` sections specify optional directories relative to the test
-run's `output_path`.
+where test images are read from and where results are written. An optional
+`max_images` field limits how many inputs are processed. The `log` and
+`debug` sections specify optional directories relative to the test run's
+`output_path`.
 
 ## 🎯 Configuration Selection Guide
 

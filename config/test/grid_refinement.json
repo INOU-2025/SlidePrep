@@ -67,6 +67,7 @@
   "test": {
     "input_path": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection",
     "output_path": "/Users/irconde/Downloads/V2_170225_exp250225/grid_detection-refined",
-    "input_type": "data"
+    "input_type": "data",
+    "max_images": 10
   }
 }

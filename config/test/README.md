@@ -40,6 +40,7 @@ These configurations are separate from the main pipeline configuration (`init_co
 Test configurations are designed for algorithm development and validation:
 
 - **Explicit test paths**: `test.input_path` and `test.output_path` isolate test data and results
+- **Input limiting**: `test.max_images` optionally restricts how many files are processed
 - **Suffix filtering**: Process specific file types (e.g., `_raw` for grayscale, `_binarized` for binary)
 - **Debug always enabled**: Essential for understanding algorithm behavior
 - **Console logging**: Immediate feedback during testing
@@ -97,7 +98,8 @@ Test configurations should only include sections relevant to the step being test
   "test": {
     "input_path": "/path/to/test/images",
     "output_path": "/path/to/test/output",
-    "input_type": "image"
+    "input_type": "image",
+    "max_images": 10
   }
 }
 ```
@@ -125,7 +127,8 @@ Test configurations should only include sections relevant to the step being test
   "test": {
     "input_path": "/path/to/test/images",
     "output_path": "/path/to/test/output",
-    "input_type": "image"
+    "input_type": "image",
+    "max_images": 10
   }
 }
 ```
