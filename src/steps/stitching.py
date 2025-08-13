@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from glob import glob
 from typing import Any, Optional
@@ -16,8 +17,9 @@ class StitchingStep(PipelineStep):
         """Initialize the stitching step with configuration.
 
         Args:
-            config: Stitching configuration specifying output file name
-                and tile search pattern.
+            config: Stitching configuration specifying Ashlar parameters
+                such as file pattern, tile grid dimensions, and output
+                file name.
             **kwargs: Optional keyword arguments forwarded to
                 :class:`PipelineStep`.
         """
@@ -35,20 +37,21 @@ class StitchingStep(PipelineStep):
             metadata with the number of tiles processed.
         """
         if isinstance(data, (list, tuple)):
-            tiles = list(data)
-            if not tiles:
+            paths = list(data)
+            if not paths:
                 raise ValueError("No tiles provided for stitching")
-            tile_dir = os.path.dirname(tiles[0])
+            tile_dir = os.path.dirname(paths[0])
         elif isinstance(data, str):
             tile_dir = data
-            pattern = os.path.join(tile_dir, self.config.tile_glob)
-            tiles = sorted(glob(pattern))
         else:
             raise TypeError("data must be a directory path or list of paths")
 
+        glob_pattern = re.sub(r"\{[^}]+\}", "*", self.config.pattern)
+        pattern = os.path.join(tile_dir, glob_pattern)
+        tiles = sorted(glob(pattern))
         if not tiles:
             raise ValueError(
-                f"No tiles found using pattern {self.config.tile_glob} in {tile_dir}"
+                f"No tiles found using pattern {glob_pattern} in {tile_dir}"
             )
 
         output_path = (
@@ -57,10 +60,19 @@ class StitchingStep(PipelineStep):
             else os.path.join(tile_dir, self.config.output_filename)
         )
 
-        cmd = ["ashlar", *tiles, "-o", output_path]
+        series_arg = (
+            f"fileseries|{tile_dir}|pattern={self.config.pattern}"
+            f"|overlap={self.config.overlap}"
+            f"|pixel_size={self.config.pixel_size}"
+            f"|width={self.config.width}"
+            f"|height={self.config.height}"
+            f"|layout={self.config.layout}"
+            f"|direction={self.config.direction}"
+        )
+
+        cmd = ["ashlar", "--output", output_path, series_arg]
         try:
-            subprocess.run(cmd, check=True, stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE)
+            subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except subprocess.CalledProcessError as e:
             self.error(f"Ashlar failed: {e.stderr.decode().strip()}")
             raise

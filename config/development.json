@@ -67,7 +67,13 @@
   },
   "stitching": {
     "output_filename": "stitched_slide.ome.tif",
-    "tile_glob": "*.tiff"
+    "pattern": "TileScan_001_s{series:3}_ch{channel:2}.tiff",
+    "overlap": 0.1,
+    "pixel_size": 0.324957,
+    "width": 14,
+    "height": 49,
+    "layout": "raster",
+    "direction": "vertical"
   },
   "debug": {
     "saved_artifact_type": "both",

@@ -176,14 +176,27 @@ Controls whole slide assembly using Ashlar:
 {
   "stitching": {
     "output_filename": "stitched_slide.ome.tif", // Output OME-TIFF name
-    "tile_glob": "*.tif"                        // Glob to locate tiles
+    "pattern": "TileScan_001_s{series:3}_ch{channel:2}.tiff", // Tile naming pattern
+    "overlap": 0.1,                 // Fractional overlap between tiles
+    "pixel_size": 0.324957,         // Physical pixel size in microns
+    "width": 14,                    // Tile grid width
+    "height": 49,                   // Tile grid height
+    "layout": "raster",            // Acquisition layout
+    "direction": "vertical"        // Raster direction
   }
 }
 ```
 
 - `output_filename`: Name of the generated OME-TIFF. If a relative path is
   provided, it is written inside the pipeline's output directory.
-- `tile_glob`: Glob pattern used to collect processed tile images for stitching.
+- `pattern`: File naming pattern passed to Ashlar. Use `{variable:length}`
+  placeholders to match tile indices (e.g., `{series:3}`). Tile presence is
+  verified by converting this pattern to a glob where placeholders become `*`.
+- `overlap`: Fraction of overlap between adjacent tiles to aid registration.
+- `pixel_size`: Physical scale of each pixel in microns.
+- `width`, `height`: Number of tiles along the X and Y axes.
+- `layout`: Acquisition layout, typically `"raster"`.
+- `direction`: Raster traversal direction (`"horizontal"` or `"vertical"`).
 
 ### Logging Configuration
 

@@ -287,16 +287,27 @@ class InpaintingConfig:
 @dataclass
 class StitchingConfig:
     """Configuration for whole slide stitching step."""
-
     output_filename: str = "stitched_slide.ome.tif"  # Name of generated OME-TIFF
-    tile_glob: str = "*.tif"  # Glob pattern to locate processed tiles
+    pattern: str = "TileScan_001_s{series:3}_ch{channel:2}.tiff"  # File pattern used by Ashlar
+    overlap: float = 0.1  # Fractional tile overlap for registration
+    pixel_size: float = 1.0  # Physical pixel size in microns
+    width: int = 1  # Tile grid width
+    height: int = 1  # Tile grid height
+    layout: str = "raster"  # Acquisition layout
+    direction: str = "horizontal"  # Raster direction
 
     def __post_init__(self) -> None:
         """Validate stitching configuration parameters."""
         if not self.output_filename:
             raise ValueError("output_filename must be specified")
-        if not self.tile_glob:
-            raise ValueError("tile_glob must be specified")
+        if not self.pattern:
+            raise ValueError("pattern must be specified")
+        if not 0 <= self.overlap < 1:
+            raise ValueError("overlap must be between 0 and 1")
+        if self.pixel_size <= 0:
+            raise ValueError("pixel_size must be positive")
+        if self.width <= 0 or self.height <= 0:
+            raise ValueError("width and height must be positive integers")
 
 
 @dataclass
