@@ -1,6 +1,8 @@
 import os
 import cv2
 from glob import glob
+from typing import Any, Optional
+
 from src.core import bootstrap, get_config, get_logger, get_pipeline_context
 from src.core.pipeline import Pipeline
 from src.steps import (
@@ -9,6 +11,7 @@ from src.steps import (
     GridRefinementStep,
     MaskCreationStep,
     InpaintingStep,
+    ImgConversionStep,
 )
 from src.utils import get_supported_image_patterns, filter_images_by_suffix
 
@@ -59,6 +62,7 @@ def run_pipeline(config_path: str):
             GridRefinementStep(cfg.grid_refinement_config),
             MaskCreationStep(),
             InpaintingStep(config=cfg.inpainting_config),
+            ImgConversionStep(config=cfg.img_conversion_config),
         ]
         pipeline = Pipeline(steps)
         logger.info(f"Pipeline initialized with {len(steps)} steps")
@@ -103,14 +107,17 @@ def run_pipeline(config_path: str):
             logger.error(f"Processing failed for {fname}")
             continue
 
-        output_image = result
+        output_image: Any = result
+        metadata: Optional[dict[str, Any]] = None
         if isinstance(result, tuple):
-            output_image = result[0]
+            output_image, metadata = result
 
         if output_image.ndim == 3 and output_image.shape[2] == 3:
             output_image = cv2.cvtColor(output_image, cv2.COLOR_RGB2BGR)
 
         name, ext = os.path.splitext(fname)
+        if metadata and "format" in metadata:
+            ext = f".{metadata['format']}"
         out_name = f"{name}{output_suffix}{ext}"
         out_path = os.path.join(output_folder, out_name)
         if not cv2.imwrite(out_path, output_image):
