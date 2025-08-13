@@ -17,6 +17,10 @@ python main.py config/production.json
 python main.py path/to/custom_config.json
 ```
 
+Processed images are written to the directory specified by
+`general.output_path` (default: `output`). Filenames preserve their original
+extensions and optionally include `general.output_suffix`.
+
 ---
 
 ## 🏗️ Pipeline Architecture

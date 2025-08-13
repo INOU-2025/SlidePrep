@@ -50,12 +50,15 @@ class Pipeline:
         current_data = data
         for step in self.steps:
             try:
-                current_data = step.run(current_data)
+                result = step.run(current_data)
+                current_data = result[0] if isinstance(result, tuple) else result
                 if self.logger:
-                    self.logger.debug(f"Step {step.name} completed successfully")
+                    self.logger.debug(
+                        f"Step {step.name} completed successfully")
             except Exception as e:
                 if self.logger:
-                    self.logger.error(f"Pipeline failed at step {step.name}: {e}")
+                    self.logger.error(
+                        f"Pipeline failed at step {step.name}: {e}")
                     self.logger.exception("Full exception details:")
                 else:
                     print(f"Error in step {step.name}: {e}")

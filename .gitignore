@@ -331,3 +331,7 @@ cython_debug/
 
 .DS_Store
 
+# Script default output folder
+output/
+
+

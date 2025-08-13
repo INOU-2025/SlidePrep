@@ -3,7 +3,13 @@ import cv2
 from glob import glob
 from src.core import bootstrap, get_config, get_logger, get_pipeline_context
 from src.core.pipeline import Pipeline
-from src.steps import BinarizationStep, GridDetectionStep, GridRefinementStep
+from src.steps import (
+    BinarizationStep,
+    GridDetectionStep,
+    GridRefinementStep,
+    MaskCreationStep,
+    InpaintingStep,
+)
 from src.utils import get_supported_image_patterns, filter_images_by_suffix
 
 
@@ -31,6 +37,8 @@ def run_pipeline(config_path: str):
         return False
 
     input_folder = cfg.general_config.input_path
+    output_folder = cfg.general_config.output_path
+    output_suffix = cfg.general_config.output_suffix
     suffix_filter = cfg.general_config.suffix_filter
 
     if not input_folder:
@@ -42,11 +50,15 @@ def run_pipeline(config_path: str):
         logger.critical(f"Input folder does not exist: {input_folder}")
         return False
 
+    os.makedirs(output_folder, exist_ok=True)
+
     try:
         steps = [
-            BinarizationStep(cfg.binarization_config),
-            GridDetectionStep(cfg.grid_detection_config),
+            BinarizationStep(config=cfg.binarization_config),
+            GridDetectionStep(config=cfg.grid_detection_config),
             GridRefinementStep(cfg.grid_refinement_config),
+            MaskCreationStep(),
+            InpaintingStep(config=cfg.inpainting_config),
         ]
         pipeline = Pipeline(steps)
         logger.info(f"Pipeline initialized with {len(steps)} steps")
@@ -63,7 +75,9 @@ def run_pipeline(config_path: str):
     images = filter_images_by_suffix(images, suffix_filter)
     if suffix_filter:
         logger.debug(
-            f"Applied suffix filter '{suffix_filter}', found {len(images)} matching images")
+            f"Applied suffix filter '{suffix_filter}', "
+            f"found {len(images)} matching images",
+        )
 
     if not images:
         logger.warning(f"No images found in {input_folder}")
@@ -80,13 +94,31 @@ def run_pipeline(config_path: str):
             logger.error(f"Could not read {fname}")
             continue
 
-        # We update the pipeline context with the current image. It is not necessary to update the image shape since it is already set during bootstrapping.
+        # Update context with the current image path. Image shape was
+        # determined during bootstrapping and does not need to be reset.
         context.input_image_path = image_path
 
         result = pipeline.run(gray)
-        if result is not None:
-            successful_count += 1
-            logger.debug(f"Successfully processed {fname}")
+        if result is None:
+            logger.error(f"Processing failed for {fname}")
+            continue
+
+        output_image = result
+        if isinstance(result, tuple):
+            output_image = result[0]
+
+        if output_image.ndim == 3 and output_image.shape[2] == 3:
+            output_image = cv2.cvtColor(output_image, cv2.COLOR_RGB2BGR)
+
+        name, ext = os.path.splitext(fname)
+        out_name = f"{name}{output_suffix}{ext}"
+        out_path = os.path.join(output_folder, out_name)
+        if not cv2.imwrite(out_path, output_image):
+            logger.error(f"Failed to save result for {fname}")
+            continue
+
+        successful_count += 1
+        logger.debug(f"Successfully processed {fname}")
 
     logger.info(
         f"Batch processing completed: {successful_count}/{len(images)} images processed successfully")

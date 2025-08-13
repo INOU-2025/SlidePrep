@@ -1,25 +1,20 @@
 {
   "general": {
-    "input_path": "",
-    "suffix_filter": "",
+    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225",
+    "suffix_filter": "_ch00",
     "output_path": "output",
     "output_suffix": "",
-    "log": true,
+    "log": false,
     "debug": false
-  },
-  "log": {
-    "log_to_file": true,
-    "log_to_console": false,
-    "log_file_name": "slideprep.log",
-    "log_level": "WARNING",
-    "relative_path": "logs"
   },
   "binarization": {
     "threshold_method": "combined_differential"
   },
   "grid_detection": {
     "threshold": 0.1,
-    "angles": [2.0, -2.0],
+    "angles": [
+      -2.0
+    ],
     "enable_early_exit": true,
     "enable_template_cache": true,
     "enable_preprocessing_cache": true,
@@ -27,20 +22,19 @@
     "general": {
       "template_length": 300,
       "thickness": 20,
-      "border_thickness": 0,
       "min_contour_area": 100
     },
     "thick_border": {
-      "template_length": 100,
+      "template_length": 60,
       "thickness": 7,
-      "border_thickness": 35,
-      "min_contour_area": 100
+      "border_thickness": 30,
+      "min_contour_area": 2
     },
     "thin_border": {
       "template_length": 30,
       "thickness": 7,
       "border_thickness": 20,
-      "min_contour_area": 100
+      "min_contour_area": 1
     }
   },
   "grid_refinement": {
@@ -55,17 +49,27 @@
         "length"
       ],
       "threshold": 0.5
-    }
+    },
+    "target_inclination_angles": {
+      "horizontal": 1.7,
+      "vertical": -88.3,
+      "tolerance": 1.0
+    },
+    "target_thickness": 48,
+    "thickness_bias": 0.60
   },
   "inpainting": {
-    "model": "lama",
-    "mask_path": "",
-    "mask_suffix": "_mask"
+    "model": "lama"
   },
   "debug": {
-    "relative_path": "debug",
-    "saved_artifact_type": "image",
-    "save_composite_img": false,
-    "save_aggregated_data": false
+    "saved_artifact_type": "both",
+    "save_composite_img": true,
+    "save_aggregated_data": true
+  },
+  "log": {
+    "log_to_file": false,
+    "log_to_console": false,
+    "log_file_name": "pipeline.log",
+    "log_level": "DEBUG"
   }
 }

@@ -58,7 +58,7 @@ def bootstrap(config_path: str, drawer: Optional[Drawer] = None, writer: Optiona
                     break
             if image_shape is not None:
                 break
-    context.image_shape = image_shape
+    context.image_shape = (image_shape[1], image_shape[0])
 
     Container.register_singleton("pipeline_context", context)
 
