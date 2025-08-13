@@ -26,6 +26,18 @@ step = BinarizationStep(config)
 result: np.ndarray = step.run(image_array)  # Returns binary image directly
 ```
 
+### Image Conversion
+Convert images to a specific format and color mode:
+
+```python
+from src.steps import ImgConversionStep
+from config.config_schema import ImgConversionConfig
+
+cfg = ImgConversionConfig(format="jpeg", mode="RGB")
+step = ImgConversionStep(cfg)
+converted, metadata = step.run(image_array)
+```
+
 ### For Research and Experimentation
 Use the binarization utilities for access to all 7 methods:
 

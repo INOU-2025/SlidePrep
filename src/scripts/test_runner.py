@@ -27,6 +27,7 @@ from src.core.step import PipelineStep
 from src.utils.debug.drawer import Drawer
 from src.utils.debug.result_writer import ResultWriter
 from src.utils.image_utils import get_supported_image_formats
+from src.utils.conversion_utils import get_extension_for_format
 from src.utils.detection.detection_result_dict import DetectionResultDict
 
 
@@ -129,6 +130,8 @@ class StepTestRunner:
         processed = 0
 
         debug_cfg = self._cfg.debug_config
+        conversion_cfg = self._cfg.img_conversion_config
+
         if debug_cfg.save_aggregated_data and debug_cfg.saved_artifact_type in {
             "data",
             "both",
@@ -194,7 +197,7 @@ class StepTestRunner:
                             continue
                     result, metadata = step.run(data_image)
 
-                image_debug_filename = f"{base_name}.png"
+                image_debug_filename = f"{base_name}{get_extension_for_format(conversion_cfg.format)}"
                 self._debugger.save_debug_image(
                     image_debug_filename, source_image, result, metadata
                 )

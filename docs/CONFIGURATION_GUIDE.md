@@ -79,6 +79,23 @@ source images in `general.input_path` while reading JSON files from
 The optional `max_images` field limits how many files are processed during
 test runs. When omitted, all matching files are processed.
 
+### Image Conversion Configuration
+
+Controls output format and color mode of processed images:
+
+```json
+{
+  "img_conversion": {
+    "format": "png",   // "jpeg", "png" or "tiff"
+    "mode": "RGB"      // "RGB" or "grayscale"
+  }
+}
+```
+
+- `format`: Desired file format for the converted image.
+- `mode`: Output color mode. Use `"RGB"` for color or `"grayscale"` for
+  single-channel images.
+
 ### Binarization Configuration
 
 Controls image binarization behavior:

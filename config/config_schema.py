@@ -55,6 +55,28 @@ class TestConfig:
 
 
 @dataclass
+class ImgConversionConfig:
+    """Configuration for image format and mode conversion."""
+
+    format: str = "png"
+    mode: str = "RGB"
+
+    def __post_init__(self) -> None:
+        valid_formats = {"jpeg", "png", "tiff"}
+        valid_modes = {"rgb", "grayscale", "greyscale"}
+
+        if self.format.lower() not in valid_formats:
+            raise ValueError(
+                f"Invalid format: {self.format}. "
+                f"Valid formats: {', '.join(sorted(valid_formats))}"
+            )
+        if self.mode.lower() not in valid_modes:
+            raise ValueError(
+                f"Invalid mode: {self.mode}. Valid modes: RGB, Greyscale"
+            )
+
+
+@dataclass
 class BinarizationConfig:
     """
     Configuration for image binarization processing step.

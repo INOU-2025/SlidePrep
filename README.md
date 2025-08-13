@@ -30,7 +30,8 @@ extensions and optionally include `general.output_suffix`.
 2. **Grid Line Detection** - Template matching with thick grid optimization
 3. **Grid Mask Generation** - Create precise masks for grid removal
 4. **Mask-Based Inpainting** - Remove grid artifacts using configurable models
-5. **Whole Slide Stitching** - Reconstruct full slide using Ashlar *(planned)*
+5. **Image Conversion** - Convert tiles to a chosen format and mode so they can be digested by Ashlar
+6. **Whole Slide Stitching** - Reconstruct full slide using Ashlar *(planned)*
 
 **Production vs Research:**
 - **Production**: Uses optimized Combined Differential method automatically
@@ -54,6 +55,7 @@ SlidePrep/
 │   │   ├── logger.py            # Logging system
 │   │   └── debugger.py          # Debug visualization
 │   ├── steps/                   # Processing steps (clean & focused)
+│   │   ├── img_conversion.py    # Image format/mode conversion
 │   │   ├── binarization.py      # 59 lines - Production binarization
 │   │   └── grid_detection.py    # Grid pattern detection
 │   ├── utils/                   # Utility modules
@@ -62,7 +64,8 @@ SlidePrep/
 │   │   └── detection/           # Grid detection utilities
 │   └── scripts/                 # Testing and validation
 │       ├── test_binarization.py # Production method testing
-│       └── test_detection.py    # Grid detection testing
+│       ├── test_detection.py    # Grid detection testing
+│       └── test_img_conversion.py # Format/mode conversion testing
 ├── demo_binarization_methods.py # Interactive method comparison ⭐
 └── main.py                      # Production pipeline entry point
 ```
@@ -113,6 +116,9 @@ python main.py path/to/config.json
 
 ### Individual Step Testing
 ```bash
+# Test image conversion
+python src/scripts/test_img_conversion.py config/test/img_conversion.json
+
 # Test binarization on sample images
 python src/scripts/test_binarization.py config/test/binarization.json
 

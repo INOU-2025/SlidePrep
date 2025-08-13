@@ -4,6 +4,7 @@ from config.config_schema import (
     GeneralConfig,
     TestConfig,
     BinarizationConfig,
+    ImgConversionConfig,
     GridDetectionConfig,
     GridRefinementConfig,
     InpaintingConfig,
@@ -36,6 +37,11 @@ class AppConfigManager(ConfigManager):
                     raise ValueError(
                         f"Test input path does not exist: {self.test_config.input_path}"
                     )
+
+            img_conv_config = self.get("img_conversion")
+            self.img_conversion_config = (
+                ImgConversionConfig(**img_conv_config) if img_conv_config else None
+            )
 
             bin_config = self.get("binarization")
             self.binarization_config = (

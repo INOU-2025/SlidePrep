@@ -1,6 +1,9 @@
 import os
 from typing import List, Tuple
 
+import numpy as np
+from PIL import Image
+
 
 def get_supported_image_formats() -> Tuple[str, ...]:
     """
@@ -62,3 +65,26 @@ def filter_images_by_suffix(image_paths: list[str], suffix: str) -> list[str]:
             filtered_paths.append(path)
 
     return filtered_paths
+
+
+def convert_image_mode(image: np.ndarray, mode: str) -> np.ndarray:
+    """Convert an image array to the specified mode.
+
+    Args:
+        image: Input image as a NumPy array.
+        mode: Target mode - ``"RGB"`` or ``"grayscale"`` (``"greyscale"``).
+
+    Returns:
+        Image converted to the requested mode.
+
+    Raises:
+        ValueError: If an unsupported mode is provided.
+    """
+    pil_img = Image.fromarray(image)
+    mode_upper = mode.upper()
+
+    if mode_upper == "RGB":
+        return np.asarray(pil_img.convert("RGB"))
+    if mode_upper in {"L", "GRAYSCALE", "GREYSCALE"}:
+        return np.asarray(pil_img.convert("L"))
+    raise ValueError(f"Unsupported image mode: {mode}")

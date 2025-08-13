@@ -10,6 +10,10 @@
   "binarization": {
     "threshold_method": "combined_differential"
   },
+  "img_conversion": {
+    "format": "tiff",
+    "mode": "grayscale"
+  },
   "grid_detection": {
     "threshold": 0.1,
     "angles": [
