@@ -50,11 +50,11 @@
       "vertical": -88.3,
       "tolerance": 1.0
     },
-    "target_thickness": 23,
-    "thickness_bias": 0.90
+    "target_thickness": 48,
+    "thickness_bias": 0.60
   },
   "log": {
-    "log_to_file": true,
+    "log_to_file": false,
     "log_to_console": false,
     "log_file_name": "grid_refinement_test.log",
     "log_level": "DEBUG"
