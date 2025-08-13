@@ -33,6 +33,9 @@ These configurations are separate from the main pipeline configuration (`init_co
   - Contains: `general`, `img_conversion`, `log`, `debug`, `test` sections
   - Output suffix: `_conv`
   - Debug artifacts saved using the selected format
+- **`stitching.json`**: Configuration for testing whole slide stitching
+  - Contains: `general`, `stitching`, `log`, `debug`, `test` sections
+  - Runs Ashlar to produce a single OME-TIFF from processed tiles
 
 ### Legacy Test Configurations
 

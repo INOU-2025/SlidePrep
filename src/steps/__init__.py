@@ -4,6 +4,7 @@ from .grid_refinement import GridRefinementStep
 from .mask_creation import MaskCreationStep
 from .inpainting import InpaintingStep
 from .img_conversion import ImgConversionStep
+from .stitching import StitchingStep
 
 __all__ = [
     "BinarizationStep",
@@ -12,4 +13,5 @@ __all__ = [
     "MaskCreationStep",
     "InpaintingStep",
     "ImgConversionStep",
+    "StitchingStep",
 ]

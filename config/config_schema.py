@@ -285,6 +285,21 @@ class InpaintingConfig:
 
 
 @dataclass
+class StitchingConfig:
+    """Configuration for whole slide stitching step."""
+
+    output_filename: str = "stitched_slide.ome.tif"  # Name of generated OME-TIFF
+    tile_glob: str = "*.tif"  # Glob pattern to locate processed tiles
+
+    def __post_init__(self) -> None:
+        """Validate stitching configuration parameters."""
+        if not self.output_filename:
+            raise ValueError("output_filename must be specified")
+        if not self.tile_glob:
+            raise ValueError("tile_glob must be specified")
+
+
+@dataclass
 class DebugConfig:
     """Debug configuration for controlling artifact generation."""
 

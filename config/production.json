@@ -65,6 +65,10 @@
   "inpainting": {
     "model": "lama"
   },
+  "stitching": {
+    "output_filename": "stitched_slide.ome.tif",
+    "tile_glob": "*.tiff"
+  },
   "debug": {
     "saved_artifact_type": "both",
     "save_composite_img": true,

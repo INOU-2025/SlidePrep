@@ -8,6 +8,7 @@ from config.config_schema import (
     GridDetectionConfig,
     GridRefinementConfig,
     InpaintingConfig,
+    StitchingConfig,
     LogConfig,
     DebugConfig,
 )
@@ -61,6 +62,11 @@ class AppConfigManager(ConfigManager):
             inpaint_config = self.get("inpainting")
             self.inpainting_config = (
                 InpaintingConfig(**inpaint_config) if inpaint_config else None
+            )
+
+            stitch_config = self.get("stitching")
+            self.stitching_config = (
+                StitchingConfig(**stitch_config) if stitch_config else StitchingConfig()
             )
 
             self.log_config = LogConfig(**self.get("log", {}))

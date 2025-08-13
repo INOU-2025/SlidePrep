@@ -6,6 +6,7 @@ from .config_schema import (
     GridDetectionConfig,
     GridRefinementConfig,
     InpaintingConfig,
+    StitchingConfig,
     DebugConfig,
     LogConfig,
 )
@@ -18,6 +19,7 @@ __all__ = [
     "GridDetectionConfig",
     "GridRefinementConfig",
     "InpaintingConfig",
+    "StitchingConfig",
     "DebugConfig",
     "LogConfig",
 ]

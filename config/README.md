@@ -11,7 +11,8 @@ config/
     ├── grid_detection.json     # Grid detection testing
     ├── grid_refinement.json    # Grid refinement testing
     ├── mask_creation.json      # Mask generation testing
-    └── inpainting.json         # Inpainting testing
+    ├── inpainting.json         # Inpainting testing
+    └── stitching.json          # Whole slide stitching testing
 ```
 
 Test configuration files include a dedicated `test` section that defines
@@ -65,6 +66,13 @@ where test images are read from and where results are written. An optional
 - **Contents:** general, inpainting, log and debug sections
 - **Output:** Defined via `test.output_path`
 - **Use for:** Remove grid artifacts using LaMa inpainting
+- **Debug artifacts:** stored under `<output_path>/debug`
+
+#### `test/stitching.json`
+- **Purpose:** Whole slide stitching testing
+- **Contents:** general, stitching, log and debug sections
+- **Output:** Defined via `test.output_path`
+- **Use for:** Combine processed tiles into an OME-TIFF with Ashlar
 - **Debug artifacts:** stored under `<output_path>/debug`
 
 #### Using Serialized Intermediate Results

@@ -12,6 +12,7 @@ from src.steps import (
     MaskCreationStep,
     InpaintingStep,
     ImgConversionStep,
+    StitchingStep,
 )
 from src.utils import get_supported_image_patterns, filter_images_by_suffix
 
@@ -129,6 +130,14 @@ def run_pipeline(config_path: str):
 
     logger.info(
         f"Batch processing completed: {successful_count}/{len(images)} images processed successfully")
+
+    try:
+        stitching_step = StitchingStep(config=cfg.stitching_config)
+        stitched_path, _ = stitching_step.run(output_folder)
+        logger.info(f"Stitched slide written to {stitched_path}")
+    except Exception as e:
+        logger.error(f"Failed to stitch slide: {e}")
+        return False
     return successful_count > 0
 
 

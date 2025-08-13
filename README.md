@@ -31,7 +31,7 @@ extensions and optionally include `general.output_suffix`.
 3. **Grid Mask Generation** - Create precise masks for grid removal
 4. **Mask-Based Inpainting** - Remove grid artifacts using configurable models
 5. **Image Conversion** - Convert tiles to a chosen format and mode so they can be digested by Ashlar
-6. **Whole Slide Stitching** - Reconstruct full slide using Ashlar *(planned)*
+6. **Whole Slide Stitching** - Reconstruct full slide using Ashlar
 
 **Production vs Research:**
 - **Production**: Uses optimized Combined Differential method automatically
@@ -57,7 +57,8 @@ SlidePrep/
 │   ├── steps/                   # Processing steps (clean & focused)
 │   │   ├── img_conversion.py    # Image format/mode conversion
 │   │   ├── binarization.py      # 59 lines - Production binarization
-│   │   └── grid_detection.py    # Grid pattern detection
+│   │   ├── grid_detection.py    # Grid pattern detection
+│   │   └── stitching.py         # Whole slide assembly with Ashlar
 │   ├── utils/                   # Utility modules
 │   │   ├── binarization/        # Thresholding methods package
 │   │   ├── image_utils.py       # Image processing utilities
@@ -65,7 +66,8 @@ SlidePrep/
 │   └── scripts/                 # Testing and validation
 │       ├── test_binarization.py # Production method testing
 │       ├── test_detection.py    # Grid detection testing
-│       └── test_img_conversion.py # Format/mode conversion testing
+│       ├── test_img_conversion.py # Format/mode conversion testing
+│       └── test_stitching.py    # Ashlar stitching testing
 ├── demo_binarization_methods.py # Interactive method comparison ⭐
 └── main.py                      # Production pipeline entry point
 ```
@@ -131,6 +133,9 @@ python main.py config/development.json
 
 # Test mask-based inpainting
 python src/scripts/test_inpainting.py config/test/inpainting.json
+
+# Generate a stitched OME-TIFF from processed tiles
+python src/scripts/test_stitching.py config/test/stitching.json
 ```
 
 ---
