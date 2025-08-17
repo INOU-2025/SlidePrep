@@ -197,7 +197,10 @@ class StepTestRunner:
                             continue
                     result, metadata = step.run(data_image)
 
-                image_debug_filename = f"{base_name}{get_extension_for_format(conversion_cfg.format)}"
+                if conversion_cfg is not None:
+                    image_debug_filename = f"{base_name}{get_extension_for_format(conversion_cfg.format)}"
+                else:
+                    image_debug_filename = f"{base_name}.png"
                 self._debugger.save_debug_image(
                     image_debug_filename, source_image, result, metadata
                 )
