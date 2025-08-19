@@ -239,9 +239,12 @@ pipeline execution.
 Comprehensive logging for monitoring and debugging:
 
 ```python
+from io import StringIO
+from config.config_schema import LogConfig
 from src.core.logger import Logger
 
-logger = Logger(level="DEBUG", output_file="pipeline.log")
+log_cfg = LogConfig(log_to_file=True, stream=StringIO())
+logger = Logger(log_cfg)
 step = BinarizationStep(config, logger=logger)
 
 # Logs processing time, parameters, and results

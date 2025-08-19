@@ -40,17 +40,12 @@ class NoOpLogger:
 
 
 class Logger:
-    """
-    Logger wrapper with configurable handlers and output destinations.
-    
-    Provides a unified logging interface that can output to both file and
-    console based on configuration. Supports dynamic handler setup and
-    graceful degradation to no-op logging when disabled.
-    
-    The logger automatically creates output directories and configures
-    appropriate formatters for different output destinations. It maintains
-    compatibility with the standard logging interface while providing
-    additional configuration flexibility.
+    """Configurable logging wrapper.
+
+    Provides a unified logging interface that can output to files, console
+    or arbitrary file-like streams. This enables deployments in
+    environments without filesystem access while maintaining compatibility
+    with the standard logging API.
     """
 
     def __init__(self, log_config: LogConfig, enabled: bool = True) -> None:
@@ -86,13 +81,11 @@ class Logger:
         return self._enabled
 
     def _setup_handlers(self, log_config: LogConfig) -> None:
-        """
-        Set up file and console handlers based on configuration.
-        
-        Configures the underlying logging infrastructure with appropriate
-        handlers for file and console output. Creates necessary directories
-        and applies consistent formatting across all handlers.
-        
+        """Configure logging handlers.
+
+        Creates file, console or stream handlers according to ``log_config``.
+        Stream handlers allow operation without filesystem access.
+
         Args:
             log_config: Configuration specifying output destinations and formats
         """
@@ -106,13 +99,22 @@ class Logger:
         log_format = "%(asctime)s %(levelname)s %(message)s"
         formatter = logging.Formatter(log_format)
 
-        if log_config.log_to_file and log_config.log_file_name:
-            log_path = log_config.path or "."
-            os.makedirs(log_path, exist_ok=True)
-            file_handler = logging.FileHandler(os.path.join(
-                log_path, log_config.log_file_name), mode='w')
-            file_handler.setFormatter(formatter)
-            self.logger.addHandler(file_handler)
+        if log_config.log_to_file:
+            handler: logging.Handler | None = None
+            if log_config.stream is not None:
+                handler = logging.StreamHandler(log_config.stream)
+            elif log_config.log_file_name:
+                log_path = log_config.path or "."
+                try:
+                    os.makedirs(log_path, exist_ok=True)
+                    handler = logging.FileHandler(
+                        os.path.join(log_path, log_config.log_file_name), mode="w"
+                    )
+                except OSError:
+                    handler = None
+            if handler:
+                handler.setFormatter(formatter)
+                self.logger.addHandler(handler)
 
         if log_config.log_to_console:
             console_handler = logging.StreamHandler()

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, IO
 import os
 
 
@@ -340,12 +340,18 @@ class DebugConfig:
 
 @dataclass
 class LogConfig:
-    """Configuration for application logging system."""
+    """Configuration for application logging system.
+
+    Supports file-based and stream-based logging. When ``stream`` is
+    provided it takes precedence over writing to a file, enabling use in
+    environments without filesystem access.
+    """
 
     log_to_file: bool = False
     log_to_console: bool = True
     log_file_name: str = "app.log"
     log_level: str = "INFO"
+    stream: Optional[IO[str]] = field(default=None, repr=False, compare=False)
     relative_path: Optional[str] = None
     path: str = field(init=False, default="")
 
