@@ -78,7 +78,8 @@
   "debug": {
     "saved_artifact_type": "both",
     "save_composite_img": true,
-    "save_aggregated_data": true
+    "save_aggregated_data": true,
+    "artifact_sink": "local"
   },
   "log": {
     "log_to_file": false,

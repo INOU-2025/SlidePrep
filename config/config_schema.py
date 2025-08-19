@@ -321,12 +321,18 @@ class DebugConfig:
     input_result_file_name: Optional[str] = None
     result_file_name: str = field(default="aggregated_data.json", init=False)
     path: str = field(init=False, default="")
+    artifact_sink: str = "local"  # "local" or "memory"
 
     def __post_init__(self) -> None:  # pragma: no cover - simple validation
         valid_types = {"image", "data", "both"}
         if self.saved_artifact_type not in valid_types:
             raise ValueError(
                 "saved_artifact_type must be one of 'image', 'data', or 'both'"
+            )
+        valid_sinks = {"local", "memory"}
+        if self.artifact_sink not in valid_sinks:
+            raise ValueError(
+                f"artifact_sink must be one of {valid_sinks}, got: {self.artifact_sink}"
             )
         # The actual path is resolved by AppConfigManager
         self.path = self.relative_path or ""

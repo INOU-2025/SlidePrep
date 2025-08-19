@@ -159,7 +159,8 @@ Debug visualization is controlled by the debug configuration:
     "relative_path": "debug",      // Optional directory inside output path
     "saved_artifact_type": "both",
     "save_composite_img": false,
-    "save_aggregated_data": true
+    "save_aggregated_data": true,
+    "artifact_sink": "local"       // "local" or "memory"
   }
 }
 ```
@@ -168,6 +169,33 @@ Debug visualization is controlled by the debug configuration:
 - **`saved_artifact_type`**: Specify whether to save images, data, or both
 - **`save_composite_img`**: Create side-by-side comparisons when possible
 - **`save_aggregated_data`**: Persist step results to `aggregated_data.json`
+- **`artifact_sink`**: Choose storage backend. `local` writes to disk, while `memory` keeps artifacts in memory for streaming.
+
+### Selecting a Storage Backend
+
+**Local filesystem (default)**
+
+```json
+{
+  "debug": {
+    "artifact_sink": "local"
+  }
+}
+```
+
+Artifacts are written to the directory resolved by `relative_path`.
+
+**In-memory streaming (e.g., cloud upload)**
+
+```json
+{
+  "debug": {
+    "artifact_sink": "memory"
+  }
+}
+```
+
+Artifacts are retained in memory and can be forwarded to a remote service such as S3 or Azure Blob storage.
 
 ## Usage Patterns
 
