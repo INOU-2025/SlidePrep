@@ -1,10 +1,10 @@
-from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any, IO
 import os
+from typing import Optional, List, Dict, Any, IO
+
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
-@dataclass
-class GeneralConfig:
+class GeneralConfig(BaseModel):
     """
     General configuration properties that apply across all pipeline operations.
 
@@ -21,19 +21,16 @@ class GeneralConfig:
     log: bool = True  # Enable logging operations
     debug: bool = False  # Enable debug mode with additional output
 
-    def __post_init__(self) -> None:
-        """
-        Validate configuration after initialization.
-
-        Raises:
-            ValueError: If input_path is specified but does not exist
-        """
-        if self.input_path and not os.path.exists(self.input_path):
-            raise ValueError(f"Input path does not exist: {self.input_path}")
+    @field_validator("input_path")
+    @classmethod
+    def _validate_input_path(cls, v: str) -> str:
+        """Ensure the input path exists when provided."""
+        if v and not os.path.exists(v):
+            raise ValueError(f"Input path does not exist: {v}")
+        return v
 
 
-@dataclass
-class TestConfig:
+class TestConfig(BaseModel):
     """Configuration overrides used when running isolated tests."""
 
     input_path: str = ""  # Path containing test images
@@ -41,43 +38,56 @@ class TestConfig:
     input_type: str = "image"  # "image" or "data"
     max_images: Optional[int] = None  # Maximum number of images to process
 
-    def __post_init__(self) -> None:  # pragma: no cover - simple validation
-        if self.input_path and not os.path.exists(self.input_path):
-            raise ValueError(
-                f"Test input path does not exist: {self.input_path}")
+    @field_validator("input_path")
+    @classmethod
+    def _validate_input_path(cls, v: str) -> str:  # pragma: no cover - simple validation
+        if v and not os.path.exists(v):
+            raise ValueError(f"Test input path does not exist: {v}")
+        return v
+
+    @field_validator("input_type")
+    @classmethod
+    def _validate_input_type(cls, v: str) -> str:
         valid_types = {"image", "data"}
-        if self.input_type not in valid_types:
-            raise ValueError(
-                f"input_type must be one of {valid_types}, got: {self.input_type}"
-            )
-        if self.max_images is not None and self.max_images <= 0:
+        if v not in valid_types:
+            raise ValueError(f"input_type must be one of {valid_types}, got: {v}")
+        return v
+
+    @field_validator("max_images")
+    @classmethod
+    def _validate_max_images(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None and v <= 0:
             raise ValueError("max_images must be a positive integer")
+        return v
 
 
-@dataclass
-class ImgConversionConfig:
+class ImgConversionConfig(BaseModel):
     """Configuration for image format and mode conversion."""
 
     format: str = "png"
     mode: str = "RGB"
 
-    def __post_init__(self) -> None:
+    @field_validator("format")
+    @classmethod
+    def _validate_format(cls, v: str) -> str:
         valid_formats = {"jpeg", "png", "tiff"}
-        valid_modes = {"rgb", "grayscale", "greyscale"}
-
-        if self.format.lower() not in valid_formats:
+        if v.lower() not in valid_formats:
             raise ValueError(
-                f"Invalid format: {self.format}. "
+                f"Invalid format: {v}. "
                 f"Valid formats: {', '.join(sorted(valid_formats))}"
             )
-        if self.mode.lower() not in valid_modes:
-            raise ValueError(
-                f"Invalid mode: {self.mode}. Valid modes: RGB, Greyscale"
-            )
+        return v
+
+    @field_validator("mode")
+    @classmethod
+    def _validate_mode(cls, v: str) -> str:
+        valid_modes = {"rgb", "grayscale", "greyscale"}
+        if v.lower() not in valid_modes:
+            raise ValueError("Invalid mode: {v}. Valid modes: RGB, Greyscale")
+        return v
 
 
-@dataclass
-class BinarizationConfig:
+class BinarizationConfig(BaseModel):
     """
     Configuration for image binarization processing step.
 
@@ -88,13 +98,10 @@ class BinarizationConfig:
 
     threshold_method: str = "combined_differential"  # Binarization algorithm name
 
-    def __post_init__(self) -> None:
-        """
-        Validate binarization method selection.
-
-        Raises:
-            ValueError: If threshold_method is not a supported algorithm
-        """
+    @field_validator("threshold_method")
+    @classmethod
+    def _validate_threshold_method(cls, v: str) -> str:
+        """Validate binarization method selection."""
         valid_methods = {
             "otsu",
             "triangle",
@@ -106,15 +113,15 @@ class BinarizationConfig:
             "adaptive_gaussian",
             "adaptive_mean",
         }
-        if self.threshold_method.lower() not in valid_methods:
+        if v.lower() not in valid_methods:
             raise ValueError(
-                f"Invalid threshold method: {self.threshold_method}. "
+                f"Invalid threshold method: {v}. "
                 f"Valid methods: {', '.join(sorted(valid_methods))}"
             )
+        return v
 
 
-@dataclass
-class GridDetectionConfig:
+class GridDetectionConfig(BaseModel):
     """
     Configuration for adaptive grid detection.
 
@@ -123,7 +130,7 @@ class GridDetectionConfig:
 
     # Global template matching settings
     threshold: float = 0.1
-    angles: Optional[List[float]] = None
+    angles: List[float] = Field(default_factory=lambda: [2.0, -2.0])
 
     # Performance optimizations
     enable_early_exit: bool = True
@@ -132,69 +139,49 @@ class GridDetectionConfig:
     cache_max_size: int = 50
 
     # Strategy configurations - must be provided in JSON
-    general: Optional[Dict[str, Any]] = None
-    thick_border: Optional[Dict[str, Any]] = None
-    thin_border: Optional[Dict[str, Any]] = None
+    general: Dict[str, Any]
+    thick_border: Dict[str, Any]
+    thin_border: Dict[str, Any]
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def _validate_settings(cls, values: "GridDetectionConfig") -> "GridDetectionConfig":
         """Validate settings and ensure all required configurations are provided."""
-        if self.cache_max_size <= 0:
-            raise ValueError(
-                f"cache_max_size must be positive, got: {self.cache_max_size}"
-            )
+        if values.cache_max_size <= 0:
+            raise ValueError("cache_max_size must be positive")
 
-        # Set default angles if not provided
-        if self.angles is None:
-            self.angles = [2.0, -2.0]
-
-        # Validate global settings
-        if not 0 <= self.threshold <= 1:
+        if not 0 <= values.threshold <= 1:
             raise ValueError(
-                f"threshold must be between 0 and 1, got: {self.threshold}"
+                f"threshold must be between 0 and 1, got: {values.threshold}"
             )
-        if not self.angles:
+        if not values.angles:
             raise ValueError("angles cannot be empty")
-        for angle in self.angles:
+        for angle in values.angles:
             if not -45 <= angle <= 45:
                 raise ValueError(
                     f"angles must be between -45 and 45 degrees, got: {angle}"
                 )
 
-        # Ensure all strategy configurations are provided
-        if self.general is None:
-            raise ValueError("general strategy configuration is required")
-        if self.thick_border is None:
-            raise ValueError("thick_border strategy configuration is required")
-        if self.thin_border is None:
-            raise ValueError("thin_border strategy configuration is required")
+        cls._validate_strategy_config("general", values.general, False)
+        cls._validate_strategy_config("thick_border", values.thick_border, True)
+        cls._validate_strategy_config("thin_border", values.thin_border, True)
+        return values
 
-        # Validate all strategy configurations
-        for strategy_name, strategy_config in [
-            ("general", self.general),
-            ("thick_border", self.thick_border),
-            ("thin_border", self.thin_border),
-        ]:
-            self._validate_strategy_config(strategy_name, strategy_config)
-
-    def _validate_strategy_config(self, name: str, config: Dict[str, Any]) -> None:
+    @staticmethod
+    def _validate_strategy_config(name: str, config: Dict[str, Any], border_required: bool) -> None:
         """Validate a strategy configuration dictionary."""
-        if name == "general":
-            # General strategy doesn't use border filtering
-            required_keys = {"template_length",
-                             "thickness", "min_contour_area"}
-        else:
-            # Border strategies require border_thickness
+        if border_required:
             required_keys = {
                 "template_length",
                 "thickness",
                 "border_thickness",
                 "min_contour_area",
             }
+        else:
+            required_keys = {"template_length", "thickness", "min_contour_area"}
 
         if not all(key in config for key in required_keys):
             missing = required_keys - set(config.keys())
-            raise ValueError(
-                f"{name} strategy missing required keys: {missing}")
+            raise ValueError(f"{name} strategy missing required keys: {missing}")
 
         if config["template_length"] <= 0:
             raise ValueError(f"{name}.template_length must be positive")
@@ -203,89 +190,88 @@ class GridDetectionConfig:
         if config["min_contour_area"] <= 0:
             raise ValueError(f"{name}.min_contour_area must be positive")
 
-        # Only validate border_thickness for border strategies
-        if name != "general":
-            if config["border_thickness"] < 0:
-                raise ValueError(
-                    f"{name}.border_thickness must be non-negative")
+        if border_required and config["border_thickness"] < 0:
+            raise ValueError(f"{name}.border_thickness must be non-negative")
 
 
-@dataclass
-class GridRefinementClassifierConfig:
+class GridRefinementClassifierConfig(BaseModel):
     """Classifier configuration for grid refinement."""
 
     model_path: str = ""
-    features: List[str] = field(default_factory=list)
+    features: List[str] = Field(..., min_length=1)
     threshold: float = 0.5
 
+    @field_validator("model_path")
+    @classmethod
+    def _validate_model_path(cls, v: str) -> str:
+        if v and not os.path.isfile(v):
+            raise ValueError(f"classifier.model_path does not exist: {v}")
+        return v
 
-@dataclass
-class GridRefinementConfig:
+    @field_validator("threshold")
+    @classmethod
+    def _validate_threshold(cls, v: float) -> float:
+        if not 0.0 <= v <= 1.0:
+            raise ValueError("classifier.threshold must be between 0 and 1")
+        return v
+
+
+class GridRefinementConfig(BaseModel):
     """Configuration for grid refinement step."""
 
-    classifier: GridRefinementClassifierConfig = field(
+    classifier: GridRefinementClassifierConfig = Field(
         default_factory=GridRefinementClassifierConfig
     )
-    target_inclination_angles: Dict[str, float] = field(default_factory=dict)
+    target_inclination_angles: Dict[str, float] = Field(default_factory=dict)
     target_thickness: int = 22
     thickness_bias: float = 0.90
 
-    def __post_init__(self) -> None:
-        # Convert classifier dict to dataclass if needed
-        if isinstance(self.classifier, dict):
-            self.classifier = GridRefinementClassifierConfig(**self.classifier)
-        if self.classifier is None:
-            raise ValueError(
-                "classifier configuration is required for grid refinement")
-        if self.classifier.model_path and not os.path.isfile(
-            self.classifier.model_path
-        ):
-            raise ValueError(
-                f"classifier.model_path does not exist: {self.classifier.model_path}"
-            )
-        if not self.classifier.features:
-            raise ValueError("classifier.features must not be empty")
-        if not (0.0 <= self.classifier.threshold <= 1.0):
-            raise ValueError("classifier.threshold must be between 0 and 1")
-        if self.target_inclination_angles:
+    @model_validator(mode="after")
+    def _validate_settings(cls, values: "GridRefinementConfig") -> "GridRefinementConfig":
+        if values.target_inclination_angles:
             required_keys = {"horizontal", "vertical", "tolerance"}
-            missing = required_keys - \
-                set(self.target_inclination_angles.keys())
+            missing = required_keys - set(values.target_inclination_angles.keys())
             if missing:
                 raise ValueError(
                     f"target_inclination_angles missing keys: {missing}")
-            for k, v in self.target_inclination_angles.items():
+            for k, v in values.target_inclination_angles.items():
                 if not isinstance(v, (float, int)):
                     raise ValueError(
                         f"target_inclination_angles[{k}] must be a float")
-        if not isinstance(self.target_thickness, int) or self.target_thickness <= 0:
+        if not isinstance(values.target_thickness, int) or values.target_thickness <= 0:
             raise ValueError("target_thickness must be a positive integer")
-        if not (0.0 <= self.thickness_bias <= 1.0):
+        if not 0.0 <= values.thickness_bias <= 1.0:
             raise ValueError("thickness_bias must be between 0 and 1")
+        return values
 
 
-@dataclass
-class InpaintingConfig:
+class InpaintingConfig(BaseModel):
     """Configuration for mask-based inpainting step."""
 
     model: str = "lama"  # Inpainting algorithm identifier
     mask_path: str = ""  # Directory containing mask images
     mask_suffix: str = "_mask"  # Suffix appended to filename to locate mask
 
-    def __post_init__(self) -> None:
-        """Validate inpainting configuration parameters."""
+    @field_validator("model")
+    @classmethod
+    def _validate_model(cls, v: str) -> str:
         valid_models = {"lama"}
-        if self.model.lower() not in valid_models:
+        if v.lower() not in valid_models:
             raise ValueError(
-                f"Invalid inpainting model: {self.model}. "
+                f"Invalid inpainting model: {v}. "
                 f"Valid models: {', '.join(sorted(valid_models))}"
             )
-        if self.mask_path and not os.path.isdir(self.mask_path):
-            raise ValueError(f"mask_path does not exist: {self.mask_path}")
+        return v
+
+    @field_validator("mask_path")
+    @classmethod
+    def _validate_mask_path(cls, v: str) -> str:
+        if v and not os.path.isdir(v):
+            raise ValueError(f"mask_path does not exist: {v}")
+        return v
 
 
-@dataclass
-class StitchingConfig:
+class StitchingConfig(BaseModel):
     """Configuration for whole slide stitching step."""
     output_filename: str = "stitched_slide.ome.tif"  # Name of generated OME-TIFF
     pattern: str = "TileScan_001_s{series:3}_ch{channel:2}.tiff"  # File pattern used by Ashlar
@@ -296,22 +282,23 @@ class StitchingConfig:
     layout: str = "raster"  # Acquisition layout
     direction: str = "horizontal"  # Raster direction
 
-    def __post_init__(self) -> None:
+    @model_validator(mode="after")
+    def _validate_settings(cls, values: "StitchingConfig") -> "StitchingConfig":
         """Validate stitching configuration parameters."""
-        if not self.output_filename:
+        if not values.output_filename:
             raise ValueError("output_filename must be specified")
-        if not self.pattern:
+        if not values.pattern:
             raise ValueError("pattern must be specified")
-        if not 0 <= self.overlap < 1:
+        if not 0 <= values.overlap < 1:
             raise ValueError("overlap must be between 0 and 1")
-        if self.pixel_size <= 0:
+        if values.pixel_size <= 0:
             raise ValueError("pixel_size must be positive")
-        if self.width <= 0 or self.height <= 0:
+        if values.width <= 0 or values.height <= 0:
             raise ValueError("width and height must be positive integers")
+        return values
 
 
-@dataclass
-class DebugConfig:
+class DebugConfig(BaseModel):
     """Debug configuration for controlling artifact generation."""
 
     relative_path: Optional[str] = None  # Location inside the run's output directory
@@ -319,27 +306,32 @@ class DebugConfig:
     save_composite_img: bool = False  # Generate composite visualization images
     save_aggregated_data: bool = False  # Persist aggregated results
     input_result_file_name: Optional[str] = None
-    result_file_name: str = field(default="aggregated_data.json", init=False)
-    path: str = field(init=False, default="")
+    result_file_name: str = "aggregated_data.json"
+    path: str = ""
     artifact_sink: str = "local"  # "local" or "memory"
 
-    def __post_init__(self) -> None:  # pragma: no cover - simple validation
+    @field_validator("saved_artifact_type")
+    @classmethod
+    def _validate_saved_artifact_type(cls, v: str) -> str:  # pragma: no cover - simple validation
         valid_types = {"image", "data", "both"}
-        if self.saved_artifact_type not in valid_types:
+        if v not in valid_types:
             raise ValueError(
                 "saved_artifact_type must be one of 'image', 'data', or 'both'"
             )
+        return v
+
+    @field_validator("artifact_sink")
+    @classmethod
+    def _validate_artifact_sink(cls, v: str) -> str:  # pragma: no cover - simple validation
         valid_sinks = {"local", "memory"}
-        if self.artifact_sink not in valid_sinks:
+        if v not in valid_sinks:
             raise ValueError(
-                f"artifact_sink must be one of {valid_sinks}, got: {self.artifact_sink}"
+                f"artifact_sink must be one of {valid_sinks}, got: {v}"
             )
-        # The actual path is resolved by AppConfigManager
-        self.path = self.relative_path or ""
+        return v
 
 
-@dataclass
-class LogConfig:
+class LogConfig(BaseModel):
     """Configuration for application logging system.
 
     Supports file-based and stream-based logging. When ``stream`` is
@@ -351,15 +343,17 @@ class LogConfig:
     log_to_console: bool = True
     log_file_name: str = "app.log"
     log_level: str = "INFO"
-    stream: Optional[IO[str]] = field(default=None, repr=False, compare=False)
+    stream: Optional[IO[str]] = Field(default=None, repr=False)
     relative_path: Optional[str] = None
-    path: str = field(init=False, default="")
+    path: str = ""
 
-    def __post_init__(self) -> None:  # pragma: no cover - simple validation
+    @field_validator("log_level")
+    @classmethod
+    def _validate_log_level(cls, v: str) -> str:  # pragma: no cover - simple validation
         valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
-        if self.log_level.upper() not in valid_levels:
+        if v.upper() not in valid_levels:
             raise ValueError(
-                f"Invalid log level: {self.log_level}. "
+                f"Invalid log level: {v}. "
                 f"Valid levels: {', '.join(sorted(valid_levels))}"
             )
-        self.path = self.relative_path or ""
+        return v.upper()

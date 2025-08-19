@@ -2,7 +2,7 @@
 
 ## 📋 Overview
 
-SlidePrep uses a modular JSON-based configuration system with typed dataclasses for validation and IDE support. This guide covers all configuration options and best practices.
+SlidePrep uses a modular JSON-based configuration system with typed Pydantic models for validation and IDE support. This guide covers all configuration options and best practices.
 
 ## 🏗️ Configuration Structure
 

@@ -1,5 +1,6 @@
-from typing import List, Optional
 import os
+from pydantic import ValidationError
+
 from config.config_schema import (
     GeneralConfig,
     TestConfig,
@@ -33,11 +34,6 @@ class AppConfigManager(ConfigManager):
             self.general_config = GeneralConfig(**self.get("general", {}))
             test_cfg = self.get("test")
             self.test_config = TestConfig(**test_cfg) if test_cfg else None
-            if self.test_config and self.test_config.input_path:
-                if not os.path.exists(self.test_config.input_path):
-                    raise ValueError(
-                        f"Test input path does not exist: {self.test_config.input_path}"
-                    )
 
             img_conv_config = self.get("img_conversion")
             self.img_conversion_config = (
@@ -88,7 +84,7 @@ class AppConfigManager(ConfigManager):
                 else base_output
             )
 
-        except TypeError as e:
+        except ValidationError as e:
             raise ValueError(
                 f"Error extracting config values. Malformed configuration: {e}"
             ) from e

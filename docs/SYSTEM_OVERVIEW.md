@@ -115,13 +115,17 @@ class BinarizationStep(PipelineStep):
 Automatic parameter validation with clear error messages:
 
 ```python
-@dataclass
-class BinarizationConfig:
+from pydantic import BaseModel, field_validator
+
+
+class BinarizationConfig(BaseModel):
     threshold_method: str = "combined_differential"
-    
-    def __post_init__(self) -> None:
-        """Validate binarization method selection."""
+
+    @field_validator("threshold_method")
+    @classmethod
+    def _validate_threshold_method(cls, value: str) -> str:
         # Comprehensive validation runs automatically
+        return value
 ```
 
 ## ⚙️ Configuration System
