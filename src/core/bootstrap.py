@@ -9,7 +9,6 @@ from src.core.container import Container
 from src.core.logger import Logger
 from src.core.debugger import Debugger
 from src.core.app_config_manager import AppConfigManager
-from src.utils import config_manager
 from src.utils.debug.drawer import Drawer
 from src.utils.debug.result_writer import ResultWriter
 from typing import Optional
@@ -20,27 +19,28 @@ import glob
 from src.utils import get_supported_image_patterns
 
 
-def bootstrap(config_path: str, drawer: Optional[Drawer] = None, writer: Optional[ResultWriter] = None) -> None:
-    """
-    Initialize the application container with all required services.
+def bootstrap(
+    config_path: str,
+    drawer: Optional[Drawer] = None,
+    writer: Optional[ResultWriter] = None,
+) -> Container:
+    """Build and initialize a new :class:`Container` instance."""
 
-    Args:
-        config_path: Path to the configuration file
-        drawer: Optional drawer to attach to the debugger
-        writer: Optional result writer to attach to the debugger
-    """
+    container = Container()
     config_manager = AppConfigManager(config_path)
-    Container.register_singleton("config", config_manager)
+    container.register_singleton("config", config_manager)
 
-    logger = Logger(
-        config_manager.log_config,
-        enabled=config_manager.logger_active
+    logger = Logger(config_manager.log_config, enabled=config_manager.logger_active)
+    container.register_singleton("logger", logger)
+
+    debugger = Debugger(
+        logger,
+        config_manager.debug_config,
+        config_manager.debug_active,
+        drawer=drawer,
+        writer=writer,
     )
-    Container.register_singleton("logger", logger)
-
-    debugger = Debugger(logger, config_manager.debug_config,
-                        config_manager.debug_active, drawer=drawer, writer=writer)
-    Container.register_singleton("debugger", debugger)
+    container.register_singleton("debugger", debugger)
 
     context = PipelineContext()
     input_path = config_manager.general_config.input_path
@@ -58,26 +58,7 @@ def bootstrap(config_path: str, drawer: Optional[Drawer] = None, writer: Optiona
                     break
             if image_shape is not None:
                 break
-    context.image_shape = (image_shape[1], image_shape[0])
+    context.image_shape = (image_shape[1], image_shape[0]) if image_shape else None
+    container.register_singleton("pipeline_context", context)
 
-    Container.register_singleton("pipeline_context", context)
-
-
-def get_config() -> AppConfigManager:
-    """Get the configuration manager from container."""
-    return Container.resolve("config")
-
-
-def get_logger() -> Logger:
-    """Get the logger from container."""
-    return Container.resolve("logger")
-
-
-def get_debugger() -> Debugger:
-    """Get the debugger from container."""
-    return Container.resolve("debugger")
-
-
-def get_pipeline_context() -> PipelineContext:
-    """Get the pipeline context from container."""
-    return Container.resolve("pipeline_context")
+    return container

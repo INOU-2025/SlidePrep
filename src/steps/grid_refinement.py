@@ -8,7 +8,6 @@ from src.core.step import PipelineStep
 from config.config_schema import GridRefinementConfig
 from src.utils.detection.models import DetectionStrategy, Orientation, DetectionRegion
 from src.utils.detection.contour_analysis import analyze_contour
-from src.core.container import Container
 
 
 # ----------------- helpers -----------------
@@ -287,7 +286,9 @@ class GridRefinementStep(PipelineStep):
 
         detections = data.get("detections", {})
         strategies = data.get("strategies", {})
-        image_shape = Container.resolve("pipeline_context").image_shape
+        if not self.container:
+            raise ValueError("Container not available for GridRefinementStep")
+        image_shape = self.container.resolve("pipeline_context").image_shape
         angle_tolerance = self.config.target_inclination_angles.get(
             "tolerance", None)
         target_thickness = float(self.config.target_thickness)

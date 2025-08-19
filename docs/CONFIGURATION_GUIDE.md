@@ -291,13 +291,14 @@ python main.py path/to/custom_config.json
 ### Programmatic Usage
 
 ```python
-from src.core.bootstrap import bootstrap, get_config
+from src.core.bootstrap import bootstrap
 
 # Bootstrap with different configurations
-bootstrap("config/production.json")   # Production optimized
-bootstrap("config/development.json")  # Development friendly
+container = bootstrap("config/production.json")   # Production optimized
+config = container.resolve("config")
 
-config = get_config()
+container = bootstrap("config/development.json")  # Development friendly
+config = container.resolve("config")
 
 # Access typed configuration
 input_path = config.general_config.input_path

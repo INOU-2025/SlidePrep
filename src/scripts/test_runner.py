@@ -16,13 +16,7 @@ from dataclasses import dataclass
 from typing import Optional, List, Dict
 import numpy as np
 
-from src.core.bootstrap import (
-    bootstrap,
-    get_config,
-    get_logger,
-    get_debugger,
-    get_pipeline_context,
-)
+from src.core.bootstrap import bootstrap
 from src.core.step import PipelineStep
 from src.utils.debug.drawer import Drawer
 from src.utils.debug.result_writer import ResultWriter
@@ -40,11 +34,12 @@ class StepTestRunner:
     _writer: Optional[ResultWriter] = None
 
     def __post_init__(self) -> None:
-        bootstrap(self._config_path, self._drawer, self._writer)
+        self._container = bootstrap(self._config_path, self._drawer, self._writer)
 
-        self._cfg = get_config()
-        self._logger = get_logger()
-        self._debugger = get_debugger()
+        self._cfg = self._container.resolve("config")
+        self._logger = self._container.resolve("logger")
+        self._debugger = self._container.resolve("debugger")
+        self._context = self._container.resolve("pipeline_context")
 
     @property
     def cfg(self):
@@ -86,6 +81,7 @@ class StepTestRunner:
         None
             Aggregated results are written to disk when configured.
         """
+        step.container = self._container
         gen_cfg = self._cfg.general_config
         test_cfg = self._cfg.test_config
 
@@ -166,8 +162,7 @@ class StepTestRunner:
                     )
                     continue
 
-                ctx = get_pipeline_context()
-                ctx.input_image_path = context_image_path
+                self._context.input_image_path = context_image_path
 
                 source_image = cv2.imread(context_image_path, cv2.IMREAD_GRAYSCALE)
                 if source_image is None:
@@ -175,7 +170,7 @@ class StepTestRunner:
                         f"Could not load {context_image_path}"
                     )
                     continue
-                ctx.image_shape = (source_image.shape[1], source_image.shape[0])
+                self._context.image_shape = (source_image.shape[1], source_image.shape[0])
 
                 self._logger.debug(f"Processing {fname}")
 
@@ -222,5 +217,5 @@ class StepTestRunner:
         )
 
         if result_filename and len(aggregated_results) > 0:
-            metadata = {"image_shape": get_pipeline_context().image_shape}
+            metadata = {"image_shape": self._context.image_shape}
             self._debugger.save_results(result_filename, aggregated_results, metadata)

@@ -277,24 +277,21 @@ python src/scripts/test_detection.py config/test/grid_detection.json
 
 ### Basic Pipeline Usage
 ```python
-from src.core.bootstrap import bootstrap, get_config
-from src.steps import BinarizationStep
-from src.steps import GridDetectionStep
+from src.core.bootstrap import bootstrap
+from src.steps import BinarizationStep, GridDetectionStep
+from src.core.pipeline import Pipeline
 
 # Initialize application services
-bootstrap(config_path)
-config = get_config()
+container = bootstrap(config_path)
+config = container.resolve("config")
 
 # Create and run pipeline
 steps = [
-    BinarizationStep(config.binarization_config),
-    GridDetectionStep(config.grid_detection_config)
+    BinarizationStep(config=config.binarization_config, container=container),
+    GridDetectionStep(config=config.grid_detection_config, container=container),
 ]
-
-# Process image through pipeline
-current_data = input_image
-for step in steps:
-    current_data = step.run(current_data)
+pipeline = Pipeline(steps, container)
+result = pipeline.run(input_image)
 ```
 
 ### Individual Step Usage
@@ -304,10 +301,11 @@ from src.steps import BinarizationStep
 import numpy as np
 
 # Initialize services first
-bootstrap(config_path)
+container = bootstrap(config_path)
+config = container.resolve("config")
 
-# Use individual steps (services auto-injected)
-step = BinarizationStep(config.binarization_config)
+# Use individual steps with explicit container
+step = BinarizationStep(config=config.binarization_config, container=container)
 result: np.ndarray = step.run(input_image)
 
 # Result is returned directly as binary image array

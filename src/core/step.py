@@ -12,7 +12,7 @@ class PipelineStep(ABC):
     This ensures consistent configuration management across the pipeline.
     """
 
-    def __init__(self, name: str, config=None, **kwargs):
+    def __init__(self, name: str, config=None, container: Optional[Container] = None, **kwargs):
         """
         Initialize pipeline step.
 
@@ -23,6 +23,7 @@ class PipelineStep(ABC):
         """
         self.name = name
         self.config = config
+        self.container = container
 
     @abstractmethod
     def run(self, data: Any) -> Union[Any, Tuple[Any, Optional[dict]]]:
@@ -46,10 +47,10 @@ class PipelineStep(ABC):
         Args:
             message: Message to log
         """
-        try:
-            logger = Container.resolve("logger")
+        logger = self.logger
+        if logger:
             logger.info(f"[{self.name}] {message}")
-        except KeyError:
+        else:
             print(f"[{self.name}] {message}")
 
     def debug(self, message: str) -> None:
@@ -59,10 +60,10 @@ class PipelineStep(ABC):
         Args:
             message: Message to log
         """
-        try:
-            logger = Container.resolve("logger")
+        logger = self.logger
+        if logger:
             logger.debug(f"[{self.name}] {message}")
-        except KeyError:
+        else:
             print(f"[{self.name}] DEBUG: {message}")
 
     def warning(self, message: str) -> None:
@@ -72,10 +73,10 @@ class PipelineStep(ABC):
         Args:
             message: Message to log
         """
-        try:
-            logger = Container.resolve("logger")
+        logger = self.logger
+        if logger:
             logger.warning(f"[{self.name}] {message}")
-        except KeyError:
+        else:
             print(f"[{self.name}] WARNING: {message}")
 
     def error(self, message: str) -> None:
@@ -85,10 +86,10 @@ class PipelineStep(ABC):
         Args:
             message: Message to log
         """
-        try:
-            logger = Container.resolve("logger")
+        logger = self.logger
+        if logger:
             logger.error(f"[{self.name}] {message}")
-        except KeyError:
+        else:
             print(f"[{self.name}] ERROR: {message}")
 
     def critical(self, message: str) -> None:
@@ -98,36 +99,42 @@ class PipelineStep(ABC):
         Args:
             message: Message to log
         """
-        try:
-            logger = Container.resolve("logger")
+        logger = self.logger
+        if logger:
             logger.critical(f"[{self.name}] {message}")
-        except KeyError:
+        else:
             print(f"[{self.name}] CRITICAL: {message}")
 
     @property
     def logger(self):
         """Get the logger from the container."""
-        try:
-            return Container.resolve("logger")
-        except KeyError:
-            return None
+        if self.container:
+            try:
+                return self.container.resolve("logger")
+            except KeyError:
+                return None
+        return None
 
     @property
     def debugger(self):
         """Get the debugger from the container."""
-        try:
-            return Container.resolve("debugger")
-        except KeyError:
-            return None
+        if self.container:
+            try:
+                return self.container.resolve("debugger")
+            except KeyError:
+                return None
+        return None
 
     @property
     def current_image_path(self) -> Optional[str]:
         """Path of the image currently being processed in the pipeline."""
-        try:
-            context = Container.resolve("pipeline_context")
-            return context.input_image_path
-        except KeyError:
-            return None
+        if self.container:
+            try:
+                context = self.container.resolve("pipeline_context")
+                return context.input_image_path
+            except KeyError:
+                return None
+        return None
 
     def _validate_image_input(self, data: Any) -> None:
         """

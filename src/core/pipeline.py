@@ -16,18 +16,15 @@ class Pipeline:
     interface contract.
     """
 
-    def __init__(self, steps: List[PipelineStep]) -> None:
-        """
-        Initialize pipeline with a sequence of processing steps.
+    def __init__(self, steps: List[PipelineStep], container: Container) -> None:
+        """Initialize pipeline with a sequence of processing steps."""
 
-        Args:
-            steps: List of PipelineStep instances to execute in order.
-                  Each step must implement the run() method that accepts
-                  the output from the previous step.
-        """
         self.steps = list(steps)
+        self.container = container
+        for step in self.steps:
+            step.container = container
         try:
-            self.logger = Container.resolve("logger")
+            self.logger = container.resolve("logger")
         except KeyError:
             self.logger = None
 

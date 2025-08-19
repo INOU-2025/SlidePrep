@@ -4,7 +4,6 @@ import numpy as np
 from PIL import Image
 from simple_lama_inpainting import SimpleLama
 
-from src.core.bootstrap import get_pipeline_context
 from src.core.step import PipelineStep
 from config.config_schema import InpaintingConfig
 
@@ -41,7 +40,9 @@ class InpaintingStep(PipelineStep):
 
         self._validate_image_input(mask)
 
-        ctx = get_pipeline_context()
+        if not self.container:
+            raise ValueError("Container not available for InpaintingStep")
+        ctx = self.container.resolve("pipeline_context")
         image_path = ctx.input_image_path
         if not image_path:
             raise ValueError(

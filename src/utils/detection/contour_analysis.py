@@ -1,9 +1,8 @@
+from typing import List, Tuple, Optional
 import cv2
 import numpy as np
-from typing import List, Tuple
-from src.core.container import Container
 from src.utils.detection.models import DetectionRegion, Orientation, DetectionStrategy
-from typing import Optional
+from src.core.logger import Logger
 
 
 def corner_proximity_from_box(box, W, H):
@@ -117,7 +116,13 @@ def filter_contours_by_border_zone(contours: List[np.ndarray], img_shape: Tuple[
     return filtered_contours
 
 
-def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy: DetectionStrategy = None, image_shape: Tuple[int, int] = None) -> dict:
+def analyze_contour(
+    contour: np.ndarray,
+    orientation: Orientation,
+    strategy: DetectionStrategy | None = None,
+    image_shape: Tuple[int, int] | None = None,
+    logger: Optional[Logger] = None,
+) -> dict:
     """
     Analyze a contour and return analytical information.
 
@@ -128,8 +133,6 @@ def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy: Det
     Returns:
         Dictionary with contour properties, including orientation.
     """
-    logger = Container.resolve("logger")
-
     coordinates = contour.squeeze().tolist()
     area = cv2.contourArea(contour)
     perimeter = cv2.arcLength(contour, True)
@@ -177,25 +180,26 @@ def analyze_contour(contour: np.ndarray, orientation: Orientation, strategy: Det
     orientation_mismatch = has_orientation_mismatch(
         orientation, computed_orientation)
 
-    logger.debug(
-        f"Contour analysis:\n"
-        f"  Orientation (passed): {orientation.value}\n"
-        f"  Orientation (computed): {computed_orientation.value}\n"
-        f"  Orientation mismatch: {orientation_mismatch}\n"
-        f"  Area: {area:.3f}\n"
-        f"  Perimeter: {perimeter:.3f}\n"
-        f"  Min area rect: center=({cx:.3f}, {cy:.3f}), size=({rect_w:.3f}, {rect_h:.3f}), raw_angle={raw_angle:.3f}\n"
-        f"  Longest side angle: {long_side_angle:.1f}\n"
-        f"  Box points: {box_i.tolist()}\n"
-        f"  Width: {width:.3f}, Height: {height:.3f}\n"
-        f"  Aspect ratio: {aspect_ratio:.3f}\n"
-        f"  Length: {length:.3f}\n"
-        f"  Centroid: {centroid}\n"
-        f"  Coordinates: {coordinates if len(coordinates) <= 10 else '[truncated]'}\n"
-        f"  Strategy: {getattr(strategy, 'value', strategy) if strategy else 'undefined'}\n"
-        f"  Corner proximity: {corner_proximity if corner_proximity is not None else 'undefined'}\n"
-        f"  Border proximity: {border_proximity if border_proximity is not None else 'undefined'}"
-    )
+    if logger:
+        logger.debug(
+            f"Contour analysis:\n"
+            f"  Orientation (passed): {orientation.value}\n"
+            f"  Orientation (computed): {computed_orientation.value}\n"
+            f"  Orientation mismatch: {orientation_mismatch}\n"
+            f"  Area: {area:.3f}\n"
+            f"  Perimeter: {perimeter:.3f}\n"
+            f"  Min area rect: center=({cx:.3f}, {cy:.3f}), size=({rect_w:.3f}, {rect_h:.3f}), raw_angle={raw_angle:.3f}\n"
+            f"  Longest side angle: {long_side_angle:.1f}\n"
+            f"  Box points: {box_i.tolist()}\n"
+            f"  Width: {width:.3f}, Height: {height:.3f}\n"
+            f"  Aspect ratio: {aspect_ratio:.3f}\n"
+            f"  Length: {length:.3f}\n"
+            f"  Centroid: {centroid}\n"
+            f"  Coordinates: {coordinates if len(coordinates) <= 10 else '[truncated]'}\n"
+            f"  Strategy: {getattr(strategy, 'value', strategy) if strategy else 'undefined'}\n"
+            f"  Corner proximity: {corner_proximity if corner_proximity is not None else 'undefined'}\n"
+            f"  Border proximity: {border_proximity if border_proximity is not None else 'undefined'}"
+        )
 
     return {
         "coordinates": coordinates,
@@ -236,7 +240,7 @@ def has_orientation_mismatch(passed_orientation, computed_orientation):
     return passed != computed
 
 
-def analyze_all_contours_for_image(results, image_shape=None):
+def analyze_all_contours_for_image(results, image_shape=None, logger: Optional[Logger] = None):
     """
     Iterate through contours in grid detection results obtained for am image and analyze each contour.
     Args:
@@ -254,13 +258,18 @@ def analyze_all_contours_for_image(results, image_shape=None):
             # Pass orientation as enum or string, strategy if available
             strategy = results.get('strategies', {}).get(orientation, None)
             analysis = analyze_contour(
-                contour, orientation, strategy=strategy, image_shape=image_shape)
+                contour,
+                orientation,
+                strategy=strategy,
+                image_shape=image_shape,
+                logger=logger,
+            )
             analysis['zone'] = zone
             aggregated.append(analysis)
     return aggregated
 
 
-def analyze_all_contours_for_batch(batch_results, image_shape=None):
+def analyze_all_contours_for_batch(batch_results, image_shape=None, logger: Optional[Logger] = None):
     """
     Analyze all contours for a batch of images, assuming a common image_shape.
 
@@ -277,7 +286,7 @@ def analyze_all_contours_for_batch(batch_results, image_shape=None):
         results = item.get('result')
         filename = item.get('filename', f"image_{i}")
         image_aggregated = analyze_all_contours_for_image(
-            results, image_shape=image_shape)
+            results, image_shape=image_shape, logger=logger)
         for analysis in image_aggregated:
             analysis['filename'] = filename
             aggregated.append(analysis)

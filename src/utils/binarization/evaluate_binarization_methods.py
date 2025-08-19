@@ -11,18 +11,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from src.utils.image_utils import get_supported_image_patterns, filter_images_by_suffix
 from src.steps import BinarizationStep
-from src.core.bootstrap import bootstrap, get_config, get_logger, get_debugger
+from src.core.bootstrap import bootstrap
 
 
 def evaluate_binarization_methods(config_path: str):
     """Evaluate different binarization methods on all images in a folder."""
 
     # Bootstrap the application with all services
-    bootstrap(config_path)
+    container = bootstrap(config_path)
 
     # Get services from container
-    cfg = get_config()
-    logger = get_logger()
+    cfg = container.resolve("config")
+    logger = container.resolve("logger")
 
     # Get input folder from config
     input_folder = cfg.general_config.input_path
@@ -120,7 +120,7 @@ def evaluate_binarization_methods(config_path: str):
                 config = BinarizationConfig(**method['config'])
 
                 # Create step (services injected via container)
-                step = BinarizationStep(config)
+                step = BinarizationStep(config, container=container)
 
                 # Run binarization directly on image data
                 result_image = step.run(gray.copy())

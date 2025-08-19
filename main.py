@@ -3,7 +3,7 @@ import cv2
 from glob import glob
 from typing import Any, Optional
 
-from src.core import bootstrap, get_config, get_logger, get_pipeline_context
+from src.core import bootstrap
 from src.core.pipeline import Pipeline
 from src.steps import (
     BinarizationStep,
@@ -31,10 +31,10 @@ def run_pipeline(config_path: str):
         config_path: Path to the configuration file
     """
     try:
-        bootstrap(config_path)
-        context = get_pipeline_context()
-        cfg = get_config()
-        logger = get_logger()
+        container = bootstrap(config_path)
+        context = container.resolve("pipeline_context")
+        cfg = container.resolve("config")
+        logger = container.resolve("logger")
 
     except Exception as e:
         print(f"Failed to initialize application: {e}")
@@ -58,14 +58,14 @@ def run_pipeline(config_path: str):
 
     try:
         steps = [
-            BinarizationStep(config=cfg.binarization_config),
-            GridDetectionStep(config=cfg.grid_detection_config),
-            GridRefinementStep(cfg.grid_refinement_config),
-            MaskCreationStep(),
-            InpaintingStep(config=cfg.inpainting_config),
-            ImgConversionStep(config=cfg.img_conversion_config),
+            BinarizationStep(config=cfg.binarization_config, container=container),
+            GridDetectionStep(config=cfg.grid_detection_config, container=container),
+            GridRefinementStep(cfg.grid_refinement_config, container=container),
+            MaskCreationStep(container=container),
+            InpaintingStep(config=cfg.inpainting_config, container=container),
+            ImgConversionStep(config=cfg.img_conversion_config, container=container),
         ]
-        pipeline = Pipeline(steps)
+        pipeline = Pipeline(steps, container)
         logger.info(f"Pipeline initialized with {len(steps)} steps")
     except Exception as e:
         logger.critical(f"Failed to initialize pipeline steps: {e}")

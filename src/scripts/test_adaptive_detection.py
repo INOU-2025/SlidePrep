@@ -12,13 +12,21 @@ from glob import glob
 from src.utils.detection.adaptive_detector import AdaptiveLineDetector
 from src.utils.detection.models import DetectionRegion, Orientation
 from src.utils.debug.detection_drawer import DetectionDrawer
-from src.core.bootstrap import bootstrap, get_logger, get_debugger, get_config
+from src.core.bootstrap import bootstrap
 from src.core.app_config_manager import AppConfigManager
+from src.core.logger import Logger
+from src.core.debugger import Debugger
 from typing import Optional
 
 
-def process_image_adaptive(image_path: str, output_path: str, detector: Optional[AdaptiveLineDetector] = None, 
-                          config_manager: Optional[AppConfigManager] = None) -> dict:
+def process_image_adaptive(
+    image_path: str,
+    output_path: str,
+    detector: Optional[AdaptiveLineDetector] = None,
+    config_manager: Optional[AppConfigManager] = None,
+    logger: Optional[Logger] = None,
+    debugger: Optional[Debugger] = None,
+) -> dict:
     """
     Process single image with adaptive line detection using logging and debug system.
     
@@ -34,8 +42,8 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Optional
     Raises:
         ValueError: If detector is None and config_manager is None or missing grid_detection_config
     """
-    logger = get_logger()
-    debugger = get_debugger()
+    if logger is None or debugger is None:
+        raise ValueError("logger and debugger must be provided")
     
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     if image is None:
@@ -52,7 +60,7 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Optional
         if not config_manager.grid_detection_config:
             raise ValueError("config_manager.grid_detection_config is None - configuration not loaded properly")
         
-        detector = AdaptiveLineDetector(config_manager.grid_detection_config)
+        detector = AdaptiveLineDetector(config_manager.grid_detection_config, logger=logger)
     
     # Time the detection
     start_time = time.time()
@@ -102,8 +110,8 @@ def process_image_adaptive(image_path: str, output_path: str, detector: Optional
     base_name = os.path.splitext(filename)[0]
     extension = os.path.splitext(filename)[1]
     
-    # Get suffix from current bootstrapped config or fallback to provided config_manager
-    current_config = get_config() if config_manager is None else config_manager
+    # Get suffix from provided configuration
+    current_config = config_manager
     debug_filename = f"{base_name}{extension}"
     
     logger.debug(f"Debug filename with suffix: {debug_filename}")
@@ -197,19 +205,19 @@ def compare_performance_configs(baseline_config_path: str, optimized_config_path
     print(f"Optimized config: {optimized_config_path}")
     
     # Test 1: Bootstrap with BASELINE configuration
-    bootstrap(baseline_config_path, drawer=drawer)
-    logger = get_logger()
-    debugger = get_debugger()
-    
+    container = bootstrap(baseline_config_path, drawer=drawer)
+    logger = container.resolve("logger")
+    debugger = container.resolve("debugger")
+
     logger.info("Testing BASELINE configuration...")
     logger.info(f"Debug output: {debugger._path}")
-    
-    config_manager = get_config()  # Use the singleton config manager
-    detector_baseline = AdaptiveLineDetector(config_manager.grid_detection_config)
+
+    config_manager = container.resolve("config")
+    detector_baseline = AdaptiveLineDetector(config_manager.grid_detection_config, logger=logger)
     
     times_baseline = []
     for image_path in test_images:
-        result = process_image_adaptive(image_path, "", detector_baseline, config_manager)
+        result = process_image_adaptive(image_path, "", detector_baseline, config_manager, logger, debugger)
         if result:
             times_baseline.append(result['detection_time'])
     
@@ -217,19 +225,19 @@ def compare_performance_configs(baseline_config_path: str, optimized_config_path
     baseline_cache_info = detector_baseline.get_cache_info()
     
     # Test 2: Re-bootstrap with OPTIMIZED configuration
-    bootstrap(optimized_config_path, drawer=drawer)
-    logger = get_logger()
-    debugger = get_debugger()
-    
+    container = bootstrap(optimized_config_path, drawer=drawer)
+    logger = container.resolve("logger")
+    debugger = container.resolve("debugger")
+
     logger.info("Testing OPTIMIZED configuration...")
     logger.info(f"Debug output: {debugger._path}")
 
-    config_manager = get_config()  # Use the new singleton config manager
-    detector_optimized = AdaptiveLineDetector(config_manager.grid_detection_config)
+    config_manager = container.resolve("config")
+    detector_optimized = AdaptiveLineDetector(config_manager.grid_detection_config, logger=logger)
     
     times_optimized = []
     for image_path in test_images:
-        result = process_image_adaptive(image_path, "", detector_optimized, config_manager)
+        result = process_image_adaptive(image_path, "", detector_optimized, config_manager, logger, debugger)
         if result:
             times_optimized.append(result['detection_time'])
     
@@ -314,10 +322,10 @@ def process_batch_adaptive(config_path: str, ext: str = "png") -> None:
     drawer = DetectionDrawer()
     
     # Bootstrap the system
-    bootstrap(config_path, drawer=drawer)
-    logger = get_logger()
-    debugger = get_debugger()
-    
+    container = bootstrap(config_path, drawer=drawer)
+    logger = container.resolve("logger")
+    debugger = container.resolve("debugger")
+
     logger.info(f"Using configuration from: {config_path}")
     logger.info(f"Input folder: {input_folder}")
     logger.info(f"Debug output will be saved to: {debugger._path}")
@@ -334,7 +342,7 @@ def process_batch_adaptive(config_path: str, ext: str = "png") -> None:
     logger.info(f"Found {len(image_paths)} images to process")
     
     # Process all images with the configuration
-    detector = AdaptiveLineDetector(config_manager.grid_detection_config)
+    detector = AdaptiveLineDetector(config_manager.grid_detection_config, logger=logger)
     logger.info("Using detector configuration from JSON file")
     
     all_results = []
@@ -346,7 +354,7 @@ def process_batch_adaptive(config_path: str, ext: str = "png") -> None:
         # No need for separate output_path since debug system manages this
         
         logger.info(f"[{i}/{len(image_paths)}] Processing {os.path.basename(image_path)}")
-        result = process_image_adaptive(image_path, "", detector, config_manager)  # Empty output_path since debug handles it
+        result = process_image_adaptive(image_path, "", detector, config_manager, logger, debugger)  # Empty output_path since debug handles it
         
         if result:
             all_results.append(result)

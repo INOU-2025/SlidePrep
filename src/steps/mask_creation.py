@@ -4,7 +4,6 @@ import cv2
 import numpy as np
 
 from src.core.step import PipelineStep
-from src.core.container import Container
 
 
 class MaskCreationStep(PipelineStep):
@@ -33,7 +32,9 @@ class MaskCreationStep(PipelineStep):
             raise TypeError("MaskCreationStep expects results dictionary")
 
         detections = data.get("detections", {})
-        context = Container.resolve("pipeline_context")
+        if not self.container:
+            raise ValueError("Container not available for MaskCreationStep")
+        context = self.container.resolve("pipeline_context")
         image_shape = context.image_shape
         if image_shape is None:
             raise ValueError("Pipeline context lacks image shape information")
