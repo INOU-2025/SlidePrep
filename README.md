@@ -116,6 +116,16 @@ python main.py config/production.json
 python main.py path/to/config.json
 ```
 
+### In-memory Processing
+```python
+import cv2
+from src.core.pipeline_service import PipelineService
+
+service = PipelineService("config/production.json")
+gray = cv2.imread("tile.png", cv2.IMREAD_GRAYSCALE)
+result = service.run(gray)
+```
+
 ### Individual Step Testing
 ```bash
 # Test image conversion

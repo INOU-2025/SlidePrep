@@ -3,17 +3,8 @@ import cv2
 from glob import glob
 from typing import Any, Optional
 
-from src.core import bootstrap
-from src.core.pipeline import Pipeline
-from src.steps import (
-    BinarizationStep,
-    GridDetectionStep,
-    GridRefinementStep,
-    MaskCreationStep,
-    InpaintingStep,
-    ImgConversionStep,
-    StitchingStep,
-)
+from src.core.pipeline_service import PipelineService
+from src.steps import StitchingStep
 from src.utils import get_supported_image_patterns, filter_images_by_suffix
 
 
@@ -21,21 +12,17 @@ def run_pipeline(config_path: str):
     """
     Run the complete image processing pipeline.
 
-    This is the main production pipeline that processes images through configured steps:
-    1. Bootstrap initializes all services via dependency injection
-    2. Each step is instantiated with its specific configuration
-    3. Steps validate input and return processed results consistently
-    4. No drawer is attached for production runs (debug mode disabled)
+    This is the main production pipeline that processes images through configured steps.
+    The heavy lifting is handled by :class:`PipelineService`, allowing this
+    function to focus on reading and writing images on disk.
 
     Args:
         config_path: Path to the configuration file
     """
     try:
-        container = bootstrap(config_path)
-        context = container.resolve("pipeline_context")
-        cfg = container.resolve("config")
-        logger = container.resolve("logger")
-
+        service = PipelineService(config_path)
+        cfg = service.config
+        logger = service.logger
     except Exception as e:
         print(f"Failed to initialize application: {e}")
         return False
@@ -55,21 +42,6 @@ def run_pipeline(config_path: str):
         return False
 
     os.makedirs(output_folder, exist_ok=True)
-
-    try:
-        steps = [
-            BinarizationStep(config=cfg.binarization_config, container=container),
-            GridDetectionStep(config=cfg.grid_detection_config, container=container),
-            GridRefinementStep(cfg.grid_refinement_config, container=container),
-            MaskCreationStep(container=container),
-            InpaintingStep(config=cfg.inpainting_config, container=container),
-            ImgConversionStep(config=cfg.img_conversion_config, container=container),
-        ]
-        pipeline = Pipeline(steps, container)
-        logger.info(f"Pipeline initialized with {len(steps)} steps")
-    except Exception as e:
-        logger.critical(f"Failed to initialize pipeline steps: {e}")
-        return False
 
     image_extensions = get_supported_image_patterns()
     images = []
@@ -99,11 +71,7 @@ def run_pipeline(config_path: str):
             logger.error(f"Could not read {fname}")
             continue
 
-        # Update context with the current image path. Image shape was
-        # determined during bootstrapping and does not need to be reset.
-        context.input_image_path = image_path
-
-        result = pipeline.run(gray)
+        result = service.run(gray, image_path=image_path)
         if result is None:
             logger.error(f"Processing failed for {fname}")
             continue
