@@ -166,27 +166,29 @@ Default settings stored in JSON with schema validation:
 
 ## 🔧 Pipeline Architecture
 
-The pipeline uses a **direct input-output function chaining** approach with **dependency injection**:
+The pipeline uses a **direct input-output function chaining** approach with **dependency injection**.
+Each call to :func:`bootstrap` creates a new context-local container so
+every worker or request gets an isolated registry:
 
 ```python
 from src.core.bootstrap import bootstrap
-from src.steps import BinarizationStep
-from src.steps import GridDetectionStep
+from src.steps import BinarizationStep, GridDetectionStep
 
-# Initialize services once at startup
-bootstrap(config_path)
+# Build a container for this task
+container = bootstrap(config_path)
+cfg = container.resolve("config")
 
-# Create pipeline steps (services auto-injected via container)
+# Create pipeline steps (explicit container injection)
 steps = [
-    BinarizationStep(config.binarization_config),
-    GridDetectionStep(config.grid_detection_config)
+    BinarizationStep(cfg.binarization_config, container=container),
+    GridDetectionStep(cfg.grid_detection_config, container=container)
 ]
 
 # Process data through pipeline - simple function chaining
 current_data = input_image
 for step in steps:
     result = step.run(current_data)
-    
+
     # Handle different return types
     if isinstance(result, tuple):
         current_data, metadata = result  # e.g., grid detection returns (image, stats)
@@ -200,13 +202,13 @@ for step in steps:
 Integrated debug output with automatic drawer integration:
 
 ```python
-from src.core.bootstrap import bootstrap_application
+from src.core.bootstrap import bootstrap
 
-container = bootstrap_application(config_path)
+container = bootstrap(config_path)
+cfg = container.resolve("config")
 step = BinarizationStep(
-    config=container.config.binarization_config,
-    debugger=container.debugger,
-    logger=container.logger
+    config=cfg.binarization_config,
+    container=container,
 )
 
 # Automatic debug output when enabled:

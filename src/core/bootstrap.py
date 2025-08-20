@@ -5,7 +5,7 @@ Sets up the dependency injection container with all required services.
 Call bootstrap() once at application startup to initialize services.
 """
 
-from src.core.container import Container
+from src.core.container import Container, build_container
 from src.core.logger import Logger
 from src.core.debugger import Debugger
 from src.core.app_config_manager import AppConfigManager
@@ -26,12 +26,9 @@ def bootstrap(
 ) -> Container:
     """Build and initialize a new :class:`Container` instance."""
 
-    container = Container()
     config_manager = AppConfigManager(config_path)
-    container.register_singleton("config", config_manager)
 
     logger = Logger(config_manager.log_config, enabled=config_manager.logger_active)
-    container.register_singleton("logger", logger)
 
     debugger = Debugger(
         logger,
@@ -40,7 +37,6 @@ def bootstrap(
         drawer=drawer,
         writer=writer,
     )
-    container.register_singleton("debugger", debugger)
 
     context = PipelineContext()
     input_path = config_manager.general_config.input_path
@@ -59,6 +55,8 @@ def bootstrap(
             if image_shape is not None:
                 break
     context.image_shape = (image_shape[1], image_shape[0]) if image_shape else None
-    container.register_singleton("pipeline_context", context)
+
+    container = build_container(logger=logger, debugger=debugger, context=context)
+    container.register_singleton("config", config_manager)
 
     return container
