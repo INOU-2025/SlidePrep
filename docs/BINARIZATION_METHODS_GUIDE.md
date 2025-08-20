@@ -253,12 +253,14 @@ If you need to use a different method in a production-like context:
 ```python
 from src.utils.binarization import BinarizationMethods
 from src.core.bootstrap import bootstrap
+from src.core.app_config_manager import AppConfigManager
 from src.steps import BinarizationStep
 from config.config_schema import BinarizationConfig
 import numpy as np
 
 # Initialize services
-bootstrap(config_path)
+cfg_manager = AppConfigManager(config_path)
+bootstrap(config=cfg_manager)
 
 # Create configuration for desired method
 config = BinarizationConfig(threshold_method="otsu")  # or other method

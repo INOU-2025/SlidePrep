@@ -11,22 +11,36 @@ from src.core.debugger import Debugger
 from src.core.app_config_manager import AppConfigManager
 from src.utils.debug.drawer import Drawer
 from src.utils.debug.result_writer import ResultWriter
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from src.core.context import PipelineContext
 import os
 import cv2
 import glob
 from src.utils import get_supported_image_patterns
 
+if TYPE_CHECKING:  # pragma: no cover - type checking only
+    from api import AppConfig
+
 
 def bootstrap(
-    config_path: str,
+    config_path: str | None = None,
     drawer: Optional[Drawer] = None,
     writer: Optional[ResultWriter] = None,
+    *,
+    config: AppConfigManager | "AppConfig" | None = None,
 ) -> Container:
     """Build and initialize a new :class:`Container` instance."""
 
-    config_manager = AppConfigManager(config_path)
+    if config is not None:
+        config_manager = (
+            config
+            if isinstance(config, AppConfigManager)
+            else AppConfigManager.from_app_config(config)
+        )
+    else:
+        if config_path is None:
+            raise ValueError("Either config_path or config must be provided")
+        config_manager = AppConfigManager(config_path)
 
     logger = Logger(config_manager.log_config, enabled=config_manager.logger_active)
 

@@ -292,12 +292,18 @@ python main.py path/to/custom_config.json
 
 ```python
 from src.core.bootstrap import bootstrap
+from src.core.app_config_manager import AppConfigManager
 
 # Bootstrap with different configurations
 container = bootstrap("config/production.json")   # Production optimized
 config = container.resolve("config")
 
 container = bootstrap("config/development.json")  # Development friendly
+config = container.resolve("config")
+
+# Or reuse an existing configuration object
+cfg_manager = AppConfigManager("config/production.json")
+container = bootstrap(config=cfg_manager)
 config = container.resolve("config")
 
 # Access typed configuration

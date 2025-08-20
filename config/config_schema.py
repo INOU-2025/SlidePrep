@@ -1,7 +1,7 @@
 import os
 from typing import Optional, List, Dict, Any, IO
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 
 
 class GeneralConfig(BaseModel):
@@ -346,6 +346,8 @@ class LogConfig(BaseModel):
     stream: Optional[IO[str]] = Field(default=None, repr=False)
     relative_path: Optional[str] = None
     path: str = ""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @field_validator("log_level")
     @classmethod

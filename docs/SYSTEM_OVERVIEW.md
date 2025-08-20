@@ -172,10 +172,12 @@ every worker or request gets an isolated registry:
 
 ```python
 from src.core.bootstrap import bootstrap
+from src.core.app_config_manager import AppConfigManager
 from src.steps import BinarizationStep, GridDetectionStep
 
 # Build a container for this task
-container = bootstrap(config_path)
+cfg_manager = AppConfigManager(config_path)
+container = bootstrap(config=cfg_manager)
 cfg = container.resolve("config")
 
 # Create pipeline steps (explicit container injection)
@@ -203,8 +205,10 @@ Integrated debug output with automatic drawer integration:
 
 ```python
 from src.core.bootstrap import bootstrap
+from src.core.app_config_manager import AppConfigManager
 
-container = bootstrap(config_path)
+cfg_manager = AppConfigManager(config_path)
+container = bootstrap(config=cfg_manager)
 cfg = container.resolve("config")
 step = BinarizationStep(
     config=cfg.binarization_config,
@@ -284,11 +288,13 @@ python src/scripts/test_detection.py config/test/grid_detection.json
 ### Basic Pipeline Usage
 ```python
 from src.core.bootstrap import bootstrap
+from src.core.app_config_manager import AppConfigManager
 from src.steps import BinarizationStep, GridDetectionStep
 from src.core.pipeline import Pipeline
 
 # Initialize application services
-container = bootstrap(config_path)
+cfg_manager = AppConfigManager(config_path)
+container = bootstrap(config=cfg_manager)
 config = container.resolve("config")
 
 # Create and run pipeline
@@ -303,11 +309,13 @@ result = pipeline.run(input_image)
 ### Individual Step Usage
 ```python
 from src.core.bootstrap import bootstrap
+from src.core.app_config_manager import AppConfigManager
 from src.steps import BinarizationStep
 import numpy as np
 
 # Initialize services first
-container = bootstrap(config_path)
+cfg_manager = AppConfigManager(config_path)
+container = bootstrap(config=cfg_manager)
 config = container.resolve("config")
 
 # Use individual steps with explicit container

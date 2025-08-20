@@ -120,8 +120,15 @@ python main.py path/to/config.json
 ```python
 import cv2
 from src.core.pipeline_service import PipelineService
+from src.core.app_config_manager import AppConfigManager
 
-service = PipelineService("config/production.json")
+# Load from a configuration path
+service = PipelineService(config_path="config/production.json")
+
+# Or provide a pre-loaded configuration object
+cfg = AppConfigManager("config/production.json")
+service = PipelineService(config=cfg)
+
 gray = cv2.imread("tile.png", cv2.IMREAD_GRAYSCALE)
 result = service.run(gray)
 ```

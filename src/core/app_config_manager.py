@@ -1,4 +1,6 @@
 import os
+from typing import TYPE_CHECKING
+
 from pydantic import ValidationError
 
 from config.config_schema import (
@@ -15,6 +17,9 @@ from config.config_schema import (
 )
 from src.utils.config_manager import ConfigManager
 
+if TYPE_CHECKING:  # pragma: no cover - type checking only
+    from api import AppConfig
+
 
 class AppConfigManager(ConfigManager):
     """Application-specific configuration manager with typed config sections."""
@@ -27,6 +32,25 @@ class AppConfigManager(ConfigManager):
             config_path: Path to the configuration file
         """
         super().__init__(config_path)
+
+    @classmethod
+    def from_app_config(cls, app_config: "AppConfig") -> "AppConfigManager":
+        """Create an instance from an :class:`AppConfig` model.
+
+        This bypasses file loading by using the provided configuration object
+        directly.
+
+        Args:
+            app_config: Pre-loaded application configuration.
+
+        Returns:
+            A fully initialized :class:`AppConfigManager` instance.
+        """
+        instance = cls.__new__(cls)
+        instance._path = ""
+        instance._config = app_config.model_dump()
+        instance._extract_config_values()
+        return instance
 
     def _extract_config_values(self):
         """Extract and validate configuration values into typed objects with graceful handling."""
