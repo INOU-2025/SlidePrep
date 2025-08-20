@@ -2,7 +2,6 @@ from typing import Any
 
 import numpy as np
 from PIL import Image
-from simple_lama_inpainting import SimpleLama
 
 from api.schemas import StepResult
 from config.config_schema import InpaintingConfig
@@ -18,7 +17,14 @@ class InpaintingStep(PipelineStep):
 
         model_name = self.config.model.lower()
         if model_name == "lama":
-            self._model = SimpleLama()
+            if not self.container:
+                raise ValueError(
+                    "Container not available for InpaintingStep")
+            try:
+                self._model = self.container.resolve("simple_lama")
+            except KeyError as exc:
+                raise ValueError(
+                    "SimpleLama model not registered in container") from exc
         else:
             raise ValueError(
                 f"Unsupported inpainting model: {self.config.model}")

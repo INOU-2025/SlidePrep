@@ -7,6 +7,8 @@ Call bootstrap() once at application startup to initialize services.
 
 from typing import Optional, TYPE_CHECKING
 
+from simple_lama_inpainting import SimpleLama
+
 from src.core.container import Container, build_container
 from src.core.logger import Logger
 from src.core.debugger import Debugger
@@ -54,5 +56,6 @@ def bootstrap(
 
     container = build_container(logger=logger, debugger=debugger, context=context)
     container.register_singleton("config", config_manager)
+    container.register_singleton("simple_lama", SimpleLama())
 
     return container
