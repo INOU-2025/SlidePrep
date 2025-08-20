@@ -1,14 +1,13 @@
 import cv2
 import numpy as np
-from typing import List, Dict, Any
+from typing import Any, Dict, List, Optional
+from logging import Logger, getLogger
 
 from config.config_schema import GridDetectionConfig
 from .models import DetectionStrategy, DetectionRegion, Orientation
 from .template_utils import generate_blurred_template, perform_template_matching
 from .image_preprocessing import create_detection_mask, ImagePreprocessingCache
 from .contour_analysis import filter_contours_by_border_zone, analyze_contour
-from src.core.container import Container
-from typing import Optional
 
 
 class TemplateCache:
@@ -74,13 +73,17 @@ class AdaptiveLineDetector:
     Optimized to only process missing orientations in each round.
     """
 
-    def __init__(self, grid_config: GridDetectionConfig):
+    def __init__(self, grid_config: GridDetectionConfig, logger: Optional[Logger] = None):
         """
         Initialize the adaptive line detector from grid configuration.
 
         Args:
             grid_config: GridDetectionConfig instance with all settings
+            logger: Optional logger instance for debug and info messages. If ``None``,
+                a module-level logger is used.
         """
+        self.logger = logger or getLogger(__name__)
+
         # Extract parameters from config
         self.threshold = grid_config.threshold
         self.angles = grid_config.angles
@@ -209,7 +212,7 @@ class AdaptiveLineDetector:
 
     def detect_lines(self, image: np.ndarray) -> Dict[str, Any]:
         """Detect lines using adaptive strategy progression."""
-        logger = Container.current().resolve("logger")
+        logger = self.logger
         
         self.detection_results = {}
         self.strategies_used = {}
@@ -284,7 +287,7 @@ class AdaptiveLineDetector:
         return self._create_result_dict(missing_orientations)
     
     def analyze_results(self, results: dict) -> dict:
-        logger = Container.current().resolve("logger")
+        logger = self.logger
         analysis = {}
         for orientation in [Orientation.HORIZONTAL, Orientation.VERTICAL]:
             orientation_analysis = []
@@ -312,7 +315,7 @@ class AdaptiveLineDetector:
                 self.strategies_used[orientation] = None
 
         # Print final summary
-        logger = Container.current().resolve("logger")
+        logger = self.logger
         logger.info("Detection Summary:")
         for orientation in [Orientation.HORIZONTAL, Orientation.VERTICAL]:
             strategy = self.strategies_used.get(orientation)
@@ -358,7 +361,7 @@ class AdaptiveLineDetector:
             self.template_cache.clear()
         if self.preprocessing_cache:
             self.preprocessing_cache.clear()
-        logger = Container.current().resolve("logger")
+        logger = self.logger
         logger.info("Caches cleared")
 
     def get_cache_info(self) -> Dict[str, Any]:

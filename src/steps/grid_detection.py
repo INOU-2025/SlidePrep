@@ -28,7 +28,7 @@ class GridDetectionStep(PipelineStep):
             raise ValueError(f"[{name}] GridDetectionConfig is required")
 
         try:
-            self.detector = AdaptiveLineDetector(config)
+            self.detector = AdaptiveLineDetector(config, logger=self.logger)
             self.log(f"Initialized adaptive detector with optimizations: "
                      f"cache={self.detector.enable_template_cache}, "
                      f"early_exit={self.detector.enable_early_exit}")
