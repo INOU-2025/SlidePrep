@@ -4,23 +4,16 @@ from __future__ import annotations
 
 from typing import Any, Optional, TYPE_CHECKING
 
+import asyncio
 import numpy as np
 
-from src.core import bootstrap
+from src.core.bootstrap import bootstrap
 from src.core.app_config_manager import AppConfigManager
 from src.core.pipeline import Pipeline
 from api import StepResult
 
 if TYPE_CHECKING:  # pragma: no cover - type checking only
     from api import AppConfig
-from src.steps import (
-    BinarizationStep,
-    GridDetectionStep,
-    GridRefinementStep,
-    MaskCreationStep,
-    InpaintingStep,
-    ImgConversionStep,
-)
 
 
 class PipelineService:
@@ -52,19 +45,54 @@ class PipelineService:
         self.logger = self.container.resolve("logger")
         self.pipeline = self._create_pipeline()
 
+    def _prepare_context(
+        self, image: np.ndarray, image_path: Optional[str]
+    ) -> None:
+        """Validate the image and populate context metadata.
+
+        Args:
+            image: Input image array.
+            image_path: Optional path for logging/debugging.
+
+        Raises:
+            ValueError: If the image is empty or missing dimensions.
+        """
+        if image.size == 0:
+            raise ValueError("Input image is empty")
+        if image.ndim < 2 or image.shape[0] == 0 or image.shape[1] == 0:
+            raise ValueError("Input image dimensions are missing")
+
+        self.context.image_shape = (image.shape[1], image.shape[0])
+        if image_path is not None:
+            self.context.input_image_path = image_path
+
     def _create_pipeline(self) -> Pipeline:
+        from src.steps import (
+            BinarizationStep,
+            GridDetectionStep,
+            GridRefinementStep,
+            MaskCreationStep,
+            InpaintingStep,
+            ImgConversionStep,
+        )
+
         steps = [
             BinarizationStep(
-                config=self.config.binarization_config, container=self.container),
+                config=self.config.binarization_config, container=self.container
+            ),
             GridDetectionStep(
-                config=self.config.grid_detection_config, container=self.container),
+                config=self.config.grid_detection_config, container=self.container
+            ),
             GridRefinementStep(
-                self.config.grid_refinement_config, container=self.container),
+                self.config.grid_refinement_config, container=self.container
+            ),
             MaskCreationStep(container=self.container),
-            InpaintingStep(config=self.config.inpainting_config,
-                           container=self.container),
+            InpaintingStep(
+                config=self.config.inpainting_config, container=self.container
+            ),
             ImgConversionStep(
-                config=self.config.img_conversion_config, container=self.container),
+                config=self.config.img_conversion_config, container=self.container
+            ),
         ]
         if self.logger:
             self.logger.info(f"Pipeline initialized with {len(steps)} steps")
@@ -79,11 +107,30 @@ class PipelineService:
 
         Returns:
             :class:`~api.schemas.StepResult` from the last pipeline step.
+
+        Raises:
+            ValueError: If the image is empty or lacks dimensions.
         """
-        self.context.image_shape = (image.shape[1], image.shape[0])
-        if image_path is not None:
-            self.context.input_image_path = image_path
+        self._prepare_context(image, image_path)
         return self.pipeline.run(image)
+
+    async def run_async(
+        self, image: np.ndarray, *, image_path: Optional[str] = None
+    ) -> StepResult:
+        """Asynchronously process a single image through the pipeline.
+
+        Args:
+            image: Input image array.
+            image_path: Optional path to the image for logging purposes.
+
+        Returns:
+            :class:`~api.schemas.StepResult` from the last pipeline step.
+
+        Raises:
+            ValueError: If the image is empty or lacks dimensions.
+        """
+        self._prepare_context(image, image_path)
+        return await asyncio.to_thread(self.pipeline.run, image)
 
 
 def run_pipeline(

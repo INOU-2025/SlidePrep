@@ -1,22 +1,17 @@
 from __future__ import annotations
 
-"""
-Simple test runner for pipeline steps.
+"""Utilities for running and testing pipeline steps."""
 
-This class sets up the common components (configuration, logger, debugger)
-and offers a run method that processes images from a directory using a given PipelineStep.
-It automatically loads images, processes them, and saves the results.
-
-This keeps individual test scripts compact and ensures a consistent workflow.
-"""
-
+import asyncio
 import os
-import cv2
+import unittest
 from dataclasses import dataclass
-from typing import Optional, List, Dict
+from typing import Any, Dict, List, Optional
+
+import cv2
 import numpy as np
 
-from src.core.bootstrap import bootstrap
+from src.core.pipeline_service import PipelineService
 from src.core.step import PipelineStep
 from src.utils.debug.drawer import Drawer
 from src.utils.debug.result_writer import ResultWriter
@@ -34,6 +29,8 @@ class StepTestRunner:
     _writer: Optional[ResultWriter] = None
 
     def __post_init__(self) -> None:
+        from src.core.bootstrap import bootstrap
+
         self._container = bootstrap(self._config_path, self._drawer, self._writer)
 
         self._cfg = self._container.resolve("config")
@@ -219,3 +216,48 @@ class StepTestRunner:
         if result_filename and len(aggregated_results) > 0:
             metadata = {"image_shape": self._context.image_shape}
             self._debugger.save_results(result_filename, aggregated_results, metadata)
+
+
+class _DummyPipeline:
+    """Minimal pipeline stub used for error-handling tests."""
+
+    def run(self, data: Any) -> Any:
+        return data
+
+
+class _DummyService(PipelineService):
+    """PipelineService using a minimal pipeline to speed up tests."""
+
+    def _create_pipeline(self) -> _DummyPipeline:  # type: ignore[override]
+        return _DummyPipeline()
+
+
+class TestPipelineServiceErrorHandling(unittest.TestCase):
+    """Unit tests for :class:`PipelineService` error handling."""
+
+    def setUp(self) -> None:
+        self.service = _DummyService(config_path="config/development.json")
+
+    def test_run_raises_on_empty_image(self) -> None:
+        with self.assertRaises(ValueError) as cm:
+            self.service.run(np.array([]))
+        self.assertIn("empty", str(cm.exception).lower())
+
+    def test_run_raises_on_missing_dimensions(self) -> None:
+        with self.assertRaises(ValueError) as cm:
+            self.service.run(np.zeros((10,)))
+        self.assertIn("dimensions", str(cm.exception).lower())
+
+    def test_run_async_raises_on_empty_image(self) -> None:
+        with self.assertRaises(ValueError) as cm:
+            asyncio.run(self.service.run_async(np.array([])))
+        self.assertIn("empty", str(cm.exception).lower())
+
+    def test_run_async_raises_on_missing_dimensions(self) -> None:
+        with self.assertRaises(ValueError) as cm:
+            asyncio.run(self.service.run_async(np.zeros((10,))))
+        self.assertIn("dimensions", str(cm.exception).lower())
+
+
+if __name__ == "__main__":
+    unittest.main()
