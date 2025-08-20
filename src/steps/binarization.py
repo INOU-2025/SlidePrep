@@ -1,8 +1,9 @@
 import numpy as np
-from typing import Any, Optional
+from typing import Any
 
-from src.core.step import PipelineStep
+from api.schemas import StepResult
 from config.config_schema import BinarizationConfig
+from src.core.step import PipelineStep
 from src.utils.binarization import BinarizationMethods
 
 
@@ -23,18 +24,18 @@ class BinarizationStep(PipelineStep):
         super().__init__(name="binarization", config=config, **kwargs)
         self.methods = BinarizationMethods(debug_callback=self.debug)
 
-    def run(self, data: Any) -> tuple[Any, Optional[dict]]:
+    def run(self, data: Any) -> StepResult:
         """Convert grayscale image to binary using configured thresholding method.
-        
+
         Automatically converts color images to grayscale before applying binarization.
         Uses production-optimized algorithms for consistent results across image types.
-        
+
         Args:
             data: Input image as numpy array. Can be grayscale (2D) or color (3D).
-            
+
         Returns:
-            Binary image as uint8 numpy array with values 0 (background) and 255 (foreground).
-            
+            :class:`~api.schemas.StepResult` containing the binary image.
+
         Raises:
             ValueError: If threshold method is unknown or image validation fails.
             TypeError: If input is not a numpy array.
@@ -66,4 +67,5 @@ class BinarizationStep(PipelineStep):
             raise
 
         self.debug(f"Binarization completed successfully")
-        return binary_image, None
+        return StepResult.from_array(binary_image)
+

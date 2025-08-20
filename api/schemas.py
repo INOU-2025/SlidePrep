@@ -1,5 +1,8 @@
 """Pydantic models exposed through the API layer."""
 
+from typing import Any, Dict
+
+import numpy as np
 from pydantic import BaseModel
 
 from config.config_schema import (
@@ -14,6 +17,7 @@ from config.config_schema import (
     LogConfig,
     DebugConfig,
 )
+from src.utils.serialization import array_to_base64, base64_to_array
 
 
 class AppConfig(BaseModel):
@@ -29,3 +33,31 @@ class AppConfig(BaseModel):
     stitching: StitchingConfig = StitchingConfig()
     log: LogConfig = LogConfig()
     debug: DebugConfig = DebugConfig()
+
+
+class StepResult(BaseModel):
+    """Standard pipeline step result with optional image and metadata."""
+
+    image: str | None = None
+    data: Any | None = None
+    metadata: Dict[str, Any] | None = None
+
+    @classmethod
+    def from_array(
+        cls, array: np.ndarray, metadata: Dict[str, Any] | None = None
+    ) -> "StepResult":
+        """Create a result from a NumPy array."""
+        return cls(image=array_to_base64(array), metadata=metadata)
+
+    @classmethod
+    def from_data(
+        cls, data: Any, metadata: Dict[str, Any] | None = None
+    ) -> "StepResult":
+        """Create a result from arbitrary data."""
+        return cls(data=data, metadata=metadata)
+
+    def to_array(self) -> np.ndarray | None:
+        """Decode the embedded image back into a NumPy array."""
+        if self.image is None:
+            return None
+        return base64_to_array(self.image)

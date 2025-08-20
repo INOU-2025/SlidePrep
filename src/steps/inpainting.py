@@ -1,11 +1,12 @@
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 from PIL import Image
 from simple_lama_inpainting import SimpleLama
 
-from src.core.step import PipelineStep
+from api.schemas import StepResult
 from config.config_schema import InpaintingConfig
+from src.core.step import PipelineStep
 
 
 class InpaintingStep(PipelineStep):
@@ -22,7 +23,7 @@ class InpaintingStep(PipelineStep):
             raise ValueError(
                 f"Unsupported inpainting model: {self.config.model}")
 
-    def run(self, mask: Any) -> tuple[np.ndarray, Optional[dict]]:
+    def run(self, mask: Any) -> StepResult:
         """Inpaint image regions defined by ``mask``.
         The source image is loaded from the pipeline context using
         ``input_image_path``. Only the mask is provided as input data.
@@ -34,8 +35,8 @@ class InpaintingStep(PipelineStep):
 
         Returns
         -------
-        tuple[np.ndarray, Optional[dict]]
-            The inpainted image and optional metadata (``None``).
+        StepResult
+            The inpainted image.
         """
 
         self._validate_image_input(mask)
@@ -55,4 +56,5 @@ class InpaintingStep(PipelineStep):
         result = self._model(image, mask)
         if isinstance(result, Image.Image):
             result = np.array(result)
-        return result, None
+        return StepResult.from_array(result)
+

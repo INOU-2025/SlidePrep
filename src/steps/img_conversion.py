@@ -1,10 +1,12 @@
-from typing import Any, Optional
+from typing import Any
+
 import numpy as np
 
-from src.core.step import PipelineStep
+from api.schemas import StepResult
 from config.config_schema import ImgConversionConfig
-from src.utils.image_utils import convert_image_mode
+from src.core.step import PipelineStep
 from src.utils.conversion_utils import validate_image_format
+from src.utils.image_utils import convert_image_mode
 
 
 class ImgConversionStep(PipelineStep):
@@ -21,17 +23,16 @@ class ImgConversionStep(PipelineStep):
         self._format = validate_image_format(config.format)
         self._mode = config.mode.upper()
 
-    def run(self, data: Any) -> tuple[np.ndarray, Optional[dict]]:
+    def run(self, data: Any) -> StepResult:
         """Convert input image according to the configuration.
 
         Args:
             data: Input image as a NumPy array.
 
         Returns:
-            Tuple of the converted image and metadata containing the
-            target format and mode.
+            :class:`~api.schemas.StepResult` with the converted image and metadata.
         """
         self._validate_image_input(data)
         converted = convert_image_mode(data, self._mode)
         metadata = {"format": self._format, "mode": self._mode}
-        return converted, metadata
+        return StepResult.from_array(converted, metadata)

@@ -1,6 +1,8 @@
 from typing import Any, List, Optional
-from src.core.step import PipelineStep
+
+from api.schemas import StepResult
 from src.core.container import Container
+from src.core.step import PipelineStep
 
 
 class Pipeline:
@@ -45,10 +47,20 @@ class Pipeline:
             step raises an exception during processing.
         """
         current_data = data
-        for step in self.steps:
+        for idx, step in enumerate(self.steps):
             try:
                 result = step.run(current_data)
-                current_data = result[0] if isinstance(result, tuple) else result
+                is_last = idx == len(self.steps) - 1
+                if isinstance(result, StepResult):
+                    if is_last:
+                        return result
+                    current_data = (
+                        result.to_array() if result.image is not None else result.data
+                    )
+                else:
+                    current_data = result[0] if isinstance(result, tuple) else result
+                    if is_last:
+                        return current_data
                 if self.logger:
                     self.logger.debug(
                         f"Step {step.name} completed successfully")
@@ -61,3 +73,4 @@ class Pipeline:
                     print(f"Error in step {step.name}: {e}")
                 return None
         return current_data
+

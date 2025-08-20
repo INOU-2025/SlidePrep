@@ -4,10 +4,11 @@ import os
 import re
 import subprocess
 from glob import glob
-from typing import Any, Optional
+from typing import Any
 
-from src.core.step import PipelineStep
+from api.schemas import StepResult
 from config.config_schema import StitchingConfig
+from src.core.step import PipelineStep
 
 
 class StitchingStep(PipelineStep):
@@ -25,7 +26,7 @@ class StitchingStep(PipelineStep):
         """
         super().__init__(name="stitching", config=config, **kwargs)
 
-    def run(self, data: Any) -> tuple[str, Optional[dict]]:
+    def run(self, data: Any) -> StepResult:
         """Run Ashlar to stitch tiles into a single OME-TIFF.
 
         Args:
@@ -33,8 +34,7 @@ class StitchingStep(PipelineStep):
                 file paths.
 
         Returns:
-            Tuple containing the path to the stitched OME-TIFF and
-            metadata with the number of tiles processed.
+            :class:`~api.schemas.StepResult` with the output path and metadata.
         """
         if isinstance(data, (list, tuple)):
             paths = list(data)
@@ -78,4 +78,4 @@ class StitchingStep(PipelineStep):
             raise
 
         metadata = {"tiles": len(tiles)}
-        return output_path, metadata
+        return StepResult.from_data(output_path, metadata)

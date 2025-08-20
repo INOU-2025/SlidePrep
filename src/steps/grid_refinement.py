@@ -4,10 +4,11 @@ import cv2
 import joblib
 import numpy as np
 
-from src.core.step import PipelineStep
+from api.schemas import StepResult
 from config.config_schema import GridRefinementConfig
-from src.utils.detection.models import DetectionStrategy, Orientation, DetectionRegion
+from src.core.step import PipelineStep
 from src.utils.detection.contour_analysis import analyze_contour
+from src.utils.detection.models import DetectionStrategy, Orientation, DetectionRegion
 
 
 # ----------------- helpers -----------------
@@ -279,7 +280,7 @@ class GridRefinementStep(PipelineStep):
 
         return {"contour": expanded_box, "zone": zone, "analysis": analysis_expanded}
 
-    def run(self, data: Any) -> tuple[Dict[str, Any], Optional[dict]]:
+    def run(self, data: Any) -> StepResult:
         """Refine detection results by analyzing and adjusting contours."""
         if not isinstance(data, dict):
             raise TypeError("GridRefinementStep expects results dictionary")
@@ -397,4 +398,5 @@ class GridRefinementStep(PipelineStep):
             refined[orientation] = post_processed
 
         refined_results = {"detections": refined, "strategies": strategies}
-        return refined_results, None
+        return StepResult.from_data(refined_results)
+

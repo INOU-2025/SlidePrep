@@ -135,6 +135,7 @@ cfg = AppConfigManager("config/production.json")
 service = PipelineService(config=cfg, image_shape=(gray.shape[1], gray.shape[0]))
 
 result = service.run(gray)
+processed = result.to_array()
 ```
 
 ### Individual Step Testing

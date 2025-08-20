@@ -2,6 +2,7 @@
 
 from .schemas import (
     AppConfig,
+    StepResult,
     GeneralConfig,
     TestConfig,
     ImgConversionConfig,
@@ -16,6 +17,7 @@ from .schemas import (
 
 __all__ = [
     "AppConfig",
+    "StepResult",
     "GeneralConfig",
     "TestConfig",
     "ImgConversionConfig",

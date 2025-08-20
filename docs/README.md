@@ -19,11 +19,11 @@ The system uses the **Combined Differential** method by default - just use `Bina
 ```python
 from src.steps import BinarizationStep
 from config.config_schema import BinarizationConfig
-import numpy as np
 
 config = BinarizationConfig()  # Uses combined_differential by default
 step = BinarizationStep(config)
-result: np.ndarray = step.run(image_array)  # Returns binary image directly
+result = step.run(image_array)
+binary_image = result.to_array()
 ```
 
 ### Image Conversion
@@ -35,7 +35,9 @@ from config.config_schema import ImgConversionConfig
 
 cfg = ImgConversionConfig(format="jpeg", mode="RGB")
 step = ImgConversionStep(cfg)
-converted, metadata = step.run(image_array)
+result = step.run(image_array)
+converted = result.to_array()
+metadata = result.metadata
 ```
 
 ### For Research and Experimentation

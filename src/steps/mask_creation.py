@@ -1,8 +1,9 @@
-from typing import Any, Optional
+from typing import Any
 
 import cv2
 import numpy as np
 
+from api.schemas import StepResult
 from src.core.step import PipelineStep
 
 
@@ -13,7 +14,7 @@ class MaskCreationStep(PipelineStep):
         """Initialize the mask creation step."""
         super().__init__(name=name, config=None, **kwargs)
 
-    def run(self, data: Any) -> tuple[np.ndarray, Optional[dict]]:
+    def run(self, data: Any) -> StepResult:
         """Create mask image from refined detection contours.
 
         Args:
@@ -22,7 +23,7 @@ class MaskCreationStep(PipelineStep):
                 mapping orientations to contour information.
 
         Returns:
-            Tuple of binary mask and optional metadata (always ``None``).
+            :class:`~api.schemas.StepResult` with the generated mask.
 
         Raises:
             TypeError: If input is not the expected dictionary structure.
@@ -48,4 +49,5 @@ class MaskCreationStep(PipelineStep):
                     continue
                 cv2.fillPoly(mask, [np.asarray(contour, dtype=np.int32)], 255)
 
-        return mask, None
+        return StepResult.from_array(mask)
+

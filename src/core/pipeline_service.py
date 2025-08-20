@@ -7,8 +7,9 @@ from typing import Any, Optional, TYPE_CHECKING
 import numpy as np
 
 from src.core import bootstrap
-from src.core.pipeline import Pipeline
 from src.core.app_config_manager import AppConfigManager
+from src.core.pipeline import Pipeline
+from api import StepResult
 
 if TYPE_CHECKING:  # pragma: no cover - type checking only
     from api import AppConfig
@@ -69,7 +70,7 @@ class PipelineService:
             self.logger.info(f"Pipeline initialized with {len(steps)} steps")
         return Pipeline(steps, self.container)
 
-    def run(self, image: np.ndarray, *, image_path: Optional[str] = None) -> Any:
+    def run(self, image: np.ndarray, *, image_path: Optional[str] = None) -> StepResult:
         """Process a single image through the pipeline.
 
         Args:
@@ -77,7 +78,7 @@ class PipelineService:
             image_path: Optional path to the image for logging purposes.
 
         Returns:
-            Processed image or a tuple of image and metadata.
+            :class:`~api.schemas.StepResult` from the last pipeline step.
         """
         self.context.image_shape = (image.shape[1], image.shape[0])
         if image_path is not None:
@@ -91,7 +92,7 @@ def run_pipeline(
     *,
     config: AppConfigManager | "AppConfig" | None = None,
     image_path: Optional[str] = None,
-) -> Any:
+) -> StepResult:
     """Process an image with a transient :class:`PipelineService` instance."""
 
     shape = (image.shape[1], image.shape[0])
@@ -100,3 +101,4 @@ def run_pipeline(
 
 
 __all__ = ["PipelineService", "run_pipeline"]
+

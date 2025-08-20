@@ -1,7 +1,8 @@
 from typing import Any, Optional
 
-from src.core.step import PipelineStep
+from api.schemas import StepResult
 from config.config_schema import GridDetectionConfig
+from src.core.step import PipelineStep
 from src.utils.detection.adaptive_detector import AdaptiveLineDetector
 
 
@@ -35,14 +36,14 @@ class GridDetectionStep(PipelineStep):
             self.error(f"Failed to initialize adaptive detector: {e}")
             raise
 
-    def run(self, data: Any) -> tuple[Any, Optional[dict]]:
+    def run(self, data: Any) -> StepResult:
         """Run adaptive grid detection on the provided image.
 
         Args:
             data: Grayscale image array to analyze.
 
         Returns:
-            A tuple with detection results and optional metadata.
+            :class:`~api.schemas.StepResult` containing detection data and metadata.
         """
         self._validate_image_input(data)
 
@@ -84,8 +85,9 @@ class GridDetectionStep(PipelineStep):
                 f"{cache_stats['preprocessing_cache_hits']}/{preprocessing_total}"
             )
 
-            return results, metadata
+            return StepResult.from_data(results, metadata)
 
         except Exception as e:
             self.error(f"Adaptive grid detection failed: {e}")
-            return None, None
+            return StepResult.from_data(None, None)
+
