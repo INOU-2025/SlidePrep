@@ -30,12 +30,14 @@ class PipelineService:
         config_path: str | None = None,
         *,
         config: AppConfigManager | "AppConfig" | None = None,
+        image_shape: tuple[int, int] | None = None,
     ) -> None:
         """Initialize the service from a path or configuration object.
 
         Args:
             config_path: Path to the JSON configuration file.
             config: Pre-loaded configuration object to use directly.
+            image_shape: Optional width and height of the input image.
 
         Raises:
             ValueError: If neither ``config_path`` nor ``config`` is provided.
@@ -43,7 +45,7 @@ class PipelineService:
         if config is None and not config_path:
             raise ValueError("Either config_path or config must be provided")
 
-        self.container = bootstrap(config_path, config=config)
+        self.container = bootstrap(config_path, config=config, image_shape=image_shape)
         self.config: AppConfigManager = self.container.resolve("config")
         self.context = self.container.resolve("pipeline_context")
         self.logger = self.container.resolve("logger")
@@ -77,6 +79,7 @@ class PipelineService:
         Returns:
             Processed image or a tuple of image and metadata.
         """
+        self.context.image_shape = (image.shape[1], image.shape[0])
         if image_path is not None:
             self.context.input_image_path = image_path
         return self.pipeline.run(image)
@@ -91,7 +94,8 @@ def run_pipeline(
 ) -> Any:
     """Process an image with a transient :class:`PipelineService` instance."""
 
-    service = PipelineService(config_path, config=config)
+    shape = (image.shape[1], image.shape[0])
+    service = PipelineService(config_path, config=config, image_shape=shape)
     return service.run(image, image_path=image_path)
 
 

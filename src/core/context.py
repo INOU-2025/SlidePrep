@@ -8,7 +8,7 @@ class PipelineContext:
 
     Attributes:
         input_image_path: Path of the image currently being processed.
-        image_shape: Width and height of the current image.
+        image_shape: Width and height of the current image (``width``, ``height``).
     """
     input_image_path: Optional[str] = None
     image_shape: Optional[tuple[int, int]] = None
