@@ -25,8 +25,10 @@ class InpaintingStep(PipelineStep):
 
     def run(self, mask: Any) -> StepResult:
         """Inpaint image regions defined by ``mask``.
-        The source image is loaded from the pipeline context using
-        ``input_image_path``. Only the mask is provided as input data.
+
+        The source image is taken from ``PipelineContext.original_image`` when
+        available. If the image array is not present in the context, the step
+        falls back to loading the file specified by ``input_image_path``.
 
         Parameters
         ----------
@@ -44,13 +46,15 @@ class InpaintingStep(PipelineStep):
         if not self.container:
             raise ValueError("Container not available for InpaintingStep")
         ctx = self.container.resolve("pipeline_context")
-        image_path = ctx.input_image_path
-        if not image_path:
-            raise ValueError(
-                "Pipeline context must contain 'input_image_path'")
+        image = ctx.original_image
+        if image is None:
+            image_path = ctx.input_image_path
+            if not image_path:
+                raise ValueError(
+                    "Pipeline context must contain 'input_image_path' or 'original_image'")
+            image = Image.open(image_path).convert("RGB")
+            image = np.array(image)
 
-        image = Image.open(image_path).convert("RGB")
-        image = np.array(image)
         self._validate_image_input(image)
 
         result = self._model(image, mask)

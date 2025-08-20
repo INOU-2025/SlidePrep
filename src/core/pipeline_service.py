@@ -50,6 +50,9 @@ class PipelineService:
     ) -> None:
         """Validate the image and populate context metadata.
 
+        The original image array is stored in the pipeline context for later
+        steps that require access to the unmodified source image.
+
         Args:
             image: Input image array.
             image_path: Optional path for logging/debugging.
@@ -62,6 +65,7 @@ class PipelineService:
         if image.ndim < 2 or image.shape[0] == 0 or image.shape[1] == 0:
             raise ValueError("Input image dimensions are missing")
 
+        self.context.original_image = image
         self.context.image_shape = (image.shape[1], image.shape[0])
         if image_path is not None:
             self.context.input_image_path = image_path
