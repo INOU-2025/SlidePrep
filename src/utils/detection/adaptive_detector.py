@@ -209,7 +209,7 @@ class AdaptiveLineDetector:
 
     def detect_lines(self, image: np.ndarray) -> Dict[str, Any]:
         """Detect lines using adaptive strategy progression."""
-        logger = Container.resolve("logger")
+        logger = Container.current().resolve("logger")
         
         self.detection_results = {}
         self.strategies_used = {}
@@ -284,7 +284,7 @@ class AdaptiveLineDetector:
         return self._create_result_dict(missing_orientations)
     
     def analyze_results(self, results: dict) -> dict:
-        logger = Container.resolve("logger")
+        logger = Container.current().resolve("logger")
         analysis = {}
         for orientation in [Orientation.HORIZONTAL, Orientation.VERTICAL]:
             orientation_analysis = []
@@ -312,7 +312,7 @@ class AdaptiveLineDetector:
                 self.strategies_used[orientation] = None
 
         # Print final summary
-        logger = Container.resolve("logger")
+        logger = Container.current().resolve("logger")
         logger.info("Detection Summary:")
         for orientation in [Orientation.HORIZONTAL, Orientation.VERTICAL]:
             strategy = self.strategies_used.get(orientation)
@@ -358,7 +358,7 @@ class AdaptiveLineDetector:
             self.template_cache.clear()
         if self.preprocessing_cache:
             self.preprocessing_cache.clear()
-        logger = Container.resolve("logger")
+        logger = Container.current().resolve("logger")
         logger.info("Caches cleared")
 
     def get_cache_info(self) -> Dict[str, Any]:
