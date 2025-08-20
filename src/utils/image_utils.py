@@ -1,6 +1,7 @@
 import os
 from typing import List, Tuple
 
+import cv2
 import numpy as np
 from PIL import Image
 
@@ -88,3 +89,52 @@ def convert_image_mode(image: np.ndarray, mode: str) -> np.ndarray:
     if mode_upper in {"L", "GRAYSCALE", "GREYSCALE"}:
         return np.asarray(pil_img.convert("L"))
     raise ValueError(f"Unsupported image mode: {mode}")
+
+
+def crop_image_padding(
+    image_path: str,
+    bbox: Tuple[int, int, int, int],
+    output_path: str,
+    padding: int = 0,
+) -> None:
+    """Crop an image using OpenCV and save the result.
+
+    Parameters
+    ----------
+    image_path:
+        Path to the source image file.
+    bbox:
+        Bounding box defined as ``(x_min, y_min, x_max, y_max)``.
+    output_path:
+        Destination file path for the cropped image.
+    padding:
+        Optional number of pixels to pad around the bounding box.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the image cannot be read from ``image_path``.
+    ValueError
+        If the resulting crop is empty.
+    """
+
+    image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+    if image is None:
+        raise FileNotFoundError(f"Unable to read image: {image_path}")
+
+    x_min, y_min, x_max, y_max = bbox
+    height, width = image.shape[:2]
+
+    x_min = max(x_min - padding, 0)
+    y_min = max(y_min - padding, 0)
+    x_max = min(x_max + padding, width)
+    y_max = min(y_max + padding, height)
+
+    cropped = image[y_min:y_max, x_min:x_max]
+    if cropped.size == 0:
+        raise ValueError("Crop area is empty")
+
+    if cropped.dtype != np.uint8:
+        cropped = cropped.astype(np.uint8)
+
+    cv2.imwrite(output_path, cropped)
