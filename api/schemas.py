@@ -61,3 +61,16 @@ class StepResult(BaseModel):
         if self.image is None:
             return None
         return base64_to_array(self.image)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the result into JSON-serializable data."""
+        result: Dict[str, Any] = {}
+        if self.image is not None:
+            result["image"] = self.image
+        if self.data is not None:
+            result["data"] = (
+                self.data.tolist() if isinstance(self.data, np.ndarray) else self.data
+            )
+        if self.metadata is not None:
+            result["metadata"] = self.metadata
+        return result
