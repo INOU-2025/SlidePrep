@@ -52,3 +52,8 @@ wcwidth
 wheel==0.45.1
 zarr
 zipp
+fastapi
+uvicorn
+celery
+redis
+python-multipart

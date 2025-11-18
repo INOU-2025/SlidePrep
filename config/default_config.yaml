@@ -1,0 +1,10 @@
+general_config:
+  input_path: "data/uploads" # Placeholder, will be overridden per job
+  output_path: "data/results" # Placeholder
+  output_suffix: "_stitched"
+  suffix_filter: ""
+
+stitching_config:
+  # Add default stitching parameters here based on your StitchingStep needs
+  # For now leaving empty or minimal
+  mode: "scan" 
