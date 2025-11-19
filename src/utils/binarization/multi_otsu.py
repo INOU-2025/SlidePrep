@@ -21,8 +21,7 @@ def apply_multi_otsu_threshold(
             binary[gray <= thresholds[0]] = 255
         if debug_callback:
             debug_callback(
-                f"Applied multi-Otsu thresholds: {[f'{t:.1f}' for t in thresholds]} ({
-                    'inverted' if invert else 'normal'})"
+                f"Applied multi-Otsu thresholds: {[f'{t:.1f}' for t in thresholds]} ({'inverted' if invert else 'normal'})"
             )
         return binary
     except ImportError:
