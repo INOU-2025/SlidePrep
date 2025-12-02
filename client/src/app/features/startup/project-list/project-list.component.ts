@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -15,9 +15,10 @@ import { ProjectService, Project } from '../../../core/services/project.service'
     styleUrls: ['./project-list.component.scss']
 })
 export class ProjectListComponent {
-    projects$ = this.projectService.projects$;
+    private projectService = inject(ProjectService);
+    private router = inject(Router);
 
-    constructor(private projectService: ProjectService, private router: Router) { }
+    projects$ = this.projectService.projects$;
 
     createNewProject() {
         this.router.navigate(['/upload']);

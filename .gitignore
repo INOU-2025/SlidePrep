@@ -333,5 +333,4 @@ cython_debug/
 
 # Script default output folder
 output/
-
-
+data/uploads/
