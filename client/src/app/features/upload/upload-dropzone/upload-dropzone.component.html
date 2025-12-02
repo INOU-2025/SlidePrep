@@ -1,7 +1,7 @@
 <div class="upload-container">
     <div class="dropzone" (dragover)="onDragOver($event)" (drop)="onDrop($event)">
         <mat-icon class="upload-icon">cloud_upload</mat-icon>
-        <h3>Drag and drop images here</h3>
+        <h3>Drag and drop images or a zip archive here</h3>
         <p>or</p>
         <input type="file" #fileInput multiple (change)="onFileSelected($event)" style="display: none;">
         <button mat-stroked-button (click)="fileInput.click()">Browse Files</button>
@@ -11,7 +11,7 @@
         <h3>Selected Files ({{ files.length }})</h3>
         <mat-list>
             <mat-list-item *ngFor="let file of files; let i = index">
-                <mat-icon matListItemIcon>image</mat-icon>
+                <mat-icon matListItemIcon>{{ getFileIcon(file) }}</mat-icon>
                 <div matListItemTitle>{{ file.name }}</div>
                 <div matListItemLine>{{ (file.size / 1024 / 1024) | number:'1.2-2' }} MB</div>
                 <button mat-icon-button (click)="removeFile(i)">

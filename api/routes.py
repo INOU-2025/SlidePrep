@@ -3,6 +3,7 @@ from typing import List
 import uuid
 import os
 import shutil
+import zipfile
 from .schemas import JobResponse, JobStatus
 from worker.tasks import process_images_task
 from celery.result import AsyncResult
@@ -23,6 +24,42 @@ async def create_job(files: List[UploadFile] = File(...)):
         file_path = os.path.join(job_dir, file.filename)
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+        
+        # Check if it is a zip file and extract it
+        if file.filename.endswith('.zip'):
+            try:
+                with zipfile.ZipFile(file_path, 'r') as zip_ref:
+                    zip_ref.extractall(job_dir)
+                # Optional: remove the zip file after extraction
+                os.remove(file_path)
+                
+                # Clean up __MACOSX directory if it exists (common in mac zips)
+                macosx_path = os.path.join(job_dir, "__MACOSX")
+                if os.path.exists(macosx_path):
+                    shutil.rmtree(macosx_path)
+                    
+                # Flatten directory structure: move all files from subdirectories to job_dir
+                for root, dirs, files_in_dir in os.walk(job_dir):
+                    if root == job_dir:
+                        continue
+                    for filename in files_in_dir:
+                        src_path = os.path.join(root, filename)
+                        dst_path = os.path.join(job_dir, filename)
+                        # Handle duplicate names by renaming
+                        if os.path.exists(dst_path):
+                            base, ext = os.path.splitext(filename)
+                            dst_path = os.path.join(job_dir, f"{base}_{uuid.uuid4().hex[:8]}{ext}")
+                        shutil.move(src_path, dst_path)
+                
+                # Remove empty directories
+                for root, dirs, files_in_dir in os.walk(job_dir, topdown=False):
+                    if root == job_dir:
+                        continue
+                    if not os.listdir(root):
+                        os.rmdir(root)
+            except zipfile.BadZipFile:
+                # If it's not a valid zip, we might want to log it or just leave it as is
+                pass
             
     # Trigger Celery task
     # We need a config path. For now, we'll use a default one or create a temporary one.

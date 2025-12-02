@@ -55,6 +55,10 @@ export class UploadDropzoneComponent {
         this.files.splice(index, 1);
     }
 
+    getFileIcon(file: File): string {
+        return file.name.toLowerCase().endsWith('.zip') ? 'folder_zip' : 'image';
+    }
+
     upload() {
         if (this.files.length === 0) return;
 
