@@ -106,3 +106,24 @@ async def get_job_status(job_id: str):
         error = str(task_result.result)
         
     return JobStatus(job_id=job_id, status=status, result_url=result_url, error=error)
+
+@router.delete("/jobs/{job_id}")
+async def delete_job(job_id: str):
+    # Delete upload directory
+    job_dir = os.path.join(UPLOAD_DIR, job_id)
+    if os.path.exists(job_dir):
+        shutil.rmtree(job_dir)
+    
+    # Delete results
+    # Results are stored in data/results with naming convention: {job_id}_panorama.dzi and {job_id}_panorama_files
+    results_dir = "data/results"
+    dzi_file = os.path.join(results_dir, f"{job_id}_panorama.dzi")
+    dzi_files_dir = os.path.join(results_dir, f"{job_id}_panorama_files")
+    
+    if os.path.exists(dzi_file):
+        os.remove(dzi_file)
+        
+    if os.path.exists(dzi_files_dir):
+        shutil.rmtree(dzi_files_dir)
+        
+    return {"message": "Job deleted successfully"}

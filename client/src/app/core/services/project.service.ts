@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { ApiService } from './api.service';
 
 export interface Project {
     id: string;
@@ -16,7 +17,7 @@ export class ProjectService {
     private projectsSubject = new BehaviorSubject<Project[]>([]);
     projects$ = this.projectsSubject.asObservable();
 
-    constructor() {
+    constructor(private apiService: ApiService) {
         this.loadProjects();
     }
 
@@ -40,6 +41,14 @@ export class ProjectService {
 
     deleteProject(id: string) {
         const current = this.projectsSubject.value;
+        const project = current.find(p => p.id === id);
+
+        if (project && project.jobId) {
+            this.apiService.deleteJob(project.jobId).subscribe({
+                error: (err) => console.error('Failed to delete job on server', err)
+            });
+        }
+
         const updated = current.filter(p => p.id !== id);
         this.projectsSubject.next(updated);
         localStorage.setItem('projects', JSON.stringify(updated));

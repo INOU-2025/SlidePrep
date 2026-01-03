@@ -34,4 +34,8 @@ export class ApiService {
     getJobStatus(jobId: string): Observable<JobStatus> {
         return this.http.get<JobStatus>(`${this.apiUrl}/jobs/${jobId}`);
     }
+
+    deleteJob(jobId: string): Observable<any> {
+        return this.http.delete(`${this.apiUrl}/jobs/${jobId}`);
+    }
 }
