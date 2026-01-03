@@ -1,10 +1,59 @@
 general_config:
-  input_path: "data/uploads" # Placeholder, will be overridden per job
-  output_path: "data/results" # Placeholder
+  input_path: "data/uploads"
+  output_path: "data/results"
   output_suffix: "_stitched"
   suffix_filter: ""
+  log: true
+  debug: false
+
+binarization_config:
+  threshold_method: "combined_differential"
+
+grid_detection_config:
+  threshold: 0.1
+  angles: [2.0, -2.0]
+  enable_early_exit: true
+  enable_template_cache: true
+  enable_preprocessing_cache: true
+  cache_max_size: 50
+  general:
+    template_length: 250
+    thickness: 20
+    min_contour_area: 1000
+  thick_border:
+    template_length: 250
+    thickness: 20
+    border_thickness: 5
+    min_contour_area: 1000
+  thin_border:
+    template_length: 250
+    thickness: 10
+    border_thickness: 2
+    min_contour_area: 500
+
+grid_refinement_config:
+  target_thickness: 22
+  thickness_bias: 0.90
+  classifier:
+    model_path: ""
+    features: ["area"]
+    threshold: 0.5
+
+inpainting_config:
+  model: "lama"
+  mask_path: ""
+  mask_suffix: "_mask"
+
+img_conversion_config:
+  format: "png"
+  mode: "RGB"
 
 stitching_config:
-  # Add default stitching parameters here based on your StitchingStep needs
-  # For now leaving empty or minimal
-  mode: "scan" 
+  output_filename: "stitched_slide.ome.tif"
+  pattern: "TileScan_001_s{series:3}_ch{channel:2}.tiff"
+  overlap: 0.1
+  pixel_size: 1.0
+  width: 1
+  height: 1
+  layout: "raster"
+  direction: "horizontal"

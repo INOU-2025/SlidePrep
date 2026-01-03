@@ -41,7 +41,7 @@ six
 sympy==1.14.0
 termcolor==3.1.0
 threadpoolctl
-tifffile
+tifffile<2025.2.18
 torch==2.7.1
 torchvision==0.22.1
 tornado
@@ -50,10 +50,11 @@ typing_extensions==4.14.0
 unicodedata2
 wcwidth
 wheel==0.45.1
-zarr
+zarr<3
 zipp
 fastapi
 uvicorn
 celery
 redis
 python-multipart
+PyYAML

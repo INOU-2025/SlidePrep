@@ -37,4 +37,11 @@ export class ProjectService {
     getProject(id: string): Project | undefined {
         return this.projectsSubject.value.find(p => p.id === id);
     }
+
+    deleteProject(id: string) {
+        const current = this.projectsSubject.value;
+        const updated = current.filter(p => p.id !== id);
+        this.projectsSubject.next(updated);
+        localStorage.setItem('projects', JSON.stringify(updated));
+    }
 }

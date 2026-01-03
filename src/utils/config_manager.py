@@ -1,4 +1,6 @@
 import json
+import yaml
+import os
 from typing import Any, Dict
 from abc import ABC, abstractmethod
 
@@ -18,8 +20,10 @@ class ConfigManager(ABC):
         self._extract_config_values()
 
     def _load_config(self, path: str) -> Dict[str, Any]:
-        """Load configuration from JSON file."""
+        """Load configuration from JSON or YAML file."""
         with open(path, "r") as f:
+            if path.endswith(('.yaml', '.yml')):
+                return yaml.safe_load(f)
             return json.load(f)
 
     def save(self) -> None:

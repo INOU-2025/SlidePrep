@@ -64,7 +64,7 @@ async def create_job(files: List[UploadFile] = File(...)):
     # Trigger Celery task
     # We need a config path. For now, we'll use a default one or create a temporary one.
     # Assuming there is a default config.yaml in the root or config folder.
-    config_path = "config/default_config.yaml" # You might need to adjust this
+    config_path = "config/production.json"
     
     task = process_images_task.apply_async(
         args=[job_id, job_dir, job_dir, config_path],

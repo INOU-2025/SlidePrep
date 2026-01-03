@@ -73,8 +73,8 @@ export class UploadDropzoneComponent {
                     jobId: response.job_id
                 });
 
-                this.isUploading = false;
-                this.router.navigate(['/workspace', response.job_id]);
+                // Start polling for status
+                this.pollStatus(response.job_id);
             },
             error: (err) => {
                 console.error('Upload failed', err);
@@ -82,5 +82,32 @@ export class UploadDropzoneComponent {
                 // Handle error (show snackbar)
             }
         });
+    }
+
+    pollStatus(jobId: string) {
+        const pollInterval = setInterval(() => {
+            this.apiService.getJobStatus(jobId).subscribe({
+                next: (status) => {
+                    if (status.status === 'COMPLETED' || status.status === 'SUCCESS') {
+                        clearInterval(pollInterval);
+                        this.isUploading = false;
+                        this.router.navigate(['/workspace', jobId]);
+                    } else if (status.status === 'FAILURE') {
+                        clearInterval(pollInterval);
+                        this.isUploading = false;
+                        console.error('Processing failed', status.error);
+                        // Handle error
+                    } else {
+                        // Still processing, maybe update a status message
+                        console.log('Processing status:', status.status);
+                    }
+                },
+                error: (err) => {
+                    console.error('Polling error', err);
+                    clearInterval(pollInterval);
+                    this.isUploading = false;
+                }
+            });
+        }, 2000); // Poll every 2 seconds
     }
 }

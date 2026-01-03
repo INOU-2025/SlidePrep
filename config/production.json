@@ -1,6 +1,5 @@
 {
   "general": {
-    "input_path": "/Users/irconde/Downloads/V2_170225_exp250225",
     "suffix_filter": "_ch00",
     "output_path": "output",
     "output_suffix": "",
@@ -67,7 +66,7 @@
   },
   "stitching": {
     "output_filename": "stitched_slide.ome.tif",
-    "pattern": "TileScan_001_s{series:3}_ch{channel:2}.tiff",
+    "pattern": "TileScan_001_s{series:3}_ch{channel:2}.jpg",
     "overlap": 0.1,
     "pixel_size": 0.324957,
     "width": 14,
@@ -83,7 +82,7 @@
   },
   "log": {
     "log_to_file": false,
-    "log_to_console": false,
+    "log_to_console": true,
     "log_file_name": "pipeline.log",
     "log_level": "DEBUG"
   }

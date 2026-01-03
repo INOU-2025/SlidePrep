@@ -22,10 +22,13 @@
 
         <div class="actions">
             <button mat-raised-button color="primary" (click)="upload()" [disabled]="isUploading">
-                {{ isUploading ? 'Uploading...' : 'Upload and Process' }}
+                {{ isUploading ? 'Processing...' : 'Upload and Process' }}
             </button>
         </div>
 
-        <mat-progress-bar *ngIf="isUploading" mode="indeterminate"></mat-progress-bar>
+        <div *ngIf="isUploading" class="processing-indicator">
+            <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+            <p>Stitching images... please wait.</p>
+        </div>
     </div>
 </div>

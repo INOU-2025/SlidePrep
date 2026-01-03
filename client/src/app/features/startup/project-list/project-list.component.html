@@ -10,20 +10,23 @@
       </button>
     </div>
   </div>
-  
+
   <div class="right-panel">
     <div class="search-bar">
       <input type="text" placeholder="Search projects...">
     </div>
-    
+
     <mat-list>
       <h3 mat-subheader>Recent Projects</h3>
       <mat-list-item *ngFor="let project of projects$ | async" (click)="openProject(project)" class="project-item">
         <mat-icon matListItemIcon>description</mat-icon>
         <div matListItemTitle>{{ project.name }}</div>
         <div matListItemLine>{{ project.date | date }}</div>
+        <button mat-icon-button class="delete-btn" (click)="deleteProject($event, project.id)" matListItemMeta>
+          <mat-icon>close</mat-icon>
+        </button>
       </mat-list-item>
-      
+
       <div *ngIf="(projects$ | async)?.length === 0" class="empty-state">
         <p>No projects found. Create a new one to get started.</p>
         <button mat-raised-button color="primary" (click)="createNewProject()">Create New Project</button>

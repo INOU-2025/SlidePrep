@@ -1,5 +1,6 @@
 import os
 import shutil
+import subprocess
 from celery.utils.log import get_task_logger
 from .celery_app import celery_app
 from src.core.pipeline_service import PipelineService
@@ -18,12 +19,35 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str, co
     self.update_state(state='PROCESSING', meta={'status': 'Initializing pipeline...'})
 
     try:
-        # Initialize service
-        service = PipelineService(config_path)
-        cfg = service.config
+        # Initialize service with patched configuration to avoid validation errors
+        import json
+        from api.schemas import AppConfig, GeneralConfig
+        from src.core.app_config_manager import AppConfigManager
         
-        # Override paths in config for this specific job if needed
-        # For now, we assume the input_path contains the images
+        # Load the configuration manually
+        with open(config_path, 'r') as f:
+            config_dict = json.load(f)
+            
+        # Override paths in the dictionary BEFORE creating AppConfig
+        # This prevents validation errors from key paths not existing in config
+        if 'general' not in config_dict:
+            config_dict['general'] = {}
+            
+        config_dict['general']['input_path'] = input_path
+        config_dict['general']['output_path'] = output_path
+        
+        # Ensure we don't fail on other missing paths if they are checked
+        # For this specific case, input_path validation was the blocker
+        
+        # Create AppConfig object
+        app_config = AppConfig(**config_dict)
+        
+        # Create manager from the config object
+        config_manager = AppConfigManager.from_app_config(app_config)
+        
+        # Initialize service with the pre-loaded config
+        service = PipelineService(config=config_manager)
+        cfg = service.config
         
         image_extensions = ['*.jpg', '*.jpeg', '*.png', '*.tif', '*.tiff']
         images = []
@@ -73,14 +97,19 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str, co
         stitched_path, _ = stitching_step.run(output_path)
         
         # Move final result to a known location
-        final_result_name = f"{job_id}_panorama.jpg"
-        final_result_path = os.path.join(output_path, "..", "..", "results", final_result_name)
-        shutil.copy(stitched_path, final_result_path)
+        result_dir = os.path.join(output_path, "..", "..", "results")
+        dzi_name = f"{job_id}_panorama"
+        dzi_output_path = os.path.join(result_dir, dzi_name) # vips adds .dzi extension automatically
+
+        logger.info(f"Generating DZI tiles at {dzi_output_path}.dzi")
+        cmd = ["vips", "dzsave", stitched_path, dzi_output_path]
+        subprocess.run(cmd, check=True)
+        
+        final_result_name = f"{dzi_name}.dzi"
         
         logger.info(f"Job {job_id} completed successfully")
         return {'status': 'COMPLETED', 'result_path': final_result_name}
 
     except Exception as e:
         logger.error(f"Job {job_id} failed: {e}")
-        self.update_state(state='FAILURE', meta={'error': str(e)})
-        raise e
+        raise

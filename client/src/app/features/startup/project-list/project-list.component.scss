@@ -48,9 +48,19 @@
 
     .project-item {
         cursor: pointer;
+        transition: background-color 0.2s;
 
         &:hover {
-            background-color: #eee;
+            background-color: rgba(0, 0, 0, 0.04);
+
+            .delete-btn {
+                opacity: 1;
+            }
+        }
+
+        .delete-btn {
+            opacity: 0;
+            transition: opacity 0.2s;
         }
     }
 

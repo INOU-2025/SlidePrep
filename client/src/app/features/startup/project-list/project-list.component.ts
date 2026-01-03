@@ -27,4 +27,9 @@ export class ProjectListComponent {
     openProject(project: Project) {
         this.router.navigate(['/workspace', project.id]);
     }
+
+    deleteProject(event: Event, projectId: string) {
+        event.stopPropagation();
+        this.projectService.deleteProject(projectId);
+    }
 }
