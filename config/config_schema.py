@@ -280,7 +280,9 @@ class StitchingConfig(BaseModel):
     width: int = 1  # Tile grid width
     height: int = 1  # Tile grid height
     layout: str = "raster"  # Acquisition layout
+    layout: str = "raster"  # Acquisition layout
     direction: str = "horizontal"  # Raster direction
+    align_channel: int | None = None  # Channel to use for alignment (0-based index)
 
     @model_validator(mode="after")
     def _validate_settings(cls, values: "StitchingConfig") -> "StitchingConfig":

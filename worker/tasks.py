@@ -72,8 +72,10 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str, co
 
         for i, image_path in enumerate(images):
             fname = os.path.basename(image_path)
-            # Use original filename for output to match stitching pattern
-            out_path = os.path.join(processed_dir, fname)
+            # Change extension to .tif for Ashlar compatibility
+            name_root, _ = os.path.splitext(fname)
+            out_name = f"{name_root}.tif"
+            out_path = os.path.join(processed_dir, out_name)
             
             gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
             if gray is None:
@@ -113,13 +115,24 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str, co
                 elif isinstance(result, tuple):
                     output_image = result[0]
                     
-                if output_image.ndim == 3 and output_image.shape[2] == 3:
-                    output_image = cv2.cvtColor(output_image, cv2.COLOR_RGB2BGR)
+                # Ensure output is Grayscale for stitching compatibility
+                if output_image.ndim == 3:
+                     # If RGB/BGR, convert to Grayscale
+                     # cv2.imread usually reads as BGR if not specified, but here we might have RGB from pipeline
+                     # Assuming pipeline returns RGB or Grayscale.
+                     # Let's assume standard RGB->GRAY weights are fine.
+                     output_image = cv2.cvtColor(output_image, cv2.COLOR_RGB2GRAY)
                     
                 cv2.imwrite(out_path, output_image)
             else:
-                # Skip preprocessing: Copy original to processed dir
-                shutil.copy2(image_path, out_path)
+                # Skip preprocessing: Save as Grayscale to matching properties
+                # Instead of copy2, we read and write as grayscale to ensure format consistency for Ashlar
+                raw_gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+                if raw_gray is not None:
+                    cv2.imwrite(out_path, raw_gray)
+                else:
+                    # Fallback if read fails (unlikely if glob found it)
+                    shutil.copy2(image_path, out_path)
             
             processed_count += 1
             progress = int((i + 1) / total_images * 80) # 80% for processing
