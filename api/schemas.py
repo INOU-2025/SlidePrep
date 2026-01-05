@@ -25,6 +25,7 @@ class JobStatus(BaseModel):
     status: str
     result_url: Optional[str] = None
     error: Optional[str] = None
+    message: Optional[str] = None
 
 class AppConfig(BaseModel):
     general: GeneralConfig
@@ -50,6 +51,20 @@ class StepResult:
     @classmethod
     def from_data(cls, data: Any, metadata: Optional[Dict[str, Any]] = None) -> "StepResult":
         return cls(data, metadata)
+
+    @classmethod
+    def from_array(cls, data: Any, metadata: Optional[Dict[str, Any]] = None) -> "StepResult":
+        return cls(data, metadata)
+
+    def to_array(self) -> Any:
+        return self.data
+
+    @property
+    def image(self) -> Any:
+        # Assuming data is the image if it's an ndarray, or None if not
+        if isinstance(self.data, np.ndarray):
+            return self.data
+        return None
 
     def __iter__(self):
         yield self.data

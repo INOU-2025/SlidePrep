@@ -102,12 +102,13 @@ class PipelineService:
             self.logger.info(f"Pipeline initialized with {len(steps)} steps")
         return Pipeline(steps, self.container)
 
-    def run(self, image: np.ndarray, *, image_path: Optional[str] = None) -> StepResult:
+    def run(self, image: np.ndarray, *, image_path: Optional[str] = None, on_step_start: Optional[callable] = None) -> StepResult:
         """Process a single image through the pipeline.
 
         Args:
             image: Input image array.
             image_path: Optional path to the image for logging purposes.
+            on_step_start: Optional callback for step start notifications.
 
         Returns:
             :class:`~api.schemas.StepResult` from the last pipeline step.
@@ -116,7 +117,7 @@ class PipelineService:
             ValueError: If the image is empty or lacks dimensions.
         """
         self._prepare_context(image, image_path)
-        return self.pipeline.run(image)
+        return self.pipeline.run(image, on_step_start=on_step_start)
 
     async def run_async(
         self, image: np.ndarray, *, image_path: Optional[str] = None

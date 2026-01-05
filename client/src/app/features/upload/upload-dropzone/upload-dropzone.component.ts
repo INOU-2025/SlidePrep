@@ -5,13 +5,15 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatListModule } from '@angular/material/list';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { ProjectService } from '../../../core/services/project.service';
 
 @Component({
     selector: 'app-upload-dropzone',
     standalone: true,
-    imports: [CommonModule, MatButtonModule, MatIconModule, MatProgressBarModule, MatListModule],
+    imports: [CommonModule, MatButtonModule, MatIconModule, MatProgressBarModule, MatListModule, MatCheckboxModule, FormsModule],
     templateUrl: './upload-dropzone.component.html',
     styleUrls: ['./upload-dropzone.component.scss']
 })
@@ -19,6 +21,8 @@ export class UploadDropzoneComponent {
     files: File[] = [];
     isUploading = false;
     uploadProgress = 0;
+    statusMessage = 'Initializing...';
+    cleanGrid = true;
 
     constructor(
         private apiService: ApiService,
@@ -63,7 +67,9 @@ export class UploadDropzoneComponent {
         if (this.files.length === 0) return;
 
         this.isUploading = true;
-        this.apiService.uploadImages(this.files).subscribe({
+        this.statusMessage = 'Uploading...';
+
+        this.apiService.uploadImages(this.files, this.cleanGrid).subscribe({
             next: (response) => {
                 // Create a new project entry
                 this.projectService.addProject({
@@ -88,6 +94,10 @@ export class UploadDropzoneComponent {
         const pollInterval = setInterval(() => {
             this.apiService.getJobStatus(jobId).subscribe({
                 next: (status) => {
+                    if (status.message) {
+                        this.statusMessage = status.message;
+                    }
+
                     if (status.status === 'COMPLETED' || status.status === 'SUCCESS') {
                         clearInterval(pollInterval);
                         this.isUploading = false;

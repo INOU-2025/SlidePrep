@@ -32,7 +32,7 @@ class Pipeline:
         except KeyError:
             self.logger = None
 
-    def run(self, data: Any) -> Optional[StepResult]:
+    def run(self, data: Any, on_step_start: Optional[callable] = None) -> Optional[StepResult]:
         """Execute the pipeline on input data.
 
         Runs each step sequentially, passing the output of each step as input
@@ -42,6 +42,8 @@ class Pipeline:
         Args:
             data: Initial input data to process. The type depends on what the
                 first step expects to receive.
+            on_step_start: Optional callback function that receives the step name
+                as a string argument. Called before each step execution.
 
         Returns:
             The :class:`~api.schemas.StepResult` from the last step, or ``None``
@@ -50,6 +52,8 @@ class Pipeline:
         current_data = data
         for idx, step in enumerate(self.steps):
             try:
+                if on_step_start:
+                    on_step_start(step.name)
                 result = step.run(current_data)
                 is_last = idx == len(self.steps) - 1
                 if isinstance(result, StepResult):

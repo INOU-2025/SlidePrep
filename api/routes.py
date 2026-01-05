@@ -1,4 +1,5 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi import Form
+from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Form
 from typing import List
 import uuid
 import os
@@ -14,7 +15,13 @@ UPLOAD_DIR = "data/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post("/jobs", response_model=JobResponse)
-async def create_job(files: List[UploadFile] = File(...)):
+async def create_job(
+    files: List[UploadFile] = File(...),
+    clean_grid: str = Form("true") # Receive as string from FormData
+):
+    # Convert string boolean to actual boolean
+    clean_grid_bool = clean_grid.lower() == 'true'
+
     job_id = str(uuid.uuid4())
     job_dir = os.path.join(UPLOAD_DIR, job_id)
     os.makedirs(job_dir, exist_ok=True)
@@ -67,7 +74,7 @@ async def create_job(files: List[UploadFile] = File(...)):
     config_path = "config/production.json"
     
     task = process_images_task.apply_async(
-        args=[job_id, job_dir, job_dir, config_path],
+        args=[job_id, job_dir, job_dir, config_path, clean_grid_bool],
         task_id=job_id
     )
     
@@ -97,6 +104,7 @@ async def get_job_status(job_id: str):
     status = task_result.status
     result_url = None
     error = None
+    message = None
     
     if status == 'SUCCESS':
         result = task_result.result
@@ -104,8 +112,12 @@ async def get_job_status(job_id: str):
             result_url = f"/results/{result['result_path']}"
     elif status == 'FAILURE':
         error = str(task_result.result)
+    elif status == 'PROCESSING':
+        info = task_result.info
+        if isinstance(info, dict) and 'status' in info:
+            message = info['status']
         
-    return JobStatus(job_id=job_id, status=status, result_url=result_url, error=error)
+    return JobStatus(job_id=job_id, status=status, result_url=result_url, error=error, message=message)
 
 @router.delete("/jobs/{job_id}")
 async def delete_job(job_id: str):

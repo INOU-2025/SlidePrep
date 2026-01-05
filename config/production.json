@@ -3,7 +3,7 @@
     "suffix_filter": "_ch00",
     "output_path": "output",
     "output_suffix": "",
-    "log": false,
+    "log": true,
     "debug": false
   },
   "binarization": {
@@ -81,8 +81,8 @@
     "artifact_sink": "local"
   },
   "log": {
-    "log_to_file": false,
-    "log_to_console": true,
+    "log_to_file": true,
+    "log_to_console": false,
     "log_file_name": "pipeline.log",
     "log_level": "DEBUG"
   }

@@ -63,6 +63,16 @@ class InpaintingStep(PipelineStep):
 
         self._validate_image_input(image)
 
+        # Ensure image is RGB (3 channels) for LaMa model
+        if image.ndim == 2:
+            self.debug(f"Converting 2D image {image.shape} to RGB")
+            image = np.stack((image,) * 3, axis=-1)
+        elif image.ndim == 3 and image.shape[2] == 1:
+            self.debug(f"Converting 1-channel image {image.shape} to RGB")
+            image = np.concatenate((image,) * 3, axis=2)
+            
+        self.debug(f"Inpainting inputs - Image: {image.shape} {image.dtype}, Mask: {mask.shape} {mask.dtype}")
+
         result = self._model(image, mask)
         if isinstance(result, Image.Image):
             result = np.array(result)

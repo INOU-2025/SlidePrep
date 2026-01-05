@@ -1,5 +1,12 @@
 <div class="upload-container">
     <div class="dropzone" (dragover)="onDragOver($event)" (drop)="onDrop($event)">
+        <div class="settings-bar"
+            style="margin-bottom: 20px; text-align: right; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+            <mat-checkbox [(ngModel)]="cleanGrid" color="primary" [disabled]="isUploading">
+                Clean Grid Lines
+            </mat-checkbox>
+        </div>
+
 
         <!-- Empty State -->
         <ng-container *ngIf="files.length === 0">
@@ -34,7 +41,7 @@
 
             <div *ngIf="isUploading" class="processing-indicator">
                 <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-                <p>Stitching images... please wait.</p>
+                <p>{{ statusMessage }}</p>
             </div>
         </div>
 

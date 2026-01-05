@@ -13,6 +13,7 @@ export interface JobStatus {
     status: string;
     result_url?: string;
     error?: string;
+    message?: string;
 }
 
 @Injectable({
@@ -23,11 +24,12 @@ export class ApiService {
 
     constructor(private http: HttpClient) { }
 
-    uploadImages(files: File[]): Observable<JobResponse> {
+    uploadImages(files: File[], cleanGrid: boolean = true): Observable<JobResponse> {
         const formData = new FormData();
         files.forEach(file => {
             formData.append('files', file);
         });
+        formData.append('clean_grid', cleanGrid.toString());
         return this.http.post<JobResponse>(`${this.apiUrl}/jobs`, formData);
     }
 
