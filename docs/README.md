@@ -7,6 +7,7 @@ Welcome to the SlidePrep documentation. This folder contains essential guides fo
 ### Core Guides
 - **[`SYSTEM_OVERVIEW.md`](SYSTEM_OVERVIEW.md)** - System architecture and development guide
 - **[`CONFIGURATION_GUIDE.md`](CONFIGURATION_GUIDE.md)** - Complete configuration reference
+- **[`MANUAL_CONFIGURACION_ES.md`](MANUAL_CONFIGURACION_ES.md)** - Manual técnico en español del sistema de configuración
 - **[`BINARIZATION_METHODS_GUIDE.md`](BINARIZATION_METHODS_GUIDE.md)** - Binarization methods and optimization
 - **[`DEBUG_SYSTEM_GUIDE.md`](DEBUG_SYSTEM_GUIDE.md)** - Debug visualization system
 - **[`LOGGING_CONFIGURATION.md`](LOGGING_CONFIGURATION.md)** - Logging setup and configuration
