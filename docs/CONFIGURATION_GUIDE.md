@@ -34,6 +34,23 @@ The configuration is organized into logical sections:
 }
 ```
 
+## 🧱 Configuration Runtime Architecture
+
+At runtime, configuration is processed through four layers:
+
+1. **Pydantic schema models** in `config/config_schema.py` define types, defaults, and validation rules.
+2. **`AppConfig` aggregate model** in `api/schemas.py` represents the full application contract.
+3. **`AppConfigManager`** in `src/core/app_config_manager.py` extracts typed section objects (`general_config`, `binarization_config`, etc.) and resolves derived output paths for logging/debugging.
+4. **`bootstrap()` + DI container** in `src/core/bootstrap.py` registers config, logger, debugger, and context so steps can consume configuration consistently.
+
+### Initialization flow
+
+1. Load JSON config.
+2. Parse and validate section models.
+3. Compute derived paths (`log.path`, `debug.path`) from `test.output_path` or `general.output_path`.
+4. Build container and inject dependencies.
+5. Build pipeline steps with their specific typed section objects.
+
 ## ⚙️ Configuration Sections
 
 ### General Configuration
@@ -311,6 +328,17 @@ input_path = config.general_config.input_path
 threshold_method = config.binarization_config.threshold_method
 debug_enabled = config.debug_active  # Smart debug detection
 ```
+### Extending Configuration for a New Step
+
+When introducing a new pipeline step, update configuration in this order:
+
+1. Add a new config model in `config/config_schema.py`.
+2. Expose it in `AppConfig` (`api/schemas.py`).
+3. Extract it in `AppConfigManager` (`src/core/app_config_manager.py`).
+4. Inject it in `PipelineService._create_pipeline()` (`src/core/pipeline_service.py`).
+5. Add an example test config in `config/test/` and document the new section in this guide.
+
+This keeps schema, runtime wiring, and docs synchronized.
 
 ## ✅ Validation and Error Handling
 
