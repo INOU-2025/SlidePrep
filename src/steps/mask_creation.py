@@ -10,9 +10,9 @@ from src.core.step import PipelineStep
 class MaskCreationStep(PipelineStep):
     """Pipeline step for generating a binary mask from refined contours."""
 
-    def __init__(self, name: str = "mask_creation", **kwargs: Any) -> None:
+    def __init__(self) -> None:
         """Initialize the mask creation step."""
-        super().__init__(name=name, config=None, **kwargs)
+        super().__init__(name="mask_creation", config=None)
 
     def run(self, data: Any) -> StepResult:
         """Create mask image from refined detection contours.
