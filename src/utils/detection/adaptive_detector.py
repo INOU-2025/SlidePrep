@@ -213,17 +213,19 @@ class AdaptiveLineDetector:
     def detect_lines(self, image: np.ndarray) -> Dict[str, Any]:
         """Detect lines using adaptive strategy progression."""
         logger = self.logger
-        
+
         self.detection_results = {}
         self.strategies_used = {}
 
         missing_orientations = [Orientation.HORIZONTAL, Orientation.VERTICAL]
 
         # Strategy 1: General detection
-        logger.info("Trying general detection...")
+        if logger:
+            logger.info("Trying general detection...")
 
         for orientation in missing_orientations[:]:
-            logger.info(f"Processing {orientation.value} orientation...")
+            if logger:
+                logger.info(f"Processing {orientation.value} orientation...")
 
             contour_dicts = self._detect_single_orientation(
                 image, DetectionStrategy.GENERAL, orientation)
@@ -232,22 +234,27 @@ class AdaptiveLineDetector:
                 self.detection_results[orientation] = contour_dicts
                 self.strategies_used[orientation] = DetectionStrategy.GENERAL
                 missing_orientations.remove(orientation)
-                logger.info(f"✓ Found {len(contour_dicts)} {orientation.value} lines")
+                if logger:
+                    logger.info(f"✓ Found {len(contour_dicts)} {orientation.value} lines")
             else:
-                logger.info(f"✗ No {orientation.value} lines found")
+                if logger:
+                    logger.info(f"✗ No {orientation.value} lines found")
 
         # Early exit optimization
         if self.enable_early_exit and not missing_orientations:
-            logger.info("✓ Early exit: Both orientations found in general detection")
+            if logger:
+                logger.info("✓ Early exit: Both orientations found in general detection")
             return self._create_result_dict(missing_orientations)
 
         # Strategy 2: Thick border detection
         if missing_orientations:
-            logger.info(
-                f"Trying thick border detection for missing orientations: {[o.value for o in missing_orientations]}")
+            if logger:
+                logger.info(
+                    f"Trying thick border detection for missing orientations: {[o.value for o in missing_orientations]}")
 
             for orientation in missing_orientations[:]:
-                logger.info(f"Processing {orientation.value} orientation...")
+                if logger:
+                    logger.info(f"Processing {orientation.value} orientation...")
 
                 contour_dicts = self._detect_single_orientation(
                     image, DetectionStrategy.THICK_BORDER, orientation)
@@ -256,22 +263,27 @@ class AdaptiveLineDetector:
                     self.detection_results[orientation] = contour_dicts
                     self.strategies_used[orientation] = DetectionStrategy.THICK_BORDER
                     missing_orientations.remove(orientation)
-                    logger.info(f"✓ Found {len(contour_dicts)} {orientation.value} lines")
+                    if logger:
+                        logger.info(f"✓ Found {len(contour_dicts)} {orientation.value} lines")
                 else:
-                    logger.info(f"✗ No {orientation.value} lines found")
+                    if logger:
+                        logger.info(f"✗ No {orientation.value} lines found")
 
         # Early exit optimization
         if self.enable_early_exit and not missing_orientations:
-            logger.info("✓ Early exit: Both orientations found in thick border detection")
+            if logger:
+                logger.info("✓ Early exit: Both orientations found in thick border detection")
             return self._create_result_dict(missing_orientations)
 
         # Strategy 3: Thin border detection
         if missing_orientations:
-            logger.info(
-                f"Trying thin border detection for remaining orientations: {[o.value for o in missing_orientations]}")
+            if logger:
+                logger.info(
+                    f"Trying thin border detection for remaining orientations: {[o.value for o in missing_orientations]}")
 
             for orientation in missing_orientations[:]:
-                logger.info(f"Processing {orientation.value} orientation...")
+                if logger:
+                    logger.info(f"Processing {orientation.value} orientation...")
 
                 contour_dicts = self._detect_single_orientation(
                     image, DetectionStrategy.THIN_BORDER, orientation)
@@ -280,9 +292,11 @@ class AdaptiveLineDetector:
                     self.detection_results[orientation] = contour_dicts
                     self.strategies_used[orientation] = DetectionStrategy.THIN_BORDER
                     missing_orientations.remove(orientation)
-                    logger.info(f"✓ Found {len(contour_dicts)} {orientation.value} lines")
+                    if logger:
+                        logger.info(f"✓ Found {len(contour_dicts)} {orientation.value} lines")
                 else:
-                    logger.info(f"✗ No {orientation.value} lines found")
+                    if logger:
+                        logger.info(f"✗ No {orientation.value} lines found")
 
         return self._create_result_dict(missing_orientations)
     
@@ -297,9 +311,10 @@ class AdaptiveLineDetector:
                 for idx, item in enumerate(contour_dicts):
                     contour = item['contour']
                     zone = item['zone']
-                    logger.debug(
-                        f"Analyzing contour {idx+1}/{len(contour_dicts)} for orientation: {orientation.value}, strategy: {getattr(strategy, 'value', strategy)}, zone: {zone.value if zone else None}"
-                    )
+                    if logger:
+                        logger.debug(
+                            f"Analyzing contour {idx+1}/{len(contour_dicts)} for orientation: {orientation.value}, strategy: {getattr(strategy, 'value', strategy)}, zone: {zone.value if zone else None}"
+                        )
                     contour_info = analyze_contour(contour, orientation=orientation, strategy=strategy)
                     contour_info['zone'] = zone.value if zone else None
                     orientation_analysis.append(contour_info)
@@ -322,18 +337,21 @@ class AdaptiveLineDetector:
             if strategy:
                 contours = self.detection_results[orientation]
                 valid_count = len(contours)
-                logger.info(
-                    f"  {orientation.value.capitalize()}: {valid_count} lines using {strategy.value}")
+                if logger:
+                    logger.info(
+                        f"  {orientation.value.capitalize()}: {valid_count} lines using {strategy.value}")
             else:
-                logger.info(f"  {orientation.value.capitalize()}: No lines found")
+                if logger:
+                    logger.info(f"  {orientation.value.capitalize()}: No lines found")
 
         # Print cache performance
         cache_stats = self.get_cache_info()
-        logger.info(f"Cache Performance:")
-        logger.info(
-            f"  Template cache - Hits: {cache_stats['template_cache_hits']}, Misses: {cache_stats['template_cache_misses']}")
-        logger.info(
-            f"  Preprocessing cache - Hits: {cache_stats['preprocessing_cache_hits']}, Misses: {cache_stats['preprocessing_cache_misses']}")
+        if logger:
+            logger.info(f"Cache Performance:")
+            logger.info(
+                f"  Template cache - Hits: {cache_stats['template_cache_hits']}, Misses: {cache_stats['template_cache_misses']}")
+            logger.info(
+                f"  Preprocessing cache - Hits: {cache_stats['preprocessing_cache_hits']}, Misses: {cache_stats['preprocessing_cache_misses']}")
 
         # Return detections and strategies together
         return {
