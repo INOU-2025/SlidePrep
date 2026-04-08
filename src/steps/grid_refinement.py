@@ -87,11 +87,8 @@ class GridRefinementStep(PipelineStep):
 
     EXPANSION_FACTOR: float = 1.5
 
-    def __init__(self, config: GridRefinementConfig, name: str = "grid_refinement", **kwargs: Any) -> None:
-        super().__init__(name=name, config=config, **kwargs)
-
-        if config is None:
-            raise ValueError(f"[{name}] GridRefinementConfig is required")
+    def __init__(self, config: GridRefinementConfig) -> None:
+        super().__init__(name="grid_refinement", config=config)
 
         self.model = joblib.load(config.classifier.model_path)
         self.log(

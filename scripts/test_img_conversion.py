@@ -12,11 +12,7 @@ def main(config_path: str):
     runner = StepTestRunner(config_path)
     cfg = runner.cfg.img_conversion_config
 
-    step = ImgConversionStep(
-        config=cfg,
-        debugger=runner.debugger,
-        logger=runner.logger,
-    )
+    step = ImgConversionStep(config=cfg)
 
     runner.run_on_directory(step=step)
     runner.logger.info("Image conversion testing completed")

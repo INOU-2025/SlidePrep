@@ -11,11 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 def main(config_path: str) -> None:
     runner = StepTestRunner(config_path)
 
-    step = StitchingStep(
-        config=runner.cfg.stitching_config,
-        debugger=runner.debugger,
-        logger=runner.logger,
-    )
+    step = StitchingStep(config=runner.cfg.stitching_config)
 
     tiles_dir = (
         runner.cfg.test_config.input_path

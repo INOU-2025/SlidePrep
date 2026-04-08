@@ -11,9 +11,9 @@ from src.core.step import PipelineStep
 class InpaintingStep(PipelineStep):
     """Pipeline step for mask-based image inpainting."""
 
-    def __init__(self, config: InpaintingConfig, **kwargs: Any) -> None:
+    def __init__(self, config: InpaintingConfig) -> None:
         """Initialize inpainting step with specified model."""
-        super().__init__(name="inpainting", config=config, **kwargs)
+        super().__init__(name="inpainting", config=config)
 
         model_name = self.config.model.lower()
         if model_name == "lama":
