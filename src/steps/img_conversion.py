@@ -12,14 +12,13 @@ from src.utils.image_utils import convert_image_mode
 class ImgConversionStep(PipelineStep):
     """Convert images to a specified format and mode."""
 
-    def __init__(self, config: ImgConversionConfig, **kwargs: Any) -> None:
+    def __init__(self, config: ImgConversionConfig) -> None:
         """Initialize the conversion step with configuration.
 
         Args:
             config: Configuration defining target format and mode.
-            **kwargs: Optional keyword arguments forwarded to :class:`PipelineStep`.
         """
-        super().__init__(name="img_conversion", config=config, **kwargs)
+        super().__init__(name="img_conversion", config=config)
         self._format = validate_image_format(config.format)
         self._mode = config.mode.upper()
 

@@ -14,17 +14,15 @@ from src.core.step import PipelineStep
 class StitchingStep(PipelineStep):
     """Stitch processed tiles into a single OME-TIFF using Ashlar."""
 
-    def __init__(self, config: StitchingConfig, **kwargs: Any) -> None:
+    def __init__(self, config: StitchingConfig) -> None:
         """Initialize the stitching step with configuration.
 
         Args:
             config: Stitching configuration specifying Ashlar parameters
                 such as file pattern, tile grid dimensions, and output
                 file name.
-            **kwargs: Optional keyword arguments forwarded to
-                :class:`PipelineStep`.
         """
-        super().__init__(name="stitching", config=config, **kwargs)
+        super().__init__(name="stitching", config=config)
 
     def run(self, data: Any) -> StepResult:
         """Run Ashlar to stitch tiles into a single OME-TIFF.

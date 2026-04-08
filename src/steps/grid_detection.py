@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from api.schemas import StepResult
 from src.config import GridDetectionConfig
@@ -9,23 +9,13 @@ from src.utils.detection.adaptive_detector import AdaptiveLineDetector
 class GridDetectionStep(PipelineStep):
     """Detect grid lines in an image using adaptive template matching."""
 
-    def __init__(
-        self,
-        name: str = "grid_detection",
-        config: Optional[GridDetectionConfig] = None,
-        **kwargs: Any,
-    ) -> None:
+    def __init__(self, config: GridDetectionConfig) -> None:
         """Initialize the detection step.
 
         Args:
-            name: Name for logging and debugging purposes.
             config: Configuration object for the adaptive detector.
-            **kwargs: Additional parameters forwarded to :class:`PipelineStep`.
         """
-        super().__init__(name, config, **kwargs)
-
-        if config is None:
-            raise ValueError(f"[{name}] GridDetectionConfig is required")
+        super().__init__(name="grid_detection", config=config)
 
         try:
             self.detector = AdaptiveLineDetector(config, logger=self.logger)

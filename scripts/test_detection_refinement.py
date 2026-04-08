@@ -20,11 +20,7 @@ def main(config_path: str) -> None:
 
     runner = StepTestRunner(config_path, drawer, detection_writer)
 
-    step = GridRefinementStep(
-        config=runner.cfg.grid_refinement_config,
-        debugger=runner.debugger,
-        logger=runner.logger,
-    )
+    step = GridRefinementStep(config=runner.cfg.grid_refinement_config)
 
     runner.run_on_directory(
         step=step
