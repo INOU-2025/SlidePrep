@@ -13,11 +13,7 @@ def main(config_path: str) -> None:
     """Run the inpainting step on all images in the input directory."""
     runner = StepTestRunner(config_path)
 
-    step = InpaintingStep(
-        config=runner.cfg.inpainting_config,
-        debugger=runner.debugger,
-        logger=runner.logger,
-    )
+    step = InpaintingStep(config=runner.cfg.inpainting_config)
 
     runner.run_on_directory(step=step)
 

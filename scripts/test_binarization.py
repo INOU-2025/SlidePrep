@@ -12,11 +12,7 @@ from src.steps import BinarizationStep
 def main(config_path: str):
     runner = StepTestRunner(config_path)
 
-    step = BinarizationStep(
-        config=runner.cfg.binarization_config,
-        debugger=runner.debugger,
-        logger=runner.logger
-    )
+    step = BinarizationStep(config=runner.cfg.binarization_config)
 
     runner.run_on_directory(step=step)
 

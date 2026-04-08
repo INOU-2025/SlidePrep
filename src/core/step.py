@@ -12,18 +12,17 @@ class PipelineStep(ABC):
     This ensures consistent configuration management across the pipeline.
     """
 
-    def __init__(self, name: str, config=None, container: Optional[Container] = None, **kwargs):
+    def __init__(self, name: str, config=None):
         """
         Initialize pipeline step.
 
         Args:
             name: Name of the pipeline step
             config: Configuration object specific to this step
-            **kwargs: Additional arguments (unused but allows flexible inheritance)
         """
         self.name = name
         self.config = config
-        self.container = container
+        self.container = None
 
     @abstractmethod
     def run(self, data: Any) -> Union[Any, Tuple[Any, Optional[dict]]]:
