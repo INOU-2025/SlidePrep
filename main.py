@@ -43,6 +43,7 @@ def run_pipeline(config_path: str):
 
     os.makedirs(output_folder, exist_ok=True)
 
+
     image_extensions = get_supported_image_patterns()
     images = []
     for ext in image_extensions:
