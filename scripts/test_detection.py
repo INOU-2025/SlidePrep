@@ -18,11 +18,7 @@ def main(config_path: str):
     
     runner = StepTestRunner(config_path, adaptive_drawer, detection_writer)
 
-    step = GridDetectionStep(
-        config=runner.cfg.grid_detection_config,
-        debugger=runner.debugger,
-        logger=runner.logger
-    )
+    step = GridDetectionStep(config=runner.cfg.grid_detection_config)
 
     runner.run_on_directory(
         step=step

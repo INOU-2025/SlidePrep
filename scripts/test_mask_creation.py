@@ -10,10 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 def main(config_path: str) -> None:
     runner = StepTestRunner(config_path)
 
-    step = MaskCreationStep(
-        debugger=runner.debugger,
-        logger=runner.logger,
-    )
+    step = MaskCreationStep()
 
     runner.run_on_directory(step=step)
 

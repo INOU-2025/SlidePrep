@@ -14,14 +14,13 @@ class BinarizationStep(PipelineStep):
     with automatic grayscale conversion for color inputs.
     """
     
-    def __init__(self, config: BinarizationConfig, **kwargs: Any) -> None:
+    def __init__(self, config: BinarizationConfig) -> None:
         """Initialize binarization step with configuration.
-        
+
         Args:
             config: Binarization configuration specifying threshold method and parameters.
-            **kwargs: Additional arguments passed to parent class.
         """
-        super().__init__(name="binarization", config=config, **kwargs)
+        super().__init__(name="binarization", config=config)
         self.methods = BinarizationMethods(debug_callback=self.debug)
 
     def run(self, data: Any) -> StepResult:
