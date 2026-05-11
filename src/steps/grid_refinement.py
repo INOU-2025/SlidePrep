@@ -4,7 +4,7 @@ import cv2
 import joblib
 import numpy as np
 
-from api.schemas import StepResult
+from src.core.step_result import StepResult
 from src.config import GridRefinementConfig
 from src.core.step import PipelineStep
 from src.utils.detection.contour_analysis import analyze_contour
