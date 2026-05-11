@@ -77,10 +77,8 @@ def run_pipeline(config_path: str):
             logger.error(f"Processing failed for {fname}")
             continue
 
-        output_image: Any = result
-        metadata: Optional[dict[str, Any]] = None
-        if isinstance(result, tuple):
-            output_image, metadata = result
+        output_image = result.image
+        metadata = result.metadata
 
         if output_image.ndim == 3 and output_image.shape[2] == 3:
             output_image = cv2.cvtColor(output_image, cv2.COLOR_RGB2BGR)
@@ -102,7 +100,7 @@ def run_pipeline(config_path: str):
 
     try:
         stitching_step = StitchingStep(config=cfg.stitching_config)
-        stitched_path, _ = stitching_step.run(output_folder)
+        stitched_path = stitching_step.run(output_folder).data
         logger.info(f"Stitched slide written to {stitched_path}")
     except Exception as e:
         logger.error(f"Failed to stitch slide: {e}")

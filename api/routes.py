@@ -12,6 +12,7 @@ from celery.result import AsyncResult
 router = APIRouter()
 
 UPLOAD_DIR = "data/uploads"
+CONFIG_PATH = os.environ.get("SLIDEPREP_CONFIG", "config/production.json")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post("/jobs", response_model=JobResponse)
@@ -71,10 +72,8 @@ async def create_job(
     # Trigger Celery task
     # We need a config path. For now, we'll use a default one or create a temporary one.
     # Assuming there is a default config.yaml in the root or config folder.
-    config_path = "config/production.json"
-    
     task = process_images_task.apply_async(
-        args=[job_id, job_dir, job_dir, config_path, clean_grid_bool],
+        args=[job_id, job_dir, job_dir, CONFIG_PATH, clean_grid_bool],
         task_id=job_id
     )
     

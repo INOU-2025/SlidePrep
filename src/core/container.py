@@ -36,6 +36,18 @@ class Container:
 
         self._singletons[name] = provider if not callable(provider) else provider()
 
+    def register_lazy_singleton(self, name: str, factory: Callable[[], Any]) -> None:
+        """Register a singleton that is instantiated on first resolve, not at registration time."""
+
+        state: dict = {}
+
+        def _resolver() -> Any:
+            if "value" not in state:
+                state["value"] = factory()
+            return state["value"]
+
+        self._factories[name] = _resolver
+
     def resolve(self, name: str) -> Any:
         """Resolve a service by name with precedence for singletons."""
 
