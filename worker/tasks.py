@@ -79,31 +79,14 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str, co
                     })
 
                 result = service.run(gray, image_path=image_path, on_step_start=on_step_start)
-                if result is None:
-                    # If processing fails, we might want to fallback to copy?
-                    # For now, let's continue to next image to avoid partial failure blocking everything?
-                    # Or maybe copy original so stitching doesn't fail on missing tile?
-                    # Let's copy original as fallback
+                output_image = result.image if result is not None else None
+                if output_image is None:
                     shutil.copy2(image_path, out_path)
                     continue
-                    
-                # Save intermediate result
-                output_image = result
-                if hasattr(result, 'image') and result.image is not None:
-                    output_image = result.image
-                elif hasattr(result, 'data'):
-                    output_image = result.data
-                elif isinstance(result, tuple):
-                    output_image = result[0]
-                    
-                # Ensure output is Grayscale for stitching compatibility
+
                 if output_image.ndim == 3:
-                     # If RGB/BGR, convert to Grayscale
-                     # cv2.imread usually reads as BGR if not specified, but here we might have RGB from pipeline
-                     # Assuming pipeline returns RGB or Grayscale.
-                     # Let's assume standard RGB->GRAY weights are fine.
-                     output_image = cv2.cvtColor(output_image, cv2.COLOR_RGB2GRAY)
-                    
+                    output_image = cv2.cvtColor(output_image, cv2.COLOR_RGB2GRAY)
+
                 cv2.imwrite(out_path, output_image)
             else:
                 # Skip preprocessing: Save as Grayscale to matching properties
@@ -122,8 +105,7 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str, co
         # Stitching
         self.update_state(state='PROCESSING', meta={'progress': 80, 'status': 'Stitching...'})
         stitching_step = StitchingStep(config=cfg.stitching_config)
-        # Run stitching on the PROCESSED directory
-        stitched_path, _ = stitching_step.run(processed_dir)
+        stitched_path = stitching_step.run(processed_dir).data
         
         # Move final result to a known location
         result_dir = os.path.join(output_path, "..", "..", "results")

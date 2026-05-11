@@ -22,7 +22,7 @@ class PipelineStep(ABC):
         """
         self.name = name
         self.config = config
-        self.container = None
+        self.container: Optional[Container] = None
 
     @abstractmethod
     def run(self, data: Any) -> Union[Any, Tuple[Any, Optional[dict]]]:

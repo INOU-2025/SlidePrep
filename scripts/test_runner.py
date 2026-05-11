@@ -178,16 +178,20 @@ class StepTestRunner:
                         self._logger.warning(
                             f"No intermediate results found for {fname}"
                         )
-                    result, metadata = step.run(intermediate_data)
+                    step_result = step.run(intermediate_data)
                 else:
                     if data_path == context_image_path:
-                        data_image = source_image
+                        data_image: np.ndarray = source_image
                     else:
-                        data_image = cv2.imread(data_path, cv2.IMREAD_GRAYSCALE)
-                        if data_image is None:
+                        loaded = cv2.imread(data_path, cv2.IMREAD_GRAYSCALE)
+                        if loaded is None:
                             self._logger.warning(f"Could not load {data_path}")
                             continue
-                    result, metadata = step.run(data_image)
+                        data_image = loaded
+                    step_result = step.run(data_image)
+
+                result = step_result.data
+                metadata = step_result.metadata
 
                 if conversion_cfg is not None:
                     image_debug_filename = f"{base_name}{get_extension_for_format(conversion_cfg.format)}"
@@ -225,18 +229,14 @@ class _DummyPipeline:
         return data
 
 
-class _DummyService(PipelineService):
-    """PipelineService using a minimal pipeline to speed up tests."""
-
-    def _create_pipeline(self) -> _DummyPipeline:  # type: ignore[override]
-        return _DummyPipeline()
-
-
 class TestPipelineServiceErrorHandling(unittest.TestCase):
     """Unit tests for :class:`PipelineService` error handling."""
 
     def setUp(self) -> None:
-        self.service = _DummyService(config_path="config/development.json")
+        self.service = PipelineService(
+            config_path="config/development.json",
+            pipeline_factory=lambda cfg, c: _DummyPipeline(),  # type: ignore[arg-type]
+        )
 
     def test_run_raises_on_empty_image(self) -> None:
         with self.assertRaises(ValueError) as cm:
