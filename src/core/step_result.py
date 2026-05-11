@@ -29,6 +29,3 @@ class StepResult:
             return self.data
         return None
 
-    def __iter__(self):
-        yield self.data
-        yield self.metadata

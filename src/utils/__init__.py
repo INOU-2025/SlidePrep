@@ -6,12 +6,6 @@ from .image_utils import (
     is_supported_image_file,
     filter_images_by_suffix,
 )
-from .serialization import (
-    array_to_base64,
-    base64_to_array,
-    array_to_bytes,
-    bytes_to_array,
-)
 
 __all__ = [
     "ConfigManager",
@@ -21,8 +15,4 @@ __all__ = [
     "get_supported_image_patterns",
     "is_supported_image_file",
     "filter_images_by_suffix",
-    "array_to_base64",
-    "base64_to_array",
-    "array_to_bytes",
-    "bytes_to_array",
 ]
