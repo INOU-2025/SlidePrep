@@ -6,7 +6,7 @@ import subprocess
 from glob import glob
 from typing import Any
 
-from api.schemas import StepResult
+from src.core.step_result import StepResult
 from src.config import StitchingConfig
 from src.core.step import PipelineStep
 

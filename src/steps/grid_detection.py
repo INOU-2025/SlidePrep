@@ -1,6 +1,6 @@
 from typing import Any
 
-from api.schemas import StepResult
+from src.core.step_result import StepResult
 from src.config import GridDetectionConfig
 from src.core.step import PipelineStep
 from src.utils.detection.adaptive_detector import AdaptiveLineDetector
