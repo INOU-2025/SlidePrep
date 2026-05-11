@@ -4,7 +4,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Union
 
-from config.config_schema import DebugConfig, LogConfig
+from src.config import DebugConfig, LogConfig
 from src.core.context import PipelineContext
 from src.core.debugger import Debugger
 from src.core.logger import Logger

@@ -116,7 +116,7 @@ def evaluate_binarization_methods(config_path: str):
 
             try:
                 # Create config from method settings
-                from config.config_schema import BinarizationConfig
+                from src.config import BinarizationConfig
                 config = BinarizationConfig(**method['config'])
 
                 # Create step (services injected via container)

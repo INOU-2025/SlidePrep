@@ -5,7 +5,7 @@ import joblib
 import numpy as np
 
 from api.schemas import StepResult
-from config.config_schema import GridRefinementConfig
+from src.config import GridRefinementConfig
 from src.core.step import PipelineStep
 from src.utils.detection.contour_analysis import analyze_contour
 from src.utils.detection.models import DetectionStrategy, Orientation, DetectionRegion
