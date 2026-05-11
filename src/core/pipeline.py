@@ -2,7 +2,7 @@ from typing import Any, List, Optional
 
 import numpy as np
 
-from api.schemas import StepResult
+from src.core.step_result import StepResult
 from src.core.container import Container
 from src.core.step import PipelineStep
 
