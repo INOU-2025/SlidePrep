@@ -56,23 +56,11 @@ class Pipeline:
                     on_step_start(step.name)
                 result = step.run(current_data)
                 is_last = idx == len(self.steps) - 1
-                if isinstance(result, StepResult):
-                    if is_last:
-                        return result
-                    current_data = (
-                        result.to_array() if result.image is not None else result.data
-                    )
-                else:
-                    if isinstance(result, tuple):
-                        payload = result[0]
-                        metadata = result[1] if len(result) > 1 else None
-                    else:
-                        payload, metadata = result, None
-                    if is_last:
-                        if isinstance(payload, np.ndarray):
-                            return StepResult.from_array(payload, metadata)
-                        return StepResult.from_data(payload, metadata)
-                    current_data = payload
+                if is_last:
+                    return result
+                current_data = (
+                    result.to_array() if result.image is not None else result.data
+                )
                 if self.logger:
                     self.logger.debug(f"Step {step.name} completed successfully")
             except Exception as e:
