@@ -1,9 +1,10 @@
-from src.config import (
+from .schema import (
     GeneralConfig,
     TestConfig,
-    BinarizationConfig,
     ImgConversionConfig,
+    BinarizationConfig,
     GridDetectionConfig,
+    GridRefinementClassifierConfig,
     GridRefinementConfig,
     InpaintingConfig,
     StitchingConfig,
@@ -14,9 +15,10 @@ from src.config import (
 __all__ = [
     "GeneralConfig",
     "TestConfig",
-    "BinarizationConfig",
     "ImgConversionConfig",
+    "BinarizationConfig",
     "GridDetectionConfig",
+    "GridRefinementClassifierConfig",
     "GridRefinementConfig",
     "InpaintingConfig",
     "StitchingConfig",
