@@ -3,7 +3,7 @@ from typing import Any
 import numpy as np
 
 from api.schemas import StepResult
-from config.config_schema import ImgConversionConfig
+from src.config import ImgConversionConfig
 from src.core.step import PipelineStep
 from src.utils.conversion_utils import validate_image_format
 from src.utils.image_utils import convert_image_mode

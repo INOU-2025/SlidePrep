@@ -1,11 +1,11 @@
 from src.steps import StitchingStep
-from src.scripts.test_runner import StepTestRunner
+from scripts.test_runner import StepTestRunner
 import argparse
 import sys
 from pathlib import Path
 
 # Ensure project root on Python path
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 
 def main(config_path: str) -> None:

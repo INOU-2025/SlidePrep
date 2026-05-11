@@ -1,7 +1,7 @@
 from typing import Any, Optional
 
 from api.schemas import StepResult
-from config.config_schema import GridDetectionConfig
+from src.config import GridDetectionConfig
 from src.core.step import PipelineStep
 from src.utils.detection.adaptive_detector import AdaptiveLineDetector
 

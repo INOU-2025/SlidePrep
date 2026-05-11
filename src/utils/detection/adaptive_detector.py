@@ -3,7 +3,7 @@ import numpy as np
 from typing import Any, Dict, List, Optional
 from logging import Logger, getLogger
 
-from config.config_schema import GridDetectionConfig
+from src.config import GridDetectionConfig
 from .models import DetectionStrategy, DetectionRegion, Orientation
 from .template_utils import generate_blurred_template, perform_template_matching
 from .image_preprocessing import create_detection_mask, ImagePreprocessingCache
