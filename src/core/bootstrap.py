@@ -57,6 +57,6 @@ def bootstrap(
 
     container = build_container(logger=logger, debugger=debugger, context=context)
     container.register_singleton("config", config_manager)
-    container.register_singleton("simple_lama", SimpleLama)
+    container.register_lazy_singleton("simple_lama", SimpleLama)
 
     return container
