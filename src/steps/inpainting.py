@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 
 from api.schemas import StepResult
-from config.config_schema import InpaintingConfig
+from src.config import InpaintingConfig
 from src.core.step import PipelineStep
 
 

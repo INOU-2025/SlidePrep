@@ -1,7 +1,7 @@
 import logging
 import os
 from typing import Any, Union
-from config.config_schema import LogConfig
+from src.config import LogConfig
 
 
 class NoOpLogger:

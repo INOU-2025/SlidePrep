@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 import cv2
 import numpy as np
 
-from config.config_schema import DebugConfig
+from src.config import DebugConfig
 from src.core.logger import Logger
 from src.utils.debug.drawer import Drawer
 from src.utils.debug.result_writer import ResultWriter

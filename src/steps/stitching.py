@@ -7,7 +7,7 @@ from glob import glob
 from typing import Any
 
 from api.schemas import StepResult
-from config.config_schema import StitchingConfig
+from src.config import StitchingConfig
 from src.core.step import PipelineStep
 
 
