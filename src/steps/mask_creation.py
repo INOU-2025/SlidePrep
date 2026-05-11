@@ -3,7 +3,7 @@ from typing import Any
 import cv2
 import numpy as np
 
-from api.schemas import StepResult
+from src.core.step_result import StepResult
 from src.core.step import PipelineStep
 
 

@@ -3,7 +3,7 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
-from api.schemas import StepResult
+from src.core.step_result import StepResult
 from src.config import InpaintingConfig
 from src.core.step import PipelineStep
 
@@ -16,18 +16,10 @@ class InpaintingStep(PipelineStep):
         super().__init__(name="inpainting", config=config)
 
         model_name = self.config.model.lower()
-        if model_name == "lama":
-            if not self.container:
-                raise ValueError(
-                    "Container not available for InpaintingStep")
-            try:
-                self._model = self.container.resolve("simple_lama")
-            except KeyError as exc:
-                raise ValueError(
-                    "SimpleLama model not registered in container") from exc
-        else:
+        if model_name not in {"lama"}:
             raise ValueError(
                 f"Unsupported inpainting model: {self.config.model}")
+        self._model = None  # resolved lazily in run()
 
     def run(self, mask: Any) -> StepResult:
         """Inpaint image regions defined by ``mask``.
@@ -46,6 +38,15 @@ class InpaintingStep(PipelineStep):
         StepResult
             The inpainted image.
         """
+
+        if self._model is None:
+            if not self.container:
+                raise ValueError("Container not available for InpaintingStep")
+            try:
+                self._model = self.container.resolve("simple_lama")
+            except KeyError as exc:
+                raise ValueError(
+                    "SimpleLama model not registered in container") from exc
 
         self._validate_image_input(mask)
 

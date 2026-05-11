@@ -1,12 +1,15 @@
 import os
 import shutil
 import subprocess
+from glob import glob
+
+import cv2
 from celery.utils.log import get_task_logger
+
 from .celery_app import celery_app
+from src.core.app_config_manager import AppConfigManager
 from src.core.pipeline_service import PipelineService
 from src.steps import StitchingStep
-from glob import glob
-import cv2
 
 logger = get_task_logger(__name__)
 
@@ -19,33 +22,11 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str, co
     self.update_state(state='PROCESSING', meta={'status': 'Initializing pipeline...'})
 
     try:
-        # Initialize service with patched configuration to avoid validation errors
-        import json
-        from api.schemas import AppConfig, GeneralConfig
-        from src.core.app_config_manager import AppConfigManager
-        
-        # Load the configuration manually
-        with open(config_path, 'r') as f:
-            config_dict = json.load(f)
-            
-        # Override paths in the dictionary BEFORE creating AppConfig
-        # This prevents validation errors from key paths not existing in config
-        if 'general' not in config_dict:
-            config_dict['general'] = {}
-            
-        config_dict['general']['input_path'] = input_path
-        config_dict['general']['output_path'] = output_path
-        
-        # Ensure we don't fail on other missing paths if they are checked
-        # For this specific case, input_path validation was the blocker
-        
-        # Create AppConfig object
-        app_config = AppConfig(**config_dict)
-        
-        # Create manager from the config object
-        config_manager = AppConfigManager.from_app_config(app_config)
-        
-        # Initialize service with the pre-loaded config
+        config_manager = AppConfigManager(config_path)
+        updated_general = config_manager.general_config.model_copy(
+            update={"input_path": input_path, "output_path": output_path}
+        )
+        config_manager.general_config = updated_general
         service = PipelineService(config=config_manager)
         cfg = service.config
         
