@@ -1,8 +1,6 @@
 import os
 import cv2
 from glob import glob
-from typing import Any, Optional
-
 from src.core.pipeline_service import PipelineService
 from src.steps import StitchingStep
 from src.utils import get_supported_image_patterns, filter_images_by_suffix
