@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 
 # Ensure project root is on Python path
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import cv2
 import numpy as np

@@ -2,7 +2,7 @@ import numpy as np
 from typing import Any
 
 from api.schemas import StepResult
-from config.config_schema import BinarizationConfig
+from src.config import BinarizationConfig
 from src.core.step import PipelineStep
 from src.utils.binarization import BinarizationMethods
 

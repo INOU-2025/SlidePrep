@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
 
-from config.config_schema import (
+from src.config import (
     GeneralConfig,
     TestConfig,
     BinarizationConfig,

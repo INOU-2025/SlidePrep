@@ -1,10 +1,10 @@
 from src.steps import MaskCreationStep
-from src.scripts.test_runner import StepTestRunner
+from scripts.test_runner import StepTestRunner
 import argparse
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 
 def main(config_path: str) -> None:

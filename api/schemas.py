@@ -2,7 +2,7 @@ from typing import Any, Dict, Optional, Tuple, Union
 import numpy as np
 from pydantic import BaseModel
 
-from config.config_schema import (
+from src.config import (
     GeneralConfig,
     TestConfig,
     BinarizationConfig,
