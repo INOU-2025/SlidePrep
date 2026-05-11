@@ -2,18 +2,40 @@ from __future__ import annotations
 
 """High-level service for executing the processing pipeline on an image."""
 
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Callable, Optional, TYPE_CHECKING
 
 import asyncio
 import numpy as np
 
 from src.core.bootstrap import bootstrap
 from src.core.app_config_manager import AppConfigManager
+from src.core.container import Container
 from src.core.pipeline import Pipeline
-from api import StepResult
+from src.core.step_result import StepResult
 
 if TYPE_CHECKING:  # pragma: no cover - type checking only
     from api import AppConfig
+
+
+def build_default_pipeline(config: AppConfigManager, container: Container) -> Pipeline:
+    """Single source of truth for the default 6-step pipeline sequence."""
+    from src.steps import (
+        BinarizationStep,
+        GridDetectionStep,
+        GridRefinementStep,
+        MaskCreationStep,
+        InpaintingStep,
+        ImgConversionStep,
+    )
+    steps = [
+        BinarizationStep(config=config.binarization_config),
+        GridDetectionStep(config=config.grid_detection_config),
+        GridRefinementStep(config.grid_refinement_config),
+        MaskCreationStep(),
+        InpaintingStep(config=config.inpainting_config),
+        ImgConversionStep(config=config.img_conversion_config),
+    ]
+    return Pipeline(steps, container)
 
 
 class PipelineService:
@@ -25,6 +47,7 @@ class PipelineService:
         *,
         config: AppConfigManager | "AppConfig" | None = None,
         image_shape: tuple[int, int] | None = None,
+        pipeline_factory: Callable[[AppConfigManager, Container], Pipeline] | None = None,
     ) -> None:
         """Initialize the service from a path or configuration object.
 
@@ -32,6 +55,9 @@ class PipelineService:
             config_path: Path to the JSON configuration file.
             config: Pre-loaded configuration object to use directly.
             image_shape: Optional width and height of the input image.
+            pipeline_factory: Optional callable that builds the Pipeline.
+                Receives the resolved ``AppConfigManager`` and ``Container``.
+                Defaults to :func:`build_default_pipeline`.
 
         Raises:
             ValueError: If neither ``config_path`` nor ``config`` is provided.
@@ -43,6 +69,7 @@ class PipelineService:
         self.config: AppConfigManager = self.container.resolve("config")
         self.context = self.container.resolve("pipeline_context")
         self.logger = self.container.resolve("logger")
+        self._pipeline_factory = pipeline_factory
         self.pipeline = self._create_pipeline()
 
     def _prepare_context(
@@ -71,36 +98,11 @@ class PipelineService:
             self.context.input_image_path = image_path
 
     def _create_pipeline(self) -> Pipeline:
-        from src.steps import (
-            BinarizationStep,
-            GridDetectionStep,
-            GridRefinementStep,
-            MaskCreationStep,
-            InpaintingStep,
-            ImgConversionStep,
-        )
-
-        steps = [
-            BinarizationStep(
-                config=self.config.binarization_config, container=self.container
-            ),
-            GridDetectionStep(
-                config=self.config.grid_detection_config, container=self.container
-            ),
-            GridRefinementStep(
-                self.config.grid_refinement_config, container=self.container
-            ),
-            MaskCreationStep(container=self.container),
-            InpaintingStep(
-                config=self.config.inpainting_config, container=self.container
-            ),
-            ImgConversionStep(
-                config=self.config.img_conversion_config, container=self.container
-            ),
-        ]
+        factory = self._pipeline_factory or build_default_pipeline
+        pipeline = factory(self.config, self.container)
         if self.logger:
-            self.logger.info(f"Pipeline initialized with {len(steps)} steps")
-        return Pipeline(steps, self.container)
+            self.logger.info(f"Pipeline initialized with {len(pipeline.steps)} steps")
+        return pipeline
 
     def run(self, image: np.ndarray, *, image_path: Optional[str] = None, on_step_start: Optional[callable] = None) -> StepResult:
         """Process a single image through the pipeline.
@@ -111,7 +113,7 @@ class PipelineService:
             on_step_start: Optional callback for step start notifications.
 
         Returns:
-            :class:`~api.schemas.StepResult` from the last pipeline step.
+            :class:`~src.core.step_result.StepResult` from the last pipeline step.
 
         Raises:
             ValueError: If the image is empty or lacks dimensions.
@@ -129,7 +131,7 @@ class PipelineService:
             image_path: Optional path to the image for logging purposes.
 
         Returns:
-            :class:`~api.schemas.StepResult` from the last pipeline step.
+            :class:`~src.core.step_result.StepResult` from the last pipeline step.
 
         Raises:
             ValueError: If the image is empty or lacks dimensions.
@@ -152,5 +154,4 @@ def run_pipeline(
     return service.run(image, image_path=image_path)
 
 
-__all__ = ["PipelineService", "run_pipeline"]
-
+__all__ = ["PipelineService", "run_pipeline", "build_default_pipeline"]
