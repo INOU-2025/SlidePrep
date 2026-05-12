@@ -271,7 +271,7 @@ Use consistent naming patterns for debug files:
 ### Common Issues
 
 **Debug images not created**
-- Check `debug.enabled` in config
+- Check `general.debug` is set to `true` in config (this is the single source of truth for debug enablement)
 - Verify output directory is writable
 - Check that drawer is registered: `Debugger.get_registered_drawers()`
 - Ensure `debugger.save_debug_image()` is called with correct step key
@@ -287,7 +287,7 @@ Use consistent naming patterns for debug files:
 - Verify color values are in correct range (0-255 for uint8)
 
 **Performance issues**
-- Disable debugging in production: `debug.enabled: false`
+- Disable debugging in production: set `general.debug` to `false` in config
 - Ensure drawers return `None` when disabled
 - Use efficient drawing operations in `draw()` methods
 
