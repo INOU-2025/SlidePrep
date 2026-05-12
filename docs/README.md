@@ -18,7 +18,7 @@ The system uses the **Combined Differential** method by default - just use `Bina
 
 ```python
 from src.steps import BinarizationStep
-from config.config_schema import BinarizationConfig
+from src.config import BinarizationConfig
 
 config = BinarizationConfig()  # Uses combined_differential by default
 step = BinarizationStep(config)
@@ -31,7 +31,7 @@ Convert images to a specific format and color mode:
 
 ```python
 from src.steps import ImgConversionStep
-from config.config_schema import ImgConversionConfig
+from src.config import ImgConversionConfig
 
 cfg = ImgConversionConfig(format="jpeg", mode="RGB")
 step = ImgConversionStep(cfg)
@@ -84,7 +84,7 @@ python demo_binarization_methods.py --image your_image.png
 All functions include comprehensive type annotations for better IDE support and static analysis:
 
 ```python
-def run(self, data: np.ndarray) -> np.ndarray:
+def run(self, data: Any) -> StepResult:
     """Convert grayscale image to binary using configured method."""
 ```
 
@@ -133,13 +133,14 @@ class BinarizationStep(PipelineStep):
 
 ```
 SlidePrep/
-├── config/          # Configuration schemas and files
-├── docs/           # This documentation folder
-├── src/            # Source code
-│   ├── core/       # Core pipeline interfaces and utilities
-│   ├── steps/      # Individual processing steps
-│   ├── utils/      # Utility modules (binarization, image processing, etc.)
-│   └── scripts/    # Testing and validation scripts
+├── config/          # JSON configuration files
+├── docs/            # This documentation folder
+├── scripts/         # Step-level test runners and validation scripts
+├── src/             # Source code
+│   ├── config/      # Pydantic configuration schemas
+│   ├── core/        # Core pipeline interfaces and utilities
+│   ├── steps/       # Individual processing steps
+│   └── utils/       # Utility modules (binarization, debug, etc.)
 ```
 
 ## 🆘 Getting Help

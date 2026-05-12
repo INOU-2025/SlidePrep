@@ -234,44 +234,37 @@ The demo script will:
 ## Integration with Production System
 
 ### Current Production Usage
-The production system automatically uses Combined Differential:
+The production pipeline uses Combined Differential automatically via `BinarizationStep`:
 
 ```python
 from src.steps import BinarizationStep
-from config.config_schema import BinarizationConfig
-import numpy as np
+from src.config import BinarizationConfig
 
 # This automatically uses Combined Differential
 config = BinarizationConfig()  # threshold_method="combined_differential" by default
 step = BinarizationStep(config)
-result: np.ndarray = step.run(image_array)  # Returns binary image directly
+result = step.run(image_array)  # Returns StepResult
+binary_image = result.to_array()
 ```
 
-### Using Different Methods in Production Context
-If you need to use a different method in a production-like context:
+> **Note:** `BinarizationStep` currently only implements `"combined_differential"`.
+> Passing any other `threshold_method` value will raise a `ValueError` at runtime.
+
+### Using Different Methods (Research / Utility Use)
+To use any of the 7 available thresholding algorithms, call `BinarizationMethods`
+directly — these are not routed through `BinarizationStep`:
 
 ```python
-from src.utils.binarization import BinarizationMethods
-from src.core.bootstrap import bootstrap
-from src.core.app_config_manager import AppConfigManager
-from src.steps import BinarizationStep
-from config.config_schema import BinarizationConfig
-import numpy as np
+from src.utils.binarization import BinarizationMethods, ThresholdMethod
 
-# Initialize services
-cfg_manager = AppConfigManager(config_path)
-bootstrap(config=cfg_manager)
-
-# Create configuration for desired method
-config = BinarizationConfig(threshold_method="otsu")  # or other method
-
-# Use the step with your method
-step = BinarizationStep(config)
-result_image: np.ndarray = step.run(your_image)
-
-# Or use methods directly
 methods = BinarizationMethods()
-result_image: np.ndarray = methods.apply_otsu_threshold(your_image)
+
+# Otsu
+result = methods.apply_otsu_threshold(your_image)
+
+# Or use the generic interface with any ThresholdMethod enum value
+result = methods.apply_method(ThresholdMethod.MULTI_OTSU, your_image)
+result = methods.apply_method(ThresholdMethod.LINE_ENHANCED, your_image, kernel_length=21)
 ```
 
 ## Best Practices
