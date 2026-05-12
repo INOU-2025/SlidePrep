@@ -38,7 +38,7 @@ The configuration is organized into logical sections:
 
 At runtime, configuration is processed through four layers:
 
-1. **Pydantic schema models** in `config/config_schema.py` define types, defaults, and validation rules.
+1. **Pydantic schema models** in `src/config/schema.py` define types, defaults, and validation rules.
 2. **`AppConfig` aggregate model** in `api/schemas.py` represents the full application contract.
 3. **`AppConfigManager`** in `src/core/app_config_manager.py` extracts typed section objects (`general_config`, `binarization_config`, etc.) and resolves derived output paths for logging/debugging.
 4. **`bootstrap()` + DI container** in `src/core/bootstrap.py` registers config, logger, debugger, and context so steps can consume configuration consistently.
@@ -128,43 +128,70 @@ Controls image binarization behavior:
 }
 ```
 
-**Valid threshold methods:**
-- `"otsu"`: Otsu's automatic threshold selection
-- `"triangle"`: Triangle algorithm for bimodal images
-- `"li"`: Li's minimum cross entropy
-- `"yen"`: Yen's maximum correlation criterion
-- `"isodata"`: Iterative isodata algorithm
-- `"minimum"`: Minimum error thresholding
-- `"combined_differential"`: **Recommended** - Optimized for thick grids
-- `"adaptive_gaussian"`: Gaussian-weighted adaptive threshold
-- `"adaptive_mean"`: Mean-weighted adaptive threshold
+**Valid threshold methods (config validator):**
+- `"combined_differential"`: **Recommended** — Optimized for thick grids (**only method currently implemented in the pipeline step**)
+- `"otsu"`, `"triangle"`, `"li"`, `"yen"`, `"isodata"`, `"minimum"`, `"adaptive_gaussian"`, `"adaptive_mean"`: Accepted by the config validator but **not implemented** in `BinarizationStep` — selecting any of these will raise a `ValueError` at runtime.
+
+For research use, the `BinarizationMethods` utility class supports a different set of methods (see `BINARIZATION_METHODS_GUIDE.md`).
 
 ### Grid Detection Configuration
 
-Controls grid pattern detection and analysis:
+Controls grid pattern detection and analysis. The detector uses three named strategy
+blocks (`general`, `thick_border`, `thin_border`) alongside top-level tuning knobs.
 
 ```json
 {
   "grid_detection": {
-    "angle_deg": 2.0,                    // Expected grid rotation (0-45°) - REQUIRED
-    "margin": 5,                         // Border margin for touch detection - REQUIRED
-    "percentile_thresh": 2,              // Template matching percentile (1-100) - REQUIRED
-    "horizontal_area_threshold": 2000,   // Min area for horizontal lines - REQUIRED
-    "vertical_area_threshold": 2000,     // Min area for vertical lines - REQUIRED
-    "line_length": 40,                   // Template line length - REQUIRED
-    "line_thickness": 21,                // Expected grid line thickness - REQUIRED
-    "length_threshold_factor": 0.55      // Length threshold factor (0-1) - REQUIRED
+    "threshold": 0.1,
+    "angles": [-2.0],
+    "enable_early_exit": true,
+    "enable_template_cache": true,
+    "enable_preprocessing_cache": true,
+    "cache_max_size": 50,
+    "general": {
+      "template_length": 300,
+      "thickness": 20,
+      "min_contour_area": 100
+    },
+    "thick_border": {
+      "template_length": 60,
+      "thickness": 7,
+      "border_thickness": 30,
+      "min_contour_area": 2
+    },
+    "thin_border": {
+      "template_length": 30,
+      "thickness": 7,
+      "border_thickness": 20,
+      "min_contour_area": 1
+    }
   }
 }
 ```
 
-**All parameters are required** - no defaults are provided to ensure explicit configuration for your specific grid patterns.
+**Top-level parameters:**
 
-**Parameter Guidelines:**
-- `angle_deg`: Expected rotation of grid lines (most grids: 0-5°)
-- `percentile_thresh`: Lower values = more sensitive detection
-- `line_thickness`: Match your actual grid thickness for best results
-- `length_threshold_factor`: Higher values = stricter length requirements
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `threshold` | float (0–1) | `0.1` | Template-matching score threshold |
+| `angles` | list of float (±45°) | `[2.0, -2.0]` | Grid rotation angles to test |
+| `enable_early_exit` | bool | `true` | Stop when first strong match is found |
+| `enable_template_cache` | bool | `true` | Cache generated templates |
+| `enable_preprocessing_cache` | bool | `true` | Cache preprocessed images |
+| `cache_max_size` | int (> 0) | `50` | Maximum entries per cache |
+
+**Strategy configuration keys** (`general`, `thick_border`, `thin_border`):
+
+| Key | Required in | Description |
+|-----|------------|-------------|
+| `template_length` | all | Length of the line template (must be > 0) |
+| `thickness` | all | Expected line thickness in pixels (≥ 7) |
+| `min_contour_area` | all | Minimum contour area to keep (> 0) |
+| `border_thickness` | `thick_border`, `thin_border` | Border region thickness (≥ 0) |
+
+All three strategy blocks are **required** — no defaults are provided to ensure explicit
+configuration for your specific grid patterns. Refer to `config/production.json` for a
+complete working example.
 
 ### Inpainting Configuration
 
@@ -199,7 +226,8 @@ Controls whole slide assembly using Ashlar:
     "width": 14,                    // Tile grid width
     "height": 49,                   // Tile grid height
     "layout": "raster",            // Acquisition layout
-    "direction": "vertical"        // Raster direction
+    "direction": "vertical",       // Raster direction
+    "align_channel": 0             // Channel index for alignment (optional, null = auto)
   }
 }
 ```
@@ -214,6 +242,7 @@ Controls whole slide assembly using Ashlar:
 - `width`, `height`: Number of tiles along the X and Y axes.
 - `layout`: Acquisition layout, typically `"raster"`.
 - `direction`: Raster traversal direction (`"horizontal"` or `"vertical"`).
+- `align_channel`: Zero-based channel index to use for tile alignment. Omit or set to `null` to let Ashlar choose automatically.
 
 ### Logging Configuration
 
@@ -282,12 +311,12 @@ Controls debug visualization and output:
 
 **Grid Detection Testing:**
 ```bash
-python src/scripts/test_detection.py config/test/grid_detection.json
+python scripts/test_detection.py config/test/grid_detection.json
 ```
 
 **Binarization Testing:**
 ```bash
-python src/scripts/test_binarization.py config/test/binarization.json
+python scripts/test_binarization.py config/test/binarization.json
 ```
 
 ## 🔧 Usage Patterns
@@ -332,7 +361,7 @@ debug_enabled = config.debug_active  # Smart debug detection
 
 When introducing a new pipeline step, update configuration in this order:
 
-1. Add a new config model in `config/config_schema.py`.
+1. Add a new config model in `src/config/schema.py`.
 2. Expose it in `AppConfig` (`api/schemas.py`).
 3. Extract it in `AppConfigManager` (`src/core/app_config_manager.py`).
 4. Inject it in `PipelineService._create_pipeline()` (`src/core/pipeline_service.py`).
