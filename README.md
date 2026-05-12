@@ -1,221 +1,307 @@
-# 🧬 SlidePrep - Microscopy Image Processing Pipeline
+# SlidePrep — Microscopy Image Processing Pipeline
 
-A modular, production-ready image processing pipeline for generating high-quality Whole Slide Images (WSI) from microscopy image tiles. Automatically detects and removes grid lines that interfere with downstream stitching, then reconstructs the full slide.
+A modular, production-ready pipeline for generating high-quality Whole Slide Images (WSI) from microscopy image tiles. Automatically detects and removes grid-line artifacts that interfere with downstream stitching, then reconstructs the full slide via Ashlar.
 
-**🎯 Optimized for thick grid detection (21px lines, ~2° rotation) with cellular content preservation.**
+Optimized for thick grid detection (21 px lines, ~2° rotation) with cellular content preservation.
 
 ---
 
-## 🚀 Quick Start
+## Usage modes
 
-### Production Use (Recommended)
+SlidePrep supports two independent usage modes that share the same pipeline core:
+
+| Mode | Entry point | When to use |
+|---|---|---|
+| **CLI** | `main.py` | Batch processing on a local machine |
+| **Web** | FastAPI + Celery + Angular | Multi-user server deployment |
+
+---
+
+## Quick start
+
+### CLI
+
 ```bash
-# Run the pipeline using a configuration file
 python main.py config/production.json
-
-# Edit the configuration to change paths or apply a suffix filter
-python main.py path/to/custom_config.json
 ```
 
-Processed images are written to the directory specified by
-`general.output_path` (default: `output`). Filenames preserve their original
-extensions and optionally include `general.output_suffix`.
+Edit `config/production.json` to set `general.input_path`, `general.output_path`, and any other parameters.
+
+### Web (Docker Compose)
+
+```bash
+docker-compose up
+```
+
+This starts three services: a Redis broker, the FastAPI backend (port 8000), and a Celery worker. The Angular frontend (`client/`) must be built and served separately:
+
+```bash
+cd client
+npm install
+ng serve          # dev server at http://localhost:4200
+```
 
 ---
 
-## 🏗️ Pipeline Architecture
+## Pipeline
 
-**Current Implementation:**
-1. **Image Binarization** - Production-optimized Combined Differential method
-2. **Grid Line Detection** - Template matching with thick grid optimization
-3. **Grid Mask Generation** - Create precise masks for grid removal
-4. **Mask-Based Inpainting** - Remove grid artifacts using configurable models
-5. **Image Conversion** - Convert tiles to a chosen format and mode so they can be digested by Ashlar
-6. **Whole Slide Stitching** - Reconstruct full slide using Ashlar
+Each image passes through six steps in sequence:
 
-**Production vs Research:**
-- **Production**: Uses optimized Combined Differential method automatically
-- **Research**: Access to all 7 methods via utilities module
+| # | Step | Description |
+|---|---|---|
+| 1 | **Binarization** | Converts the tile to binary using the Combined Differential method |
+| 2 | **Grid Detection** | Adaptive template matching to locate grid lines |
+| 3 | **Grid Refinement** | Classifier-based contour filtering and thickness adjustment |
+| 4 | **Mask Creation** | Renders refined contours into a binary inpainting mask |
+| 5 | **Inpainting** | Removes masked grid regions using LaMa |
+| 6 | **Image Conversion** | Converts to the configured output format and colour mode |
+
+After all tiles are processed, **Stitching** (`StitchingStep`) runs once on the output folder to produce a single OME-TIFF via Ashlar. It runs outside the per-image pipeline because it operates on the full tile set.
 
 ---
 
-## 📁 Project Structure
+## Project structure
 
 ```
 SlidePrep/
-├── config/                       # Configuration schemas and settings
-│   ├── config_schema.py         # Typed configuration classes
-│   ├── production.json          # Sample production configuration
-│   └── development.json         # Sample development configuration
-├── docs/                        # Comprehensive documentation
-├── src/                         # Source code
-│   ├── core/                    # Core pipeline infrastructure
-│   │   ├── context.py           # Shared pipeline state
-│   │   ├── step.py              # Base pipeline step classes
-│   │   ├── logger.py            # Logging system
-│   │   └── debugger.py          # Debug visualization
-│   ├── steps/                   # Processing steps (clean & focused)
-│   │   ├── img_conversion.py    # Image format/mode conversion
-│   │   ├── binarization.py      # 59 lines - Production binarization
-│   │   ├── grid_detection.py    # Grid pattern detection
-│   │   └── stitching.py         # Whole slide assembly with Ashlar
-│   ├── utils/                   # Utility modules
-│   │   ├── binarization/        # Thresholding methods package
-│   │   ├── image_utils.py       # Image processing utilities
-│   │   └── detection/           # Grid detection utilities
-│   └── scripts/                 # Testing and validation
-│       ├── test_binarization.py # Production method testing
-│       ├── test_detection.py    # Grid detection testing
-│       ├── test_img_conversion.py # Format/mode conversion testing
-│       └── test_stitching.py    # Ashlar stitching testing
-├── demo_binarization_methods.py # Interactive method comparison ⭐
-└── main.py                      # Production pipeline entry point
+├── main.py                        # CLI entry point
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
+├── environment.yml
+│
+├── api/                           # FastAPI web service
+│   ├── app.py                     # Application factory, CORS, static mounts
+│   ├── routes.py                  # /jobs endpoints (create, status, delete)
+│   └── schemas.py                 # Pydantic request/response models
+│
+├── worker/                        # Celery async worker
+│   ├── celery_app.py
+│   └── tasks.py                   # process_images_task
+│
+├── client/                        # Angular frontend
+│   └── src/app/
+│       ├── features/startup/      # Project list view
+│       ├── features/upload/       # Drag-and-drop tile upload
+│       └── features/workspace/   # Slide viewer + sidebar
+│
+├── config/                        # JSON configuration files
+│   ├── production.json
+│   ├── development.json
+│   └── test/                      # Per-step test configurations
+│
+├── scripts/                       # Individual step test runners
+│   ├── test_runner.py             # StepTestRunner harness
+│   ├── test_binarization.py
+│   ├── test_detection.py
+│   ├── test_adaptive_detection.py
+│   ├── test_detection_refinement.py
+│   ├── test_mask_creation.py
+│   ├── test_inpainting.py
+│   ├── test_img_conversion.py
+│   └── test_stitching.py
+│
+├── src/
+│   ├── config/                    # Pydantic configuration schemas
+│   │   └── schema.py
+│   ├── core/                      # Pipeline engine and DI container
+│   │   ├── bootstrap.py           # Container factory
+│   │   ├── container.py           # Dependency injection container
+│   │   ├── pipeline.py            # Sequential step executor
+│   │   ├── pipeline_service.py    # High-level service + build_default_pipeline
+│   │   ├── step.py                # PipelineStep base class
+│   │   ├── step_result.py         # StepResult domain object
+│   │   ├── app_config_manager.py  # Typed config accessor
+│   │   ├── context.py             # Shared per-image runtime state
+│   │   ├── logger.py
+│   │   └── debugger.py
+│   ├── steps/                     # Step implementations
+│   │   ├── binarization.py
+│   │   ├── grid_detection.py
+│   │   ├── grid_refinement.py
+│   │   ├── mask_creation.py
+│   │   ├── inpainting.py
+│   │   ├── img_conversion.py
+│   │   └── stitching.py
+│   └── utils/
+│       ├── binarization/          # Thresholding method implementations
+│       ├── detection/             # Adaptive detector, contour analysis
+│       ├── debug/                 # Visualization and result writers
+│       ├── image_utils.py
+│       └── conversion_utils.py
+│
+├── models/
+│   └── rf_detection_classifier.joblib   # Grid refinement classifier
+│
+├── docs/                          # Extended documentation
+└── training/                      # Classifier training script
 ```
 
 ---
 
-## 🔧 Installation
+## Installation
 
-### Conda Environment (Recommended)
+### Conda (recommended)
+
 ```bash
 conda env create -f environment.yml
 conda activate slideprep
 ```
 
-### Alternative: Pip Installation
+### pip
+
 ```bash
 pip install -r requirements.txt
 ```
 
 ---
 
-## 📊 Binarization Methods
+## CLI usage
 
-### Production Method (Automatic)
-- **Combined Differential** - Optimized for 21px thick grids with ~2° rotation
-
-### Research Methods (7 Available)
-- **Global Threshold** - Fixed threshold value
-- **Otsu** - Automatic threshold selection  
-- **Adaptive** - Local neighborhood thresholding
-- **Multi-Otsu** - Multi-class thresholding
-- **Line Enhanced** - Specialized grid line detection
-- **Morphological** - Noise reduction with shape operations
-- **Combined Differential** - Production method (also available for research)
-
----
-
-## ⚡ Usage Examples
-
-### Complete Pipeline
 ```bash
-# Run with the sample production configuration
+# Run the full pipeline on a folder of tiles
 python main.py config/production.json
 
-# Use a custom configuration file
+# Use a custom config
 python main.py path/to/config.json
 ```
 
-### In-memory Processing
+Processed tiles are written to `general.output_path`. Stitching produces an OME-TIFF in the same directory.
+
+### Programmatic use
+
 ```python
 import cv2
 from src.core.pipeline_service import PipelineService
-from src.core.app_config_manager import AppConfigManager
 
 gray = cv2.imread("tile.png", cv2.IMREAD_GRAYSCALE)
-
-# Load from a configuration path
-service = PipelineService(
-    config_path="config/production.json",
-    image_shape=(gray.shape[1], gray.shape[0]),
-)
-
-# Or provide a pre-loaded configuration object
-cfg = AppConfigManager("config/production.json")
-service = PipelineService(config=cfg, image_shape=(gray.shape[1], gray.shape[0]))
-
-result = service.run(gray)
-processed = result.to_array()
+service = PipelineService("config/production.json")
+result = service.run(gray, image_path="tile.png")
+output = result.image        # numpy ndarray
+metadata = result.metadata   # dict with format/mode keys
 ```
 
-### Individual Step Testing
-```bash
-# Test image conversion
-python src/scripts/test_img_conversion.py config/test/img_conversion.json
+### Custom pipeline assembly
 
-# Test binarization on sample images
-python src/scripts/test_binarization.py config/test/binarization.json
+```python
+from src.core.pipeline_service import PipelineService, build_default_pipeline
+from src.core.pipeline import Pipeline
+from src.steps import BinarizationStep, ImgConversionStep
 
-# Test grid detection with visualization
-python src/scripts/test_detection.py config/test/grid_detection.json
+def my_pipeline(config, container):
+    return Pipeline([
+        BinarizationStep(config=config.binarization_config),
+        ImgConversionStep(config=config.img_conversion_config),
+    ], container)
 
-# Run grid refinement on serialized detection output
-# (set `test.input_type` to "data" in your config)
-python main.py config/development.json
-
-# Test mask-based inpainting
-python src/scripts/test_inpainting.py config/test/inpainting.json
-
-# Generate a stitched OME-TIFF from processed tiles
-python src/scripts/test_stitching.py config/test/stitching.json
+service = PipelineService("config/production.json", pipeline_factory=my_pipeline)
 ```
 
 ---
 
-## ⚙️ Configuration & Customization
+## Web usage
 
-### Production Configuration (Simple)
-```python
-from src.steps import BinarizationStep
-from config.config_schema import BinarizationConfig
+### Docker Compose (recommended)
 
-# Uses optimized defaults automatically
-config = BinarizationConfig()  # Combined Differential method
-step = BinarizationStep(config)
+```bash
+docker-compose up --build
 ```
 
-### Research Configuration (Full Control)
-```python
-from src.utils.binarization import BinarizationMethods, ThresholdMethod
+The API is available at `http://localhost:8000`. Uploads and results are stored under `data/`.
 
-methods = BinarizationMethods()
+### Manual startup
 
-# Use any of the 7 available methods
-binary = methods.apply_method(ThresholdMethod.ADAPTIVE, image, 
-                             block_size=15, c_constant=5)
-binary = methods.apply_method(ThresholdMethod.MULTI_OTSU, image, classes=3)
+```bash
+# Terminal 1 — Redis
+redis-server
+
+# Terminal 2 — API
+uvicorn api.app:app --reload --port 8000
+
+# Terminal 3 — Worker
+celery -A worker.celery_app worker --loglevel=info
 ```
 
-### Configuration Files
-All parameters can be customized via JSON configuration:
+### Environment variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `REDIS_URL` | `redis://localhost:6379/0` | Celery broker URL |
+| `SLIDEPREP_CONFIG` | `config/production.json` | Config file used by the worker |
+| `CORS_ORIGINS` | `http://localhost:4200` | Comma-separated allowed origins |
+
+---
+
+## Individual step testing
+
+Each step can be run and debugged in isolation using the `StepTestRunner` harness:
+
+```bash
+python scripts/test_binarization.py        config/test/binarization.json
+python scripts/test_detection.py           config/test/grid_detection.json
+python scripts/test_adaptive_detection.py  config/test/grid_detection.json
+python scripts/test_detection_refinement.py config/test/grid_refinement.json
+python scripts/test_mask_creation.py       config/test/mask_creation.json
+python scripts/test_inpainting.py          config/test/inpainting.json
+python scripts/test_img_conversion.py      config/test/img_conversion.json
+python scripts/test_stitching.py           config/test/stitching.json
+```
+
+The runner injects a shared container into each step before execution, so steps that require pipeline context (image shape, original image, inpainting model) work identically to how they run inside the full pipeline.
+
+---
+
+## Configuration
+
+All parameters are set via JSON configuration files. The top-level sections map directly to typed Pydantic models in `src/config/schema.py`:
+
 ```json
 {
-  "binarization": {
-    "threshold_method": "combined_differential"
-  },
-  "grid_detection": {
-    "template_size": 21,
-    "rotation_range": [-5, 5]
-  }
+  "general":        { "input_path": "...", "output_path": "...", "output_suffix": "" },
+  "binarization":   { "threshold_method": "combined_differential" },
+  "grid_detection": { "template_size": 21, "rotation_range": [-5, 5] },
+  "grid_refinement":{ "target_thickness": 21, "thickness_bias": 0.8 },
+  "inpainting":     { "model": "lama" },
+  "img_conversion": { "format": "tiff", "mode": "RGB" },
+  "stitching":      { "pattern": "...", "width": 0, "height": 0 },
+  "log":            { "relative_path": "pipeline.log" },
+  "debug":          { "enabled": false }
 }
 ```
 
----
-
-## 📚 Documentation
-
-Comprehensive documentation is available in the [`docs/`](docs/) folder:
-
-- **[docs/README.md](docs/README.md)** - Documentation index and quick start
-- **[docs/BINARIZATION_METHODS_GUIDE.md](docs/BINARIZATION_METHODS_GUIDE.md)** - Complete binarization guide ⭐
-- **[docs/SYSTEM_OVERVIEW.md](docs/SYSTEM_OVERVIEW.md)** - System architecture and development  
-- **[docs/DEBUG_SYSTEM_GUIDE.md](docs/DEBUG_SYSTEM_GUIDE.md)** - Debug visualization system
-- **[docs/LOGGING_CONFIGURATION.md](docs/LOGGING_CONFIGURATION.md)** - Logging setup
+See `config/production.json` and `config/development.json` for full examples. Per-step test configs are in `config/test/`.
 
 ---
 
-## 📄 License & Credits
+## Binarization methods
 
-**Developed by**: Ivan Rodriguez-Conde  
-**Institution**: @SI6 @ESEI @Universidade de Vigo  
-**Contact**: [ivarodriguez@uvigo.gal](mailto:ivarodriguez@uvigo.gal)
+The pipeline uses **Combined Differential** by default. All seven methods are available directly for research use:
+
+```python
+from src.utils.binarization import BinarizationMethods
+
+methods = BinarizationMethods()
+binary = methods.apply_combined_differential_threshold(gray)
+```
+
+Available methods: `global_threshold`, `otsu`, `adaptive`, `multi_otsu`, `line_enhanced`, `morphological`, `combined_differential`.
+
+---
+
+## Documentation
+
+Extended guides are in the [`docs/`](docs/) folder:
+
+- [docs/SYSTEM_OVERVIEW.md](docs/SYSTEM_OVERVIEW.md) — Architecture and data flow
+- [docs/BINARIZATION_METHODS_GUIDE.md](docs/BINARIZATION_METHODS_GUIDE.md) — Method comparison and selection
+- [docs/CONFIGURATION_GUIDE.md](docs/CONFIGURATION_GUIDE.md) — Full configuration reference
+- [docs/DEBUG_SYSTEM_GUIDE.md](docs/DEBUG_SYSTEM_GUIDE.md) — Debug visualisation
+- [docs/LOGGING_CONFIGURATION.md](docs/LOGGING_CONFIGURATION.md) — Logging setup
+
+---
+
+## Credits
+
+**Developed by** Ivan Rodriguez-Conde  
+**Institution** SI6 · ESEI · Universidade de Vigo  
+**Contact** [ivarodriguez@uvigo.gal](mailto:ivarodriguez@uvigo.gal)
