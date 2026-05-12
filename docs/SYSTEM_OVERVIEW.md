@@ -8,36 +8,51 @@ SlidePrep is a modular image processing pipeline designed to generate high-quali
 
 ### Pipeline Stages
 
-1. **Grayscale Conversion** - Standardize input images to grayscale
-2. **Image Binarization** - Convert to binary using optimized thresholding ⭐
-3. **Grid Line Detection** - Detect horizontal and vertical grid patterns
-4. **Detection Refinement** - Merge overlapping segments from general detection
-5. **Grid Mask Generation** - Create masks for removing detected grid lines
-6. **Grid Removal** - Apply masks to clean grid artifacts from images
-7. **Whole Slide Stitching** - Reconstruct full slide from cleaned tiles (via Ashlar)
+The per-image pipeline (`build_default_pipeline`) runs these six steps in sequence:
+
+1. **Image Binarization** (`BinarizationStep`) - Convert to binary using Combined Differential thresholding ⭐ (grayscale conversion is handled internally)
+2. **Grid Line Detection** (`GridDetectionStep`) - Detect horizontal and vertical grid patterns via template matching
+3. **Detection Refinement** (`GridRefinementStep`) - Filter detections using a classifier and angle/thickness constraints
+4. **Grid Mask Generation** (`MaskCreationStep`) - Create binary masks from refined detections
+5. **Grid Removal / Inpainting** (`InpaintingStep`) - Remove grid artifacts using the LaMa inpainting model
+6. **Image Conversion** (`ImgConversionStep`) - Convert processed images to the configured output format and color mode
+
+After all images are processed, a seventh step runs once:
+
+7. **Whole Slide Stitching** (`StitchingStep`) - Reconstruct the full slide from cleaned tiles (via Ashlar)
 
 ### Core Components
 
 ```
 SlidePrep/
-├── config/                 # Configuration schemas and settings
+├── config/                 # JSON configuration files (production.json, development.json, test/)
 ├── docs/                   # Documentation and guides
+├── scripts/                # Step-level test runners and validation scripts
 ├── src/                    # Source code
+│   ├── config/             # Pydantic configuration schemas (schema.py)
 │   ├── core/               # Core pipeline infrastructure
-│   │   ├── context.py      # Shared pipeline state management
-│   │   ├── step.py         # Base classes for pipeline steps
-│   │   ├── logger.py       # Logging system
-│   │   └── debugger.py     # Debug visualization system
+│   │   ├── pipeline.py         # Pipeline executor
+│   │   ├── pipeline_service.py # High-level service and pipeline factory
+│   │   ├── step.py             # PipelineStep base class
+│   │   ├── step_result.py      # StepResult domain object
+│   │   ├── bootstrap.py        # DI container factory
+│   │   ├── app_config_manager.py # Typed config accessor
+│   │   ├── container.py        # Dependency injection container
+│   │   ├── context.py          # Per-image pipeline context
+│   │   ├── logger.py           # Logging system
+│   │   └── debugger.py         # Debug visualization system
 │   ├── steps/              # Individual processing steps
-│   │   ├── binarization.py     # Binary conversion (59 lines, optimized)
+│   │   ├── binarization.py     # Binary conversion
 │   │   ├── grid_detection.py   # Grid pattern detection
-│   │   └── grid_refinement.py  # Post-process detection results
-│   ├── utils/              # Utility modules
-│   │   ├── binarization/   # Thresholding methods package
-│   │   ├── image_utils.py  # Image processing utilities
-│   │   └── detection/      # Grid detection utilities
-│   └── scripts/            # Testing and validation scripts
-└── main.py                # Main pipeline entry point
+│   │   ├── grid_refinement.py  # Post-process detection results
+│   │   ├── mask_creation.py    # Binary mask generation
+│   │   ├── inpainting.py       # LaMa-based grid removal
+│   │   ├── img_conversion.py   # Output format conversion
+│   │   └── stitching.py        # Ashlar-based slide assembly
+│   └── utils/              # Utility modules
+│       ├── binarization/   # Thresholding methods package
+│       └── debug/          # Debug drawer classes
+└── main.py                # CLI entry point
 ```
 
 ## 🎯 Production vs Research
@@ -47,13 +62,13 @@ The system is optimized for production with sensible defaults:
 
 ```python
 from src.steps import BinarizationStep
-from config.config_schema import BinarizationConfig
-import numpy as np
+from src.config import BinarizationConfig
 
 # Simple production usage
 config = BinarizationConfig()  # Uses combined_differential by default
 step = BinarizationStep(config)
-result: np.ndarray = step.run(image_array)  # Returns binary image directly
+result = step.run(image_array)  # Returns StepResult
+binary_image = result.to_array()
 ```
 
 **Key Features**:
@@ -134,18 +149,18 @@ class BinarizationConfig(BaseModel):
 All components use typed configuration classes for safety and clarity:
 
 ```python
-from config.config_schema import BinarizationConfig, GridDetectionConfig
+from src.config import BinarizationConfig
 
 # Type-safe configuration
 binarization_config = BinarizationConfig(
-    threshold_method="combined_differential",
-    debug_enabled=True
+    threshold_method="combined_differential"
 )
 
-grid_config = GridDetectionConfig(
-    template_size=21,
-    rotation_range=(-5, 5)
-)
+# GridDetectionConfig requires nested strategy dicts — load from JSON rather than
+# constructing directly:
+from src.core.app_config_manager import AppConfigManager
+cfg_manager = AppConfigManager("config/production.json")
+grid_config = cfg_manager.grid_detection_config
 ```
 
 ### Configuration Files
@@ -154,12 +169,14 @@ Default settings stored in JSON with schema validation:
 ```json
 {
   "binarization": {
-    "threshold_method": "combined_differential",
-    "invert": false
+    "threshold_method": "combined_differential"
   },
   "grid_detection": {
-    "template_size": 21,
-    "rotation_range": [-5, 5]
+    "threshold": 0.1,
+    "angles": [-2.0],
+    "general": { "template_length": 300, "thickness": 20, "min_contour_area": 100 },
+    "thick_border": { "template_length": 60, "thickness": 7, "border_thickness": 30, "min_contour_area": 2 },
+    "thin_border":  { "template_length": 30, "thickness": 7, "border_thickness": 20, "min_contour_area": 1 }
   }
 }
 ```
@@ -173,29 +190,16 @@ every worker or request gets an isolated registry:
 ```python
 from src.core.bootstrap import bootstrap
 from src.core.app_config_manager import AppConfigManager
-from src.steps import BinarizationStep, GridDetectionStep
+from src.core.pipeline_service import build_default_pipeline
 
 # Build a container for this task
 cfg_manager = AppConfigManager(config_path)
 container = bootstrap(config=cfg_manager)
 cfg = container.resolve("config")
 
-# Create pipeline steps (explicit container injection)
-steps = [
-    BinarizationStep(cfg.binarization_config, container=container),
-    GridDetectionStep(cfg.grid_detection_config, container=container)
-]
-
-# Process data through pipeline - simple function chaining
-current_data = input_image
-for step in steps:
-    result = step.run(current_data)
-
-    # Handle different return types
-    if isinstance(result, tuple):
-        current_data, metadata = result  # e.g., grid detection returns (image, stats)
-    else:
-        current_data = result  # e.g., binarization returns just the image
+# Build and run the full default pipeline
+pipeline = build_default_pipeline(cfg, container)
+result = pipeline.run(input_image)
 ```
 
 ## 🐛 Debug and Visualization
@@ -210,10 +214,7 @@ from src.core.app_config_manager import AppConfigManager
 cfg_manager = AppConfigManager(config_path)
 container = bootstrap(config=cfg_manager)
 cfg = container.resolve("config")
-step = BinarizationStep(
-    config=cfg.binarization_config,
-    container=container,
-)
+step = BinarizationStep(config=cfg.binarization_config)
 
 # Automatic debug output when enabled:
 result = step.run(image)
@@ -224,7 +225,7 @@ result = step.run(image)
 Simplified testing with automatic debug output:
 
 ```python
-from src.scripts.test_runner import StepTestRunner
+from scripts.test_runner import StepTestRunner
 
 runner = StepTestRunner(config_path)
 step = GridDetectionStep(
@@ -250,7 +251,7 @@ Comprehensive logging for monitoring and debugging:
 
 ```python
 from io import StringIO
-from config.config_schema import LogConfig
+from src.config import LogConfig
 from src.core.logger import Logger
 
 log_cfg = LogConfig(log_to_file=True, stream=StringIO())
@@ -266,7 +267,7 @@ step = BinarizationStep(config, logger=logger)
 Simple validation of the production method:
 
 ```bash
-python src/scripts/test_binarization.py config/test/binarization.json
+python scripts/test_binarization.py config/test/binarization.json
 ```
 
 ### Interactive Exploration
@@ -280,7 +281,7 @@ python demo_binarization_methods.py --image /path/to/image.png
 Validate grid detection separately:
 
 ```bash
-python src/scripts/test_detection.py config/test/grid_detection.json
+python scripts/test_detection.py config/test/grid_detection.json
 ```
 
 ## 🎮 Usage Patterns
@@ -289,20 +290,15 @@ python src/scripts/test_detection.py config/test/grid_detection.json
 ```python
 from src.core.bootstrap import bootstrap
 from src.core.app_config_manager import AppConfigManager
-from src.steps import BinarizationStep, GridDetectionStep
-from src.core.pipeline import Pipeline
+from src.core.pipeline_service import build_default_pipeline
 
 # Initialize application services
 cfg_manager = AppConfigManager(config_path)
 container = bootstrap(config=cfg_manager)
 config = container.resolve("config")
 
-# Create and run pipeline
-steps = [
-    BinarizationStep(config=config.binarization_config, container=container),
-    GridDetectionStep(config=config.grid_detection_config, container=container),
-]
-pipeline = Pipeline(steps, container)
+# Build and run the full default pipeline
+pipeline = build_default_pipeline(config, container)
 result = pipeline.run(input_image)
 ```
 
@@ -311,18 +307,16 @@ result = pipeline.run(input_image)
 from src.core.bootstrap import bootstrap
 from src.core.app_config_manager import AppConfigManager
 from src.steps import BinarizationStep
-import numpy as np
 
 # Initialize services first
 cfg_manager = AppConfigManager(config_path)
 container = bootstrap(config=cfg_manager)
 config = container.resolve("config")
 
-# Use individual steps with explicit container
-step = BinarizationStep(config=config.binarization_config, container=container)
-result: np.ndarray = step.run(input_image)
-
-# Result is returned directly as binary image array
+# Use an individual step directly
+step = BinarizationStep(config=config.binarization_config)
+result = step.run(input_image)
+binary_image = result.to_array()
 ```
 
 ### Method Research
