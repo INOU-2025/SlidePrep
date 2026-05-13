@@ -121,6 +121,20 @@ class PipelineService:
         self._prepare_context(image, image_path)
         return self.pipeline.run(image, on_step_start=on_step_start)
 
+    def stitch(self, processed_dir: str) -> StepResult:
+        """Stitch a directory of processed tiles into a single OME-TIFF.
+
+        Args:
+            processed_dir: Path to the directory containing processed tile images.
+
+        Returns:
+            :class:`~src.core.step_result.StepResult` with the output path and tile count metadata.
+        """
+        from src.steps import StitchingStep
+        step = StitchingStep(config=self.config.stitching_config)
+        step.container = self.container
+        return step.run(processed_dir)
+
     async def run_async(
         self, image: np.ndarray, *, image_path: Optional[str] = None
     ) -> StepResult:
