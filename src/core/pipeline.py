@@ -46,7 +46,7 @@ class Pipeline:
                 as a string argument. Called before each step execution.
 
         Returns:
-            The :class:`~api.schemas.StepResult` from the last step, or ``None``
+            The :class:`~src.core.step_result.StepResult` from the last step, or ``None``
             if any step raises an exception during processing.
         """
         current_data = data

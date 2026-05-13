@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Any, Union, Tuple, Optional
+from typing import Any, Optional
 import numpy as np
 from src.core.container import Container
+from src.core.step_result import StepResult
 
 
 class PipelineStep(ABC):
@@ -25,7 +26,7 @@ class PipelineStep(ABC):
         self.container: Optional[Container] = None
 
     @abstractmethod
-    def run(self, data: Any) -> Union[Any, Tuple[Any, Optional[dict]]]:
+    def run(self, data: Any) -> StepResult:
         """
         Process input data and return output data.
 
@@ -33,9 +34,7 @@ class PipelineStep(ABC):
             data: Input data to process
 
         Returns:
-            Union[Any, Tuple[Any, Optional[dict]]]: Either:
-            - Results only: The processed data
-            - Tuple: (results, metadata) where metadata contains debug information
+            StepResult: Processed result containing output data and optional metadata.
         """
         pass
 
