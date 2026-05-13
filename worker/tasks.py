@@ -9,7 +9,6 @@ from celery.utils.log import get_task_logger
 from .celery_app import celery_app
 from src.core.app_config_manager import AppConfigManager
 from src.core.pipeline_service import PipelineService
-from src.steps import StitchingStep
 
 logger = get_task_logger(__name__)
 
@@ -104,8 +103,7 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str, co
 
         # Stitching
         self.update_state(state='PROCESSING', meta={'progress': 80, 'status': 'Stitching...'})
-        stitching_step = StitchingStep(config=cfg.stitching_config)
-        stitched_path = stitching_step.run(processed_dir).data
+        stitched_path = service.stitch(processed_dir).data
         
         # Move final result to a known location
         result_dir = os.path.join(output_path, "..", "..", "results")
