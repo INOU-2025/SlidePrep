@@ -3,12 +3,43 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+import xml.etree.ElementTree as ET
 from glob import glob
 from typing import Any
+
+import tifffile
 
 from src.core.step_result import StepResult
 from src.config import StitchingConfig
 from src.core.step import PipelineStep
+
+
+def _inject_physical_size(path: str, pixel_size_um: float) -> None:
+    """Patch PhysicalSizeX/Y calibration into an existing OME-TIFF in-place."""
+    try:
+        xml_str = tifffile.tiffcomment(path)
+    except Exception:
+        return
+
+    if not xml_str:
+        return
+
+    ns_match = re.search(r'xmlns="([^"]*)"', xml_str)
+    ns = ns_match.group(1) if ns_match else ''
+    ns_prefix = f'{{{ns}}}' if ns else ''
+
+    root = ET.fromstring(xml_str)
+    for pixels in root.iter(f'{ns_prefix}Pixels'):
+        pixels.set('PhysicalSizeX', str(pixel_size_um))
+        pixels.set('PhysicalSizeY', str(pixel_size_um))
+        pixels.set('PhysicalSizeXUnit', 'µm')
+        pixels.set('PhysicalSizeYUnit', 'µm')
+
+    if ns:
+        ET.register_namespace('', ns)
+    # ASCII encoding replaces µ (U+00B5) with &#181; — valid XML that OME readers decode correctly.
+    # tifffile requires 7-bit ASCII for the ImageDescription tag.
+    tifffile.tiffcomment(path, ET.tostring(root, encoding='ascii').decode('ascii'))
 
 
 class StitchingStep(PipelineStep):
@@ -76,6 +107,8 @@ class StitchingStep(PipelineStep):
         except subprocess.CalledProcessError as e:
             self.error(f"Ashlar failed: {e.stderr.decode().strip()}")
             raise
+
+        _inject_physical_size(output_path, self.config.pixel_size)
 
         metadata = {"tiles": len(tiles)}
         return StepResult.from_data(output_path, metadata)
