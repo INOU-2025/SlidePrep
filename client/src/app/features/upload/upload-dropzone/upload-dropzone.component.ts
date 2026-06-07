@@ -97,6 +97,9 @@ export class UploadDropzoneComponent {
                     if (status.message) {
                         this.statusMessage = status.message;
                     }
+                    if (status.progress != null) {
+                        this.uploadProgress = status.progress;
+                    }
 
                     if (status.status === 'COMPLETED' || status.status === 'SUCCESS') {
                         clearInterval(pollInterval);

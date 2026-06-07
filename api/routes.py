@@ -112,10 +112,11 @@ async def get_job_status(job_id: str):
         error = str(task_result.result)
     elif status == 'PROCESSING':
         info = task_result.info
-        if isinstance(info, dict) and 'status' in info:
-            message = info['status']
-        
-    return JobStatus(job_id=job_id, status=status, result_url=result_url, error=error, message=message)
+        if isinstance(info, dict):
+            message = info.get('status')
+            progress = info.get('progress')
+
+    return JobStatus(job_id=job_id, status=status, result_url=result_url, error=error, message=message, progress=progress)
 
 @router.delete("/jobs/{job_id}")
 async def delete_job(job_id: str):
