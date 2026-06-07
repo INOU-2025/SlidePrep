@@ -17,6 +17,24 @@ SlidePrep supports two independent usage modes that share the same pipeline core
 
 ---
 
+## Sample data
+
+A synthetic 3×3 tile set is committed under `sample_data/tiles/`. Tiles contain a simulated Sedgwick-Rafter chamber background with intersecting grid lines at 1.7° and −88.3° (21 px width) — the exact artifact geometry the pipeline was designed to handle.
+
+```bash
+# Full pipeline: grid removal → stitching
+python main.py sample_data/config.json \
+    --input  sample_data/tiles \
+    --output /tmp/slideprep_out
+
+# Regenerate the tiles from scratch
+python sample_data/generate_tiles.py
+```
+
+The generation script is self-contained (numpy, OpenCV, tifffile) and produces deterministic output from a fixed random seed (`SEED = 42`).
+
+---
+
 ## Quick start
 
 ### CLI
