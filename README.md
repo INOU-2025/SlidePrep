@@ -386,6 +386,12 @@ Extended guides are in the [`docs/`](docs/) folder:
 
 ## Credits
 
-**Developed by** Ivan Rodriguez-Conde  
-**Institution** SI6 · ESEI · Universidade de Vigo  
+**Authors**
+
+| Name | Affiliation |
+|---|---|
+| Ivan Rodriguez-Conde | ESEI · Universidade de Vigo |
+| Celso Campos | ESEI · Universidade de Vigo |
+| Florentino Fdez-Riverola | ESEI · Universidade de Vigo · SING Research Group, IIS Galicia Sur (SERGAS-UVIGO) |
+
 **Contact** [ivarodriguez@uvigo.gal](mailto:ivarodriguez@uvigo.gal)
