@@ -243,6 +243,16 @@ celery -A worker.celery_app worker --loglevel=info
 
 ---
 
+## Test suite
+
+```bash
+pytest tests/ -v
+```
+
+Nine tests covering config parsing, pipeline factory and step chaining, binarization on synthetic images, inpainting (LaMa model mocked), and DZI generation. The DZI test is skipped automatically when `vips` is not installed.
+
+---
+
 ## Individual step testing
 
 Each step can be run and debugged in isolation using the `StepTestRunner` harness:

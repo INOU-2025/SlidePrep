@@ -23,7 +23,8 @@ SlidePrep is a Python-based pipeline for processing microscopy image tiles and g
 - Update configuration schemas and documentation when introducing new settings.
 
 ## Testing & Verification
-- Currently, we don't have tests. Don't try to run `pytest` from the repository root before committing.
+- Run the test suite with `pytest tests/` from the repository root.
+- The DZI test is skipped automatically if `vips` is not installed.
 
 ## Documentation
 - Update files in `docs/` when altering behavior or exposing new features.
