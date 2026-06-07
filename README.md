@@ -48,16 +48,10 @@ Edit `config/production.json` to set `general.input_path`, `general.output_path`
 ### Web (Docker Compose)
 
 ```bash
-docker-compose up
+docker-compose up --build
 ```
 
-This starts three services: a Redis broker, the FastAPI backend (port 8000), and a Celery worker. The Angular frontend (`client/`) must be built and served separately:
-
-```bash
-cd client
-npm install
-ng serve          # dev server at http://localhost:4200
-```
+This builds and starts four services: a Redis broker, the FastAPI backend (port 8000), a Celery worker, and an nginx container that serves the pre-built Angular frontend. Open `http://localhost` in your browser — no Node.js installation required.
 
 ---
 
@@ -238,20 +232,23 @@ service = PipelineService("config/production.json", pipeline_factory=my_pipeline
 docker-compose up --build
 ```
 
-The API is available at `http://localhost:8000`. Uploads and results are stored under `data/`.
+Builds and starts four services: Redis, the FastAPI backend (port 8000), a Celery worker, and an nginx container (port 80) serving the pre-built Angular app. Open `http://localhost` in your browser. Uploads and results are stored under `data/`.
 
-### Manual startup
+### Manual startup (development)
+
+For iterative frontend development, run the backend stack with Docker Compose and serve the Angular app locally:
 
 ```bash
-# Terminal 1 — Redis
-redis-server
+# Start the backend stack
+docker-compose up redis api worker
 
-# Terminal 2 — API
-uvicorn api.app:app --reload --port 8000
-
-# Terminal 3 — Worker
-celery -A worker.celery_app worker --loglevel=info
+# In a separate terminal — Angular dev server (requires Node.js)
+cd client
+npm install
+ng serve          # http://localhost:4200
 ```
+
+Set `CORS_ORIGINS=http://localhost:4200` on the `api` service (or in a `.env` file) when using the Angular dev server instead of the nginx container.
 
 ### Environment variables
 
@@ -259,7 +256,7 @@ celery -A worker.celery_app worker --loglevel=info
 |---|---|---|
 | `REDIS_URL` | `redis://localhost:6379/0` | Celery broker URL |
 | `SLIDEPREP_CONFIG` | `config/production.json` | Config file used by the worker |
-| `CORS_ORIGINS` | `http://localhost:4200` | Comma-separated allowed origins |
+| `CORS_ORIGINS` | `http://localhost` | Comma-separated allowed origins |
 
 ---
 
@@ -269,7 +266,7 @@ celery -A worker.celery_app worker --loglevel=info
 pytest tests/ -v
 ```
 
-Nine tests covering config parsing, pipeline factory and step chaining, binarization on synthetic images, inpainting (LaMa model mocked), and DZI generation. The DZI test is skipped automatically when `vips` is not installed.
+Ten tests covering config parsing, pipeline factory and step chaining, binarization on synthetic images, inpainting (LaMa model mocked), OME-TIFF physical calibration injection, and DZI generation. The DZI test is skipped automatically when `vips` is not installed.
 
 ---
 
