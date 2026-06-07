@@ -84,6 +84,8 @@ Steps 1–5 are skipped entirely. Each tile passes only through **Image Conversi
 
 After all tiles are processed, **Stitching** (`StitchingStep`) runs once on the output folder to produce a single OME-TIFF via Ashlar. It runs outside the per-image pipeline because it operates on the full tile set.
 
+After Ashlar writes the file, SlidePrep patches the embedded OME-XML to set `PhysicalSizeX` and `PhysicalSizeY` (in µm) from `stitching.pixel_size` in your configuration. This ensures that bioimage analysis tools — QuPath, FIJI, napari, CellProfiler — read calibrated physical units instead of raw pixels for any downstream measurement.
+
 ---
 
 ## Project structure
@@ -302,7 +304,7 @@ All parameters are set via JSON configuration files. The top-level sections map 
   "grid_refinement":{ "target_thickness": 21, "thickness_bias": 0.8 },
   "inpainting":     { "model": "lama" },
   "img_conversion": { "format": "tiff", "mode": "RGB" },
-  "stitching":      { "pattern": "...", "width": 0, "height": 0 },
+  "stitching":      { "pattern": "...", "width": 0, "height": 0, "pixel_size": 1.0 },
   "log":            { "relative_path": "pipeline.log" },
   "debug":          { "enabled": false }
 }
