@@ -40,7 +40,10 @@
             </div>
 
             <div *ngIf="isUploading" class="processing-indicator">
-                <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+                <mat-progress-bar
+                    [mode]="uploadProgress > 0 ? 'determinate' : 'indeterminate'"
+                    [value]="uploadProgress">
+                </mat-progress-bar>
                 <p>{{ statusMessage }}</p>
             </div>
         </div>

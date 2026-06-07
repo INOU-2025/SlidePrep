@@ -26,6 +26,7 @@ class JobStatus(BaseModel):
     result_url: Optional[str] = None
     error: Optional[str] = None
     message: Optional[str] = None
+    progress: Optional[int] = None
 
 class AppConfig(BaseModel):
     general: GeneralConfig

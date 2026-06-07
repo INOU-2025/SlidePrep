@@ -14,6 +14,7 @@ export interface JobStatus {
     result_url?: string;
     error?: string;
     message?: string;
+    progress?: number;
 }
 
 @Injectable({
