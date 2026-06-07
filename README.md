@@ -1,6 +1,6 @@
 # SlidePrep — Microscopy Image Processing Pipeline
 
-A modular, production-ready pipeline for generating high-quality Whole Slide Images (WSI) from microscopy image tiles. Automatically detects and removes grid-line artifacts that interfere with downstream stitching, then reconstructs the full slide via Ashlar.
+A modular, production-ready pipeline for generating high-quality Whole Slide Images (WSI) from microscopy image tiles. Supports two operating modes: full preprocessing (grid-artifact removal via LaMa inpainting, then stitching) for counting-chamber tiles, and passthrough mode (`--no-grid`) for clean tiles that need only stitching and DZI generation.
 
 Optimized for thick grid detection (21 px lines, ~2° rotation) with cellular content preservation.
 
@@ -45,6 +45,8 @@ ng serve          # dev server at http://localhost:4200
 
 ## Pipeline
 
+### Full pipeline (default)
+
 Each image passes through six steps in sequence:
 
 | # | Step | Description |
@@ -55,6 +57,12 @@ Each image passes through six steps in sequence:
 | 4 | **Mask Creation** | Renders refined contours into a binary inpainting mask |
 | 5 | **Inpainting** | Removes masked grid regions using LaMa |
 | 6 | **Image Conversion** | Converts to the configured output format and colour mode |
+
+### Passthrough pipeline (`--no-grid`)
+
+Steps 1–5 are skipped entirely. Each tile passes only through **Image Conversion** (step 6) for format normalisation, then proceeds directly to stitching. Use this mode when tiles are already free of grid artifacts.
+
+### Stitching (both modes)
 
 After all tiles are processed, **Stitching** (`StitchingStep`) runs once on the output folder to produce a single OME-TIFF via Ashlar. It runs outside the per-image pipeline because it operates on the full tile set.
 
@@ -159,8 +167,11 @@ pip install -r requirements.txt
 ## CLI usage
 
 ```bash
-# Run the full pipeline on a folder of tiles
+# Run the full pipeline on a folder of tiles (grid removal + stitching)
 python main.py config/production.json
+
+# Skip grid removal — stitching and DZI generation only (clean tiles)
+python main.py config/production.json --no-grid
 
 # Use a custom config
 python main.py path/to/config.json
