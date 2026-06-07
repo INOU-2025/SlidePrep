@@ -336,4 +336,7 @@ output/
 data/uploads/
 data/results/
 
+# Sample data pipeline output (tiles are committed; generated output is not)
+sample_data/output/
+
 .DS_Store
