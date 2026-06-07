@@ -1,7 +1,8 @@
 {
   "general": {
+    "input_path": "/path/to/tiles",
+    "output_path": "/path/to/output",
     "suffix_filter": "_ch00",
-    "output_path": "output",
     "output_suffix": "",
     "log": true,
     "debug": false

@@ -39,11 +39,31 @@ The generation script is self-contained (numpy, OpenCV, tifffile) and produces d
 
 ### CLI
 
+**1. Name your tile files** to match the `stitching.pattern` in the config (default: `TileScan_001_s{series:3}_ch{channel:2}.tif`). Each tile gets a zero-padded series index assigned in column-major order:
+
+```
+tiles/
+  TileScan_001_s000_ch00.tif   ← column 0, row 0
+  TileScan_001_s001_ch00.tif   ← column 0, row 1
+  TileScan_001_s002_ch00.tif   ← column 0, row 2
+  TileScan_001_s003_ch00.tif   ← column 1, row 0
+  ...
+```
+
+**2. Set your paths and grid size** in `config/production.json`:
+
+```json
+"general":  { "input_path": "/path/to/tiles", "output_path": "/path/to/output" },
+"stitching": { "width": 14, "height": 49, "overlap": 0.1, "pixel_size": 0.324957 }
+```
+
+`width` × `height` must equal the total number of tiles. `pixel_size` is in µm/pixel (check your microscope's acquisition log).
+
+**3. Run:**
+
 ```bash
 python main.py config/production.json
 ```
-
-Edit `config/production.json` to set `general.input_path`, `general.output_path`, and any other parameters.
 
 ### Web (Docker Compose)
 
