@@ -38,6 +38,13 @@ def build_default_pipeline(config: AppConfigManager, container: Container) -> Pi
     return Pipeline(steps, container)
 
 
+def build_passthrough_pipeline(config: AppConfigManager, container: Container) -> Pipeline:
+    """Pipeline for clean tiles: format conversion only, no grid removal."""
+    from src.steps import ImgConversionStep
+    steps = [ImgConversionStep(config=config.img_conversion_config)]
+    return Pipeline(steps, container)
+
+
 class PipelineService:
     """Service that runs the configured step chain on image data."""
 
@@ -168,4 +175,4 @@ def run_pipeline(
     return service.run(image, image_path=image_path)
 
 
-__all__ = ["PipelineService", "run_pipeline", "build_default_pipeline"]
+__all__ = ["PipelineService", "run_pipeline", "build_default_pipeline", "build_passthrough_pipeline"]
