@@ -1,12 +1,12 @@
 import os
 import cv2
 from glob import glob
-from src.core.pipeline_service import PipelineService
+from src.core.pipeline_service import PipelineService, build_passthrough_pipeline
 from src.steps import StitchingStep
 from src.utils import get_supported_image_patterns, filter_images_by_suffix
 
 
-def run_pipeline(config_path: str):
+def run_pipeline(config_path: str, no_grid: bool = False):
     """
     Run the complete image processing pipeline.
 
@@ -18,7 +18,8 @@ def run_pipeline(config_path: str):
         config_path: Path to the configuration file
     """
     try:
-        service = PipelineService(config_path)
+        factory = build_passthrough_pipeline if no_grid else None
+        service = PipelineService(config_path, pipeline_factory=factory)
         cfg = service.config
         logger = service.logger
     except Exception as e:
@@ -29,6 +30,9 @@ def run_pipeline(config_path: str):
     output_folder = cfg.general_config.output_path
     output_suffix = cfg.general_config.output_suffix
     suffix_filter = cfg.general_config.suffix_filter
+
+    if no_grid:
+        logger.info("--no-grid mode: skipping grid removal (binarization → inpainting)")
 
     if not input_folder:
         logger.critical(
@@ -117,10 +121,15 @@ if __name__ == "__main__":
         "config",
         help="Path to config file"
     )
+    parser.add_argument(
+        "--no-grid",
+        action="store_true",
+        help="Skip grid-removal preprocessing; run stitching and DZI generation only.",
+    )
     args = parser.parse_args()
 
     try:
-        success = run_pipeline(args.config)
+        success = run_pipeline(args.config, no_grid=args.no_grid)
         sys.exit(0 if success else 1)
     except KeyboardInterrupt:
         print("\nProcessing interrupted by user")
