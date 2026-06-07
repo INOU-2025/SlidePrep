@@ -6,7 +6,8 @@ from src.steps import StitchingStep
 from src.utils import get_supported_image_patterns, filter_images_by_suffix
 
 
-def run_pipeline(config_path: str, no_grid: bool = False):
+def run_pipeline(config_path: str, no_grid: bool = False,
+                 input_override: str = None, output_override: str = None):
     """
     Run the complete image processing pipeline.
 
@@ -26,8 +27,8 @@ def run_pipeline(config_path: str, no_grid: bool = False):
         print(f"Failed to initialize application: {e}")
         return False
 
-    input_folder = cfg.general_config.input_path
-    output_folder = cfg.general_config.output_path
+    input_folder = input_override or cfg.general_config.input_path
+    output_folder = output_override or cfg.general_config.output_path
     output_suffix = cfg.general_config.output_suffix
     suffix_filter = cfg.general_config.suffix_filter
 
@@ -126,10 +127,20 @@ if __name__ == "__main__":
         action="store_true",
         help="Skip grid-removal preprocessing; run stitching and DZI generation only.",
     )
+    parser.add_argument(
+        "--input",
+        help="Override the input_path from the config file.",
+    )
+    parser.add_argument(
+        "--output",
+        help="Override the output_path from the config file.",
+    )
     args = parser.parse_args()
 
     try:
-        success = run_pipeline(args.config, no_grid=args.no_grid)
+        success = run_pipeline(args.config, no_grid=args.no_grid,
+                               input_override=args.input,
+                               output_override=args.output)
         sys.exit(0 if success else 1)
     except KeyboardInterrupt:
         print("\nProcessing interrupted by user")
