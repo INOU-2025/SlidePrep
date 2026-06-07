@@ -176,7 +176,7 @@ SlidePrep/
 │   └── rf_detection_classifier.joblib   # Grid refinement classifier
 │
 ├── docs/                          # Extended documentation
-└── training/                      # Classifier training script
+└── training/                      # RF classifier retraining script (see "Adapting the classifier")
 ```
 
 ---
@@ -306,6 +306,32 @@ python scripts/test_stitching.py           config/test/stitching.json
 ```
 
 The runner injects a shared container into each step before execution, so steps that require pipeline context (image shape, original image, inpainting model) work identically to how they run inside the full pipeline.
+
+---
+
+## Adapting the classifier to a new chamber type
+
+The grid-refinement step uses a Random Forest classifier (`models/rf_detection_classifier.joblib`) to distinguish true grid-line contours from false positives. The shipped model was trained on Sedgwick-Rafter chamber images. If it underperforms on a different chamber geometry, retrain it in three steps:
+
+**1. Generate the feature CSV.** Enable debug output in your config and run the pipeline on 5–10 representative tiles:
+
+```json
+"debug": { "save_aggregated_data": true, "saved_artifact_type": "data",
+           "result_file_name": "rf-data.csv" }
+```
+
+The grid detection step writes one row per detected contour, with columns `aspect_ratio`, `long_side_angle`, `corner_proximity`, `area`, `length`, and `orientation_mismatch`.
+
+**2. Label the CSV.** Open `rf-data.csv` and add an `is_detection` column — `TRUE` for contours that are real grid lines, `FALSE` for false positives. A few hundred labelled rows is typically sufficient.
+
+**3. Retrain and replace the model.**
+
+```bash
+python training/train_rf_detection_classifier.py --infile rf-data.csv
+# Writes the new model to models/rf_detection_classifier.joblib automatically
+```
+
+Pass `--balanced` if grid-line contours are heavily outnumbered by background detections in your data. The training script uses 5-fold cross-validated grid search and prints a holdout classification report so you can verify accuracy before deploying the new model.
 
 ---
 
