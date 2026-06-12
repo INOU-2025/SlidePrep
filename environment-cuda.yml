@@ -24,6 +24,7 @@ dependencies:
   - blessed
   - fasteners
   - msgpack-python
+  - pyyaml
   - pip:
       - --extra-index-url https://download.pytorch.org/whl/cu128
       - ashlar==1.19.0
