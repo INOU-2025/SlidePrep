@@ -41,8 +41,9 @@ sympy==1.14.0
 termcolor==3.1.0
 threadpoolctl
 tifffile<2025.2.18
-torch==2.7.1
-torchvision==0.22.1
+--extra-index-url https://download.pytorch.org/whl/cu128
+torch==2.7.1+cu128
+torchvision==0.22.1+cu128
 tornado
 tqdm
 typing_extensions==4.14.0
