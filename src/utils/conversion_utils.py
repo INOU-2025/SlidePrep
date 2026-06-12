@@ -8,7 +8,7 @@ Utility functions for data conversion and manipulation.
 SUPPORTED_IMAGE_FORMATS: Dict[str, str] = {
     "jpeg": ".jpeg",
     "png": ".png",
-    "tiff": ".tiff",
+    "tiff": ".tif",
 }
 
 def make_csv_serializable(obj):

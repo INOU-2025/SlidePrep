@@ -1,13 +1,14 @@
 import os
 import cv2
 from glob import glob
+from typing import Optional
 from src.core.pipeline_service import PipelineService, build_passthrough_pipeline
 from src.steps import StitchingStep
-from src.utils import get_supported_image_patterns, filter_images_by_suffix
+from src.utils import get_supported_image_patterns, filter_images_by_suffix, get_extension_for_format
 
 
 def run_pipeline(config_path: str, no_grid: bool = False,
-                 input_override: str = None, output_override: str = None):
+                 input_override: Optional[str] = None, output_override: Optional[str] = None):
     """
     Run the complete image processing pipeline.
 
@@ -88,7 +89,7 @@ def run_pipeline(config_path: str, no_grid: bool = False,
 
         name, ext = os.path.splitext(fname)
         if metadata and "format" in metadata:
-            ext = f".{metadata['format']}"
+            ext = get_extension_for_format(metadata['format'])
         out_name = f"{name}{output_suffix}{ext}"
         out_path = os.path.join(output_folder, out_name)
         if not cv2.imwrite(out_path, output_image):
