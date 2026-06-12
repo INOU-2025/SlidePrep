@@ -24,6 +24,7 @@ dependencies:
   - blessed
   - fasteners
   - msgpack-python
+  - pyyaml
   - pip:
       - ashlar==1.19.0
       - filelock
