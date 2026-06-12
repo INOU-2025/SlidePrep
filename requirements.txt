@@ -27,7 +27,7 @@ numcodecs
 numpy==1.26.4
 opencv-python==4.11.0.86
 packaging
-Pillow==9.5.0
+Pillow>=10
 pyjnius==1.6.1
 pyparsing
 python-dateutil
