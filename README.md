@@ -67,11 +67,25 @@ python main.py config/production.json
 
 ### Web (Docker Compose)
 
+**CPU (default):**
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
-This builds and starts four services: a Redis broker, the FastAPI backend (port 8000), a Celery worker, and an nginx container that serves the pre-built Angular frontend. Open `http://localhost` in your browser — no Node.js installation required.
+**GPU (Linux + NVIDIA):**
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+```
+
+The GPU override adds an NVIDIA device reservation to the Celery worker so it can use CUDA at runtime. PyTorch falls back to CPU automatically when the GPU override is not used.
+
+> **GPU prerequisite:** the NVIDIA Container Toolkit must be installed on the host before using the GPU override:
+> ```bash
+> sudo apt install nvidia-container-toolkit
+> sudo systemctl restart docker
+> ```
+
+Both commands build and start four services: a Redis broker, the FastAPI backend (port 8000), a Celery worker, and an nginx container that serves the pre-built Angular frontend. Open `http://localhost` in your browser — no Node.js installation required.
 
 ---
 
@@ -185,8 +199,15 @@ SlidePrep/
 
 ### Conda (recommended)
 
+**macOS (CPU / Apple Silicon MPS):**
 ```bash
-conda env create -f environment.yml
+conda env create -f environment.yml -n slideprep
+conda activate slideprep
+```
+
+**Linux with NVIDIA GPU (CUDA):**
+```bash
+conda env create -f environment-cuda.yml -n slideprep
 conda activate slideprep
 ```
 
