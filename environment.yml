@@ -8,12 +8,13 @@ dependencies:
   - scipy
   - matplotlib
   - scikit-image=0.25.*
-  - scikit-learn
+  - scikit-learn==1.6.1
   - imageio
   - imagecodecs
   - networkx
   - shapely
-  - numcodecs
+  - numcodecs=0.14.1
+  - zarr=2.*
   - tqdm
   - joblib
   - pydantic
@@ -24,13 +25,15 @@ dependencies:
   - msgpack-python
   - pyyaml
   - pip:
+      - numpy==1.26.4
+      - fire==0.5.0
       - ashlar==1.19.0
       - filelock
       - fire
       - fsspec
       - kornia==0.8.1
       - kornia-rs==0.1.9
-      - pillow>=10
+      - pillow==9.5.0
       - torch==2.7.1
       - torchvision==0.22.1
       - opencv-python
@@ -38,5 +41,4 @@ dependencies:
       - termcolor
       - sympy
       - typing-extensions
-      - tifffile>=2026.3.3
-      - zarr>=3.1.6
+      - tifffile==2024.12.12
