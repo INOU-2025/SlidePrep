@@ -198,13 +198,17 @@ SlidePrep/
 ```bash
 conda env create -f environment.yml -n slideprep
 conda activate slideprep
+pip install --no-deps simple-lama-inpainting==0.1.2
 ```
 
 **Linux with NVIDIA GPU (CUDA):**
 ```bash
 conda env create -f environment-cuda.yml -n slideprep
 conda activate slideprep
+pip install --no-deps simple-lama-inpainting==0.1.2
 ```
+
+> `simple-lama-inpainting==0.1.2` declares `pillow<10` in its metadata, which conflicts with the `pillow>=10` required elsewhere. Installing it with `--no-deps` bypasses the metadata check; its runtime dependencies (torch, pillow, numpy) are already satisfied by the environment.
 
 ### pip
 
