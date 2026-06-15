@@ -32,7 +32,7 @@ dependencies:
       - kornia==0.8.1
       - kornia-rs==0.1.9
       - pillow>=10
-      - simple-lama-inpainting
+      - simple-lama-inpainting==0.1.2
       - torch==2.7.1+cu128
       - torchvision==0.22.1+cu128
       - opencv-python
