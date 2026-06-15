@@ -28,6 +28,8 @@ python main.py sample_data/config.json \
     --output sample_data/output
 ```
 
+The mussel larvae images used as sample data were kindly provided by África González Fernández, Andrea Hernández Fernández, and Silvia Lorenzo Abalde (IN1 Immunology Group, CINBIO, University of Vigo). The images were acquired within the project *"Identificación e marcaxe selectiva de larvas de mexillón mediante anticorpos monoclonais"*, supported by the European Maritime, Fisheries and Aquaculture Fund (EMFAF) and Consellería do Mar, Xunta de Galicia.
+
 ---
 
 ## Quick start
