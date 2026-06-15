@@ -192,6 +192,13 @@ SlidePrep/
 
 ## Installation
 
+### Prerequisites
+
+**Java (JDK)** is required by Ashlar for OME-TIFF stitching. Install it before creating the environment:
+
+- macOS: `brew install openjdk`
+- Ubuntu/Debian: `sudo apt install default-jdk`
+
 ### Conda (recommended)
 
 **macOS (CPU / Apple Silicon MPS):**
@@ -201,7 +208,23 @@ conda activate slideprep
 pip install --no-deps simple-lama-inpainting==0.1.2
 ```
 
+**Linux (CPU):**
+
+> **GCC 14+ note:** Pillow 9.5.0 fails to build on systems with GCC 14 or newer. Export this flag before creating the environment:
+> ```bash
+> export CFLAGS="-Wno-error=incompatible-pointer-types"
+> ```
+
+```bash
+conda env create -f environment.yml -n slideprep
+conda activate slideprep
+pip install --no-deps simple-lama-inpainting==0.1.2
+```
+
 **Linux with NVIDIA GPU (CUDA):**
+
+> **GCC 14+ note:** same as above — set `CFLAGS` before creating the environment if your system has GCC 14 or newer.
+
 ```bash
 conda env create -f environment-cuda.yml -n slideprep
 conda activate slideprep
