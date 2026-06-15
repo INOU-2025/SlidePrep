@@ -11,10 +11,8 @@ dependencies:
   - scikit-learn
   - imageio
   - imagecodecs
-  - tifffile
   - networkx
   - shapely
-  - zarr=2.*
   - numcodecs
   - tqdm
   - joblib
@@ -32,12 +30,14 @@ dependencies:
       - fsspec
       - kornia==0.8.1
       - kornia-rs==0.1.9
+      - pillow>=10
       - simple-lama-inpainting
       - torch==2.7.1
       - torchvision==0.22.1
       - opencv-python
-      - pillow>=10
       - pyjnius==1.6.1
       - termcolor
       - sympy
       - typing-extensions
+      - tifffile>=2026.3.3
+      - zarr>=3.1.6
