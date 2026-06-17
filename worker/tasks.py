@@ -16,7 +16,8 @@ logger = get_task_logger(__name__)
 @celery_app.task(bind=True)
 def process_images_task(self, job_id: str, input_path: str, output_path: str,
                          config_path: str, clean_grid: bool = True,
-                         stitching_overrides: dict = None, general_overrides: dict = None):
+                         stitching_overrides: dict = None, general_overrides: dict = None,
+                         grid_detection_overrides: dict = None):
     """
     Celery task to run the image processing pipeline.
     """
@@ -35,6 +36,9 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str,
         if stitching_overrides:
             config_data.setdefault("stitching", {})
             config_data["stitching"].update(stitching_overrides)
+        if grid_detection_overrides:
+            config_data.setdefault("grid_detection", {})
+            config_data["grid_detection"].update(grid_detection_overrides)
 
         config_manager = AppConfigManager.from_dict(config_data)
         service = PipelineService(config=config_manager)
