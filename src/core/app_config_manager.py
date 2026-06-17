@@ -34,6 +34,15 @@ class AppConfigManager(ConfigManager):
         super().__init__(config_path)
 
     @classmethod
+    def from_dict(cls, config_data: dict) -> "AppConfigManager":
+        """Create an instance from a pre-built config dict, bypassing file loading."""
+        instance = cls.__new__(cls)
+        instance._path = ""
+        instance._config = config_data
+        instance._extract_config_values()
+        return instance
+
+    @classmethod
     def from_app_config(cls, app_config: "AppConfig") -> "AppConfigManager":
         """Create an instance from an :class:`AppConfig` model.
 
