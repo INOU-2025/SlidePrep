@@ -45,8 +45,7 @@ export class WorkspaceComponent implements OnInit {
       this.apiService.getJobStatus(jobId).subscribe({
         next: (status: JobStatus) => {
           if (status.status === 'SUCCESS' && status.result_url) {
-            // Construct full URL. Assuming backend is on localhost:8000
-            this.imageUrl = `http://localhost:8000${status.result_url}`;
+            this.imageUrl = `/api${status.result_url}`;
             clearInterval(interval);
           } else if (status.status === 'FAILURE') {
             console.error('Job failed:', status.error);
