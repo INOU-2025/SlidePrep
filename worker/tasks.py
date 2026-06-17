@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import subprocess
@@ -21,11 +22,12 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str, co
     self.update_state(state='PROCESSING', meta={'status': 'Initializing pipeline...'})
 
     try:
-        config_manager = AppConfigManager(config_path)
-        updated_general = config_manager.general_config.model_copy(
-            update={"input_path": input_path, "output_path": output_path}
-        )
-        config_manager.general_config = updated_general
+        with open(config_path) as f:
+            config_data = json.load(f)
+        config_data.setdefault("general", {})
+        config_data["general"]["input_path"] = input_path
+        config_data["general"]["output_path"] = output_path
+        config_manager = AppConfigManager.from_dict(config_data)
         service = PipelineService(config=config_manager)
         cfg = service.config
         
