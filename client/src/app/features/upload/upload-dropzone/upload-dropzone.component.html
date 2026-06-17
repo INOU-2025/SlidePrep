@@ -1,12 +1,62 @@
 <div class="upload-container">
     <div class="dropzone" (dragover)="onDragOver($event)" (drop)="onDrop($event)">
-        <div class="settings-bar"
-            style="margin-bottom: 20px; text-align: right; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+
+        <!-- Scan Parameters -->
+        <div class="settings-section">
+            <h4 class="settings-title">Scan Parameters</h4>
+            <div class="settings-row">
+                <mat-form-field appearance="outline" class="field-sm">
+                    <mat-label>Grid columns</mat-label>
+                    <input matInput type="number" min="1" step="1"
+                           [(ngModel)]="gridWidth" [disabled]="isUploading" required>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="field-sm">
+                    <mat-label>Grid rows</mat-label>
+                    <input matInput type="number" min="1" step="1"
+                           [(ngModel)]="gridHeight" [disabled]="isUploading" required>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="field-sm">
+                    <mat-label>Scan direction</mat-label>
+                    <mat-select [(ngModel)]="direction" [disabled]="isUploading">
+                        <mat-option value="">— use default —</mat-option>
+                        <mat-option value="horizontal">Horizontal</mat-option>
+                        <mat-option value="vertical">Vertical</mat-option>
+                    </mat-select>
+                </mat-form-field>
+            </div>
+
+            <div class="settings-row">
+                <mat-form-field appearance="outline" class="field-sm">
+                    <mat-label>Overlap (0–1)</mat-label>
+                    <input matInput type="number" min="0" max="0.99" step="0.01"
+                           [(ngModel)]="overlap" [disabled]="isUploading"
+                           placeholder="default">
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="field-sm">
+                    <mat-label>Pixel size (µm)</mat-label>
+                    <input matInput type="number" min="0.001" step="0.001"
+                           [(ngModel)]="pixelSize" [disabled]="isUploading"
+                           placeholder="default">
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="field-sm">
+                    <mat-label>Channel suffix filter</mat-label>
+                    <input matInput type="text"
+                           [(ngModel)]="suffixFilter" [disabled]="isUploading"
+                           placeholder="default">
+                </mat-form-field>
+            </div>
+        </div>
+
+        <!-- Processing Options -->
+        <div class="settings-section options-bar">
             <mat-checkbox [(ngModel)]="cleanGrid" color="primary" [disabled]="isUploading">
                 Clean Grid Lines
             </mat-checkbox>
         </div>
-
 
         <!-- Empty State -->
         <ng-container *ngIf="files.length === 0">
@@ -32,11 +82,10 @@
 
             <div class="actions">
                 <button mat-button color="warn" (click)="files = []">Clear All</button>
-                <button mat-raised-button color="primary" (click)="upload()" [disabled]="isUploading">
+                <button mat-raised-button color="primary" (click)="upload()" [disabled]="!canUpload">
                     {{ isUploading ? 'Processing...' : 'Upload and Process' }}
                 </button>
-                <button mat-stroked-button (click)="fileInput.click()" [disabled]="isUploading"
-                    style="margin-left: 10px;">Add More</button>
+                <button mat-stroked-button (click)="fileInput.click()" [disabled]="isUploading">Add More</button>
             </div>
 
             <div *ngIf="isUploading" class="processing-indicator">
@@ -48,6 +97,6 @@
             </div>
         </div>
 
-        <input type="file" #fileInput multiple (change)="onFileSelected($event)" style="display: none;">
+        <input type="file" #fileInput multiple (change)="onFileSelected($event)" class="hidden-input" aria-label="Select image files">
     </div>
 </div>
