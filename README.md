@@ -82,7 +82,7 @@ The GPU override adds an NVIDIA device reservation to the Celery worker so it ca
 > sudo systemctl restart docker
 > ```
 
-Both commands build and start four services: a Redis broker, the FastAPI backend (port 8000), a Celery worker, and an nginx container that serves the pre-built Angular frontend. Open `http://localhost` in your browser — no Node.js installation required.
+Both commands build and start four services: a Redis broker, the FastAPI backend (port 8000), a Celery worker, and an nginx container that serves the pre-built Angular frontend. Open `http://localhost` in your browser — no Node.js installation required. From another machine on the same network, use `http://<server-ip>` instead.
 
 ---
 
@@ -297,7 +297,7 @@ service = PipelineService("config/production.json", pipeline_factory=my_pipeline
 docker-compose up --build
 ```
 
-Builds and starts four services: Redis, the FastAPI backend (port 8000), a Celery worker, and an nginx container (port 80) serving the pre-built Angular app. Open `http://localhost` in your browser. Uploads and results are stored under `data/`.
+Builds and starts four services: Redis, the FastAPI backend (port 8000), a Celery worker, and an nginx container (port 80) serving the pre-built Angular app. Open `http://localhost` in your browser (or `http://<server-ip>` from another machine on the same network). Uploads and results are stored under `data/`.
 
 ### Manual startup (development)
 
