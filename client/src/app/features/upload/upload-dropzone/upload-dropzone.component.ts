@@ -48,6 +48,10 @@ export class UploadDropzoneComponent {
     direction: string = '';
     suffixFilter: string = '';
 
+    // Grid detection parameters
+    gridAngle: number | null = null;
+    detectionThreshold: number | null = null;
+
     get canUpload(): boolean {
         return this.files.length > 0 && !this.isUploading &&
                this.gridWidth != null && this.gridWidth > 0 &&
@@ -107,6 +111,8 @@ export class UploadDropzoneComponent {
             pixelSize: this.pixelSize,
             direction: this.direction,
             suffixFilter: this.suffixFilter,
+            gridAngle: this.gridAngle,
+            detectionThreshold: this.detectionThreshold,
         }).subscribe({
             next: (response) => {
                 this.projectService.addProject({

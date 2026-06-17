@@ -24,6 +24,8 @@ async def create_job(
     pixel_size: Optional[str] = Form(None),
     direction: Optional[str] = Form(None),
     suffix_filter: Optional[str] = Form(None),
+    grid_angle: Optional[str] = Form(None),
+    detection_threshold: Optional[str] = Form(None),
 ):
     clean_grid_bool = clean_grid.lower() == 'true'
 
@@ -79,9 +81,13 @@ async def create_job(
     if suffix_filter is not None:
         general_overrides['suffix_filter'] = suffix_filter
 
+    grid_detection_overrides = {}
+    if grid_angle:          grid_detection_overrides['angles']    = [float(grid_angle)]
+    if detection_threshold: grid_detection_overrides['threshold'] = float(detection_threshold)
+
     task = process_images_task.apply_async(
         args=[job_id, job_dir, job_dir, CONFIG_PATH, clean_grid_bool,
-              stitching_overrides, general_overrides],
+              stitching_overrides, general_overrides, grid_detection_overrides],
         task_id=job_id
     )
 
