@@ -103,6 +103,7 @@ async def get_job_status(job_id: str):
     result_url = None
     error = None
     message = None
+    progress = None
     
     if status == 'SUCCESS':
         result = task_result.result
