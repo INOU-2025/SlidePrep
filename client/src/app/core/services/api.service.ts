@@ -25,6 +25,8 @@ export interface UploadOptions {
     pixelSize?: number | null;
     direction?: string;
     suffixFilter?: string;
+    gridAngle?: number | null;
+    detectionThreshold?: number | null;
 }
 
 @Injectable({
@@ -45,8 +47,10 @@ export class ApiService {
         if (options.gridHeight != null)      formData.append('grid_height',   String(options.gridHeight));
         if (options.overlap != null)         formData.append('overlap',       String(options.overlap));
         if (options.pixelSize != null)       formData.append('pixel_size',    String(options.pixelSize));
-        if (options.direction)               formData.append('direction',     options.direction);
-        if (options.suffixFilter !== undefined) formData.append('suffix_filter', options.suffixFilter);
+        if (options.direction)               formData.append('direction',          options.direction);
+        if (options.suffixFilter !== undefined) formData.append('suffix_filter',   options.suffixFilter);
+        if (options.gridAngle != null)       formData.append('grid_angle',         String(options.gridAngle));
+        if (options.detectionThreshold != null) formData.append('detection_threshold', String(options.detectionThreshold));
         return this.http.post<JobResponse>(`${this.apiUrl}/jobs`, formData);
     }
 
