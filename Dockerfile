@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     default-jdk \
     libvips-tools \
+    zlib1g-dev \
+    libjpeg-dev \
     && rm -rf /var/lib/apt/lists/*
 
 ENV JAVA_HOME=/usr/lib/jvm/default-java
