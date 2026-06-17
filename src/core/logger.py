@@ -96,6 +96,10 @@ class Logger:
         for handler in self.logger.handlers[:]:
             self.logger.removeHandler(handler)
 
+        # Prevent log records from bubbling up to the root logger (and being
+        # captured by Celery's stdout handler when log_to_console is False).
+        self.logger.propagate = False
+
         log_format = "%(asctime)s %(levelname)s %(message)s"
         formatter = logging.Formatter(log_format)
 
