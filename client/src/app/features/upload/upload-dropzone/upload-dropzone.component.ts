@@ -6,6 +6,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatListModule } from '@angular/material/list';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { ProjectService } from '../../../core/services/project.service';
@@ -13,7 +16,18 @@ import { ProjectService } from '../../../core/services/project.service';
 @Component({
     selector: 'app-upload-dropzone',
     standalone: true,
-    imports: [CommonModule, MatButtonModule, MatIconModule, MatProgressBarModule, MatListModule, MatCheckboxModule, FormsModule],
+    imports: [
+        CommonModule,
+        MatButtonModule,
+        MatIconModule,
+        MatProgressBarModule,
+        MatListModule,
+        MatCheckboxModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatSelectModule,
+        FormsModule,
+    ],
     templateUrl: './upload-dropzone.component.html',
     styleUrls: ['./upload-dropzone.component.scss']
 })
@@ -22,7 +36,23 @@ export class UploadDropzoneComponent {
     isUploading = false;
     uploadProgress = 0;
     statusMessage = 'Initializing...';
+
+    // Processing options
     cleanGrid = true;
+
+    // Scan parameters
+    gridWidth: number | null = null;
+    gridHeight: number | null = null;
+    overlap: number | null = null;
+    pixelSize: number | null = null;
+    direction: string = '';
+    suffixFilter: string = '';
+
+    get canUpload(): boolean {
+        return this.files.length > 0 && !this.isUploading &&
+               this.gridWidth != null && this.gridWidth > 0 &&
+               this.gridHeight != null && this.gridHeight > 0;
+    }
 
     constructor(
         private apiService: ApiService,
@@ -64,28 +94,32 @@ export class UploadDropzoneComponent {
     }
 
     upload() {
-        if (this.files.length === 0) return;
+        if (!this.canUpload) return;
 
         this.isUploading = true;
         this.statusMessage = 'Uploading...';
 
-        this.apiService.uploadImages(this.files, this.cleanGrid).subscribe({
+        this.apiService.uploadImages(this.files, {
+            cleanGrid: this.cleanGrid,
+            gridWidth: this.gridWidth,
+            gridHeight: this.gridHeight,
+            overlap: this.overlap,
+            pixelSize: this.pixelSize,
+            direction: this.direction,
+            suffixFilter: this.suffixFilter,
+        }).subscribe({
             next: (response) => {
-                // Create a new project entry
                 this.projectService.addProject({
                     id: response.job_id,
                     name: `Project ${new Date().toLocaleString()}`,
                     date: new Date(),
                     jobId: response.job_id
                 });
-
-                // Start polling for status
                 this.pollStatus(response.job_id);
             },
             error: (err) => {
                 console.error('Upload failed', err);
                 this.isUploading = false;
-                // Handle error (show snackbar)
             }
         });
     }
@@ -109,9 +143,7 @@ export class UploadDropzoneComponent {
                         clearInterval(pollInterval);
                         this.isUploading = false;
                         console.error('Processing failed', status.error);
-                        // Handle error
                     } else {
-                        // Still processing, maybe update a status message
                         console.log('Processing status:', status.status);
                     }
                 },
@@ -121,6 +153,6 @@ export class UploadDropzoneComponent {
                     this.isUploading = false;
                 }
             });
-        }, 2000); // Poll every 2 seconds
+        }, 2000);
     }
 }
