@@ -21,7 +21,7 @@ export interface JobStatus {
     providedIn: 'root'
 })
 export class ApiService {
-    private apiUrl = 'http://localhost:8000'; // Configure this properly in environment
+    private apiUrl = '/api';
 
     constructor(private http: HttpClient) { }
 
