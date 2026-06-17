@@ -10,6 +10,7 @@ services:
 
   api:
     build: .
+    platform: linux/amd64
     command: uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - .:/app
@@ -24,6 +25,7 @@ services:
 
   worker:
     build: .
+    platform: linux/amd64
     command: celery -A worker.celery_app worker --loglevel=info
     volumes:
       - .:/app
@@ -38,6 +40,7 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile
+    platform: linux/amd64
     ports:
       - "80:80"
     depends_on:
