@@ -1,0 +1,215 @@
+<!-- Backdrop -->
+<div class="backdrop" (click)="tryClose()">
+
+  <!-- Modal panel -->
+  <div class="modal" (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="modal-header">
+      <span class="modal-title">New slide</span>
+      <button class="icon-btn" type="button" aria-label="Close" (click)="tryClose()">
+        <span class="material-symbols-rounded">close</span>
+      </button>
+    </div>
+
+    <!-- Step indicator -->
+    <div class="steps">
+      <div class="step" [class.active]="step === 1" [class.done]="step > 1">
+        <div class="step-circle">
+          <span *ngIf="step > 1" class="material-symbols-rounded">check</span>
+          <span *ngIf="step <= 1">1</span>
+        </div>
+        <span class="step-label">Parameters</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step" [class.active]="step === 2">
+        <div class="step-circle">2</div>
+        <span class="step-label">Upload</span>
+      </div>
+    </div>
+
+    <!-- ── Step 1: Parameters ── -->
+    <div class="modal-body" *ngIf="step === 1">
+
+      <!-- Slide name -->
+      <div class="field-wrap">
+        <label class="field-label">Slide name <span class="req">*</span></label>
+        <input
+          class="field-input"
+          type="text"
+          [(ngModel)]="name"
+          placeholder="e.g. Liver biopsy — 0421"
+          autocomplete="off"
+        >
+      </div>
+
+      <!-- Scan parameters card -->
+      <div class="param-card">
+        <div class="eyebrow">Scan parameters</div>
+        <div class="grid-3">
+          <div class="field-wrap">
+            <label class="field-label">Grid columns <span class="req">*</span></label>
+            <input class="field-input mono" type="number" [(ngModel)]="cols" placeholder="e.g. 12" min="1">
+          </div>
+          <div class="field-wrap">
+            <label class="field-label">Grid rows <span class="req">*</span></label>
+            <input class="field-input mono" type="number" [(ngModel)]="rows" placeholder="e.g. 12" min="1">
+          </div>
+          <div class="field-wrap">
+            <label class="field-label">Scan direction</label>
+            <select class="field-input" [(ngModel)]="dir">
+              <option value="">— use default —</option>
+              <option value="horizontal">Horizontal</option>
+              <option value="vertical">Vertical</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-3">
+          <div class="field-wrap">
+            <label class="field-label">Overlap <span class="field-unit">0–1</span></label>
+            <input class="field-input mono" type="number" [(ngModel)]="overlap" placeholder="default" min="0" max="0.99" step="0.01">
+          </div>
+          <div class="field-wrap">
+            <label class="field-label">Pixel size <span class="field-unit">µm</span></label>
+            <input class="field-input mono" type="number" [(ngModel)]="pixelSize" placeholder="default" min="0.001" step="0.001">
+          </div>
+          <div class="field-wrap">
+            <label class="field-label">Channel suffix</label>
+            <input class="field-input" type="text" [(ngModel)]="suffix" placeholder="default">
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid detection card -->
+      <div class="param-card">
+        <div class="eyebrow">Grid detection</div>
+        <div class="grid-3">
+          <div class="field-wrap">
+            <label class="field-label">Grid angle <span class="field-unit">°</span></label>
+            <input class="field-input mono" type="number" [(ngModel)]="angle" placeholder="default" min="-45" max="45" step="0.1">
+          </div>
+          <div class="field-wrap">
+            <label class="field-label">Detection threshold <span class="field-unit">0–1</span></label>
+            <input class="field-input mono" type="number" [(ngModel)]="thresh" placeholder="default" min="0" max="1" step="0.01">
+          </div>
+          <div class="field-wrap field-checkbox">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="cleanGrid" class="checkbox">
+              Clean grid lines
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Step 2: Upload ── -->
+    <div class="modal-body" *ngIf="step === 2">
+
+      <!-- Dropzone / upload progress (hidden during processing) -->
+      <ng-container *ngIf="phase !== 'processing'">
+        <div
+          class="dropzone"
+          [class.dragging]="drag"
+          [class.uploading]="phase === 'uploading'"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave()"
+          (drop)="onDrop($event)"
+        >
+          <ng-container *ngIf="phase === 'idle'">
+            <span class="material-symbols-rounded dz-icon">upload_file</span>
+            <span class="dz-hint">Drop tile images or a zip archive here</span>
+            <button class="btn-ghost" type="button" (click)="fileInput.click()">Browse files</button>
+          </ng-container>
+
+          <ng-container *ngIf="phase === 'uploading'">
+            <div class="progress-wrap">
+              <div class="progress-header">
+                <span class="progress-label">Uploading tiles</span>
+                <span class="progress-pct mono">{{ uploadProgress | number:'1.0-0' }}%</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" [style.width.%]="uploadProgress"></div>
+              </div>
+              <div class="progress-meta mono">
+                <span *ngIf="tileCount">Tile {{ (uploadProgress / 100 * tileCount) | number:'1.0-0' }} / {{ tileCount }}</span>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+
+        <!-- File list -->
+        <div class="file-list" *ngIf="files.length > 0 && phase === 'idle'">
+          <div class="file-list-header">
+            <span class="file-count"><span class="mono">{{ files.length }}</span> file{{ files.length !== 1 ? 's' : '' }} selected</span>
+            <button class="btn-ghost btn-sm" type="button" (click)="clearFiles()">
+              <span class="material-symbols-rounded">delete_sweep</span>
+              Clear all
+            </button>
+          </div>
+          <div class="file-rows">
+            <div class="file-row" *ngFor="let f of files; let i = index">
+              <span class="material-symbols-rounded file-icon">{{ fileIcon(f) }}</span>
+              <span class="file-name mono">{{ f.name }}</span>
+              <span class="file-size mono">{{ formatSize(f) }}</span>
+              <button class="icon-btn icon-btn--sm" type="button" (click)="removeFile(i)" aria-label="Remove">
+                <span class="material-symbols-rounded">close</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Processing state -->
+      <div class="processing-state" *ngIf="phase === 'processing'">
+        <span class="material-symbols-rounded processing-icon">hourglass_top</span>
+        <div class="progress-wrap">
+          <div class="progress-header">
+            <span class="progress-label">{{ processingMessage }}</span>
+            <span class="progress-pct mono">{{ processingProgress | number:'1.0-0' }}%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" [style.width.%]="processingProgress"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="modal-footer">
+      <!-- Left hint -->
+      <span class="footer-hint mono" *ngIf="step === 1 && tileCount > 0">{{ tileCount.toLocaleString() }} tiles</span>
+      <span class="footer-hint mono" *ngIf="step === 2 && files.length > 0 && phase === 'idle'">{{ files.length }} file{{ files.length !== 1 ? 's' : '' }}</span>
+      <span *ngIf="!(step === 1 && tileCount > 0) && !(step === 2 && files.length > 0 && phase === 'idle')"></span>
+
+      <!-- Actions -->
+      <div class="footer-actions">
+        <ng-container *ngIf="step === 1">
+          <button class="btn-ghost" type="button" (click)="closed.emit()">Cancel</button>
+          <button class="btn-primary" type="button" [disabled]="!step1Valid" (click)="step = 2">
+            Next
+            <span class="material-symbols-rounded">arrow_forward</span>
+          </button>
+        </ng-container>
+
+        <ng-container *ngIf="step === 2 && isRunning">
+          <button class="btn-ghost" type="button" (click)="closed.emit()">Dismiss</button>
+        </ng-container>
+
+        <ng-container *ngIf="step === 2 && !isRunning">
+          <button class="btn-ghost" type="button" (click)="step = 1">
+            <span class="material-symbols-rounded">arrow_back</span>
+            Back
+          </button>
+          <button class="btn-primary" type="button" [disabled]="!step2Valid" (click)="upload()">
+            <span class="material-symbols-rounded">rocket_launch</span>
+            Upload &amp; process
+          </button>
+        </ng-container>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<input type="file" #fileInput multiple (change)="onFileSelected($event)" style="display:none" aria-label="Select files">

@@ -1,34 +1,99 @@
-<app-top-bar mode="home"></app-top-bar>
+<div class="screen">
+  <app-top-bar mode="home" (newSlide)="showModal = true"></app-top-bar>
 
-<div class="startup-container">
-  <div class="left-panel">
-    <div class="actions">
-      <button mat-button type="button">
-        <mat-icon>folder_open</mat-icon> Open
+  <div class="body" *ngIf="projects$ | async as projects">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <button
+        *ngFor="let item of navItems"
+        class="nav-btn"
+        [class.active]="filter === item.id"
+        (click)="filter = item.id"
+        type="button"
+      >
+        <div class="nav-btn-left">
+          <span class="material-symbols-rounded">{{ item.icon }}</span>
+          {{ item.label }}
+        </div>
+        <span class="nav-count" *ngIf="countFor(projects, item.id) > 0">
+          {{ countFor(projects, item.id) }}
+        </span>
       </button>
-    </div>
-  </div>
+    </aside>
 
-  <div class="right-panel">
-    <div class="search-bar">
-      <input type="text" placeholder="Search projects...">
-    </div>
+    <!-- Main -->
+    <main class="main">
+      <h1 class="page-heading">{{ filterTitle }}</h1>
 
-    <mat-list>
-      <h3 mat-subheader>Recent Projects</h3>
-      <mat-list-item *ngFor="let project of projects$ | async" (click)="openProject(project)" class="project-item">
-        <mat-icon matListItemIcon>description</mat-icon>
-        <div matListItemTitle>{{ project.name }}</div>
-        <div matListItemLine>{{ project.date | date }}</div>
-        <button mat-icon-button type="button" class="delete-btn" (click)="deleteProject($event, project.id)" matListItemMeta>
-          <mat-icon>close</mat-icon>
-        </button>
-      </mat-list-item>
+      <!-- Card grid -->
+      <div class="card-grid" *ngIf="filterProjects(projects).length > 0">
+        <div
+          *ngFor="let p of filterProjects(projects)"
+          class="card-wrap"
+          (mouseenter)="hoveredId = p.id"
+          (mouseleave)="hoveredId = null; confirmId === p.id ? null : null"
+        >
+          <!-- Slide card -->
+          <div class="slide-card" (click)="openProject(p)">
+            <!-- Thumbnail -->
+            <div class="card-thumb">
+              <img *ngIf="p.thumbnail" [src]="p.thumbnail" alt="" class="thumb-img">
+              <span *ngIf="!p.thumbnail" class="material-symbols-rounded thumb-placeholder">image</span>
+            </div>
+            <!-- Card body -->
+            <div class="card-body">
+              <div class="card-name">{{ p.name }}</div>
+              <div class="card-badge" [ngClass]="p.status">
+                <span class="badge-dot" *ngIf="p.status !== 'failed'"></span>
+                {{ p.status === 'completed' ? 'Completed' : p.status === 'processing' ? 'Processing' : 'Failed' }}
+              </div>
+              <div class="card-meta">
+                <span *ngIf="p.tileCount" class="meta-item">
+                  <span class="meta-num">{{ p.tileCount }}</span> tiles
+                </span>
+                <span class="meta-sep" *ngIf="p.tileCount">·</span>
+                <span class="meta-item">{{ formatDate(p.date) }}</span>
+              </div>
+              <div class="card-dims" *ngIf="formatDims(p)">{{ formatDims(p) }}</div>
+            </div>
+          </div>
 
-      <div *ngIf="(projects$ | async)?.length === 0" class="empty-state">
-        <p>No projects found. Create a new one to get started.</p>
-        <button mat-raised-button type="button" color="primary" (click)="createNewProject()">Create New Project</button>
+          <!-- Delete button (hover) -->
+          <button
+            *ngIf="hoveredId === p.id && confirmId !== p.id"
+            class="delete-btn"
+            type="button"
+            (click)="confirmDelete($event, p.id)"
+            aria-label="Delete slide"
+          >
+            <span class="material-symbols-rounded">close</span>
+          </button>
+
+          <!-- Confirmation overlay -->
+          <div class="confirm-overlay" *ngIf="confirmId === p.id">
+            <span class="confirm-label">Delete slide?</span>
+            <div class="confirm-actions">
+              <button class="btn-ghost btn-sm" type="button" (click)="cancelDelete($event)">Cancel</button>
+              <button class="btn-primary btn-sm" type="button" (click)="deleteProject($event, p.id)">Delete</button>
+            </div>
+          </div>
+        </div>
       </div>
-    </mat-list>
+
+      <!-- Empty state -->
+      <div class="empty-state" *ngIf="filterProjects(projects).length === 0">
+        <span class="material-symbols-rounded empty-icon">folder_open</span>
+        <span class="empty-text">
+          {{ filter !== 'all' ? 'No ' + filterTitle.toLowerCase() + ' slides.' : 'No slides. Create one to get started.' }}
+        </span>
+        <button *ngIf="filter === 'all'" class="btn-primary" type="button" (click)="showModal = true">
+          <span class="material-symbols-rounded">add</span>
+          New slide
+        </button>
+      </div>
+    </main>
   </div>
+
+  <!-- Create modal -->
+  <app-create-modal *ngIf="showModal" (closed)="showModal = false"></app-create-modal>
 </div>
