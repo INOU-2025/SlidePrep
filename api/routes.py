@@ -102,11 +102,21 @@ async def get_job_status(job_id: str):
     error = None
     message = None
     progress = None
+    thumbnail_url = None
+    width = None
+    height = None
+    tile_count = None
 
     if status == 'SUCCESS':
         result = task_result.result
-        if result and 'result_path' in result:
-            result_url = f"/results/{result['result_path']}"
+        if result:
+            if 'result_path' in result:
+                result_url = f"/results/{result['result_path']}"
+            if 'thumbnail_path' in result:
+                thumbnail_url = f"/results/{result['thumbnail_path']}"
+            width = result.get('width')
+            height = result.get('height')
+            tile_count = result.get('tile_count')
     elif status == 'FAILURE':
         error = str(task_result.result)
     elif status == 'PROCESSING':
@@ -115,7 +125,11 @@ async def get_job_status(job_id: str):
             message = info.get('status')
             progress = info.get('progress')
 
-    return JobStatus(job_id=job_id, status=status, result_url=result_url, error=error, message=message, progress=progress)
+    return JobStatus(
+        job_id=job_id, status=status, result_url=result_url, error=error,
+        message=message, progress=progress, thumbnail_url=thumbnail_url,
+        width=width, height=height, tile_count=tile_count,
+    )
 
 @router.delete("/jobs/{job_id}")
 async def delete_job(job_id: str):

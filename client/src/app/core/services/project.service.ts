@@ -7,7 +7,11 @@ export interface Project {
     name: string;
     date: Date;
     thumbnail?: string;
-    jobId?: string; // Linked job
+    jobId?: string;
+    status?: 'processing' | 'completed' | 'failed';
+    tileCount?: number;
+    width?: number;
+    height?: number;
 }
 
 @Injectable({
@@ -37,6 +41,13 @@ export class ProjectService {
 
     getProject(id: string): Project | undefined {
         return this.projectsSubject.value.find(p => p.id === id);
+    }
+
+    updateProject(id: string, changes: Partial<Project>) {
+        const current = this.projectsSubject.value;
+        const updated = current.map(p => p.id === id ? { ...p, ...changes } : p);
+        this.projectsSubject.next(updated);
+        localStorage.setItem('projects', JSON.stringify(updated));
     }
 
     deleteProject(id: string) {
