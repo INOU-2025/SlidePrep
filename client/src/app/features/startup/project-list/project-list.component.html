@@ -1,11 +1,9 @@
+<app-top-bar mode="home"></app-top-bar>
+
 <div class="startup-container">
   <div class="left-panel">
-    <h1>SlidePrep</h1>
     <div class="actions">
-      <button mat-button (click)="createNewProject()">
-        <mat-icon>add</mat-icon> New Project
-      </button>
-      <button mat-button>
+      <button mat-button type="button">
         <mat-icon>folder_open</mat-icon> Open
       </button>
     </div>
@@ -22,14 +20,14 @@
         <mat-icon matListItemIcon>description</mat-icon>
         <div matListItemTitle>{{ project.name }}</div>
         <div matListItemLine>{{ project.date | date }}</div>
-        <button mat-icon-button class="delete-btn" (click)="deleteProject($event, project.id)" matListItemMeta>
+        <button mat-icon-button type="button" class="delete-btn" (click)="deleteProject($event, project.id)" matListItemMeta>
           <mat-icon>close</mat-icon>
         </button>
       </mat-list-item>
 
       <div *ngIf="(projects$ | async)?.length === 0" class="empty-state">
         <p>No projects found. Create a new one to get started.</p>
-        <button mat-raised-button color="primary" (click)="createNewProject()">Create New Project</button>
+        <button mat-raised-button type="button" color="primary" (click)="createNewProject()">Create New Project</button>
       </div>
     </mat-list>
   </div>

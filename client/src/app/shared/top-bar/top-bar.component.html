@@ -1,0 +1,30 @@
+<mat-toolbar color="primary" class="top-bar">
+
+    <!-- Home mode -->
+    <ng-container *ngIf="mode === 'home'">
+        <div class="bar-left">
+            <mat-icon class="app-icon">biotech</mat-icon>
+            <span class="app-name">SlidePrep</span>
+        </div>
+        <span class="spacer"></span>
+        <button mat-raised-button color="accent" (click)="newProject()">
+            <mat-icon>add</mat-icon>
+            New Project
+        </button>
+    </ng-container>
+
+    <!-- Workspace mode -->
+    <ng-container *ngIf="mode === 'workspace'">
+        <div class="bar-left">
+            <button mat-icon-button (click)="goBack()" aria-label="Back to home">
+                <mat-icon>arrow_back</mat-icon>
+            </button>
+            <mat-divider [vertical]="true" class="bar-divider"></mat-divider>
+            <span class="project-name">{{ project?.name ?? 'Untitled Project' }}</span>
+            <span *ngIf="hasResolution" class="resolution">
+                {{ project!.width }} × {{ project!.height }} px
+            </span>
+        </div>
+    </ng-container>
+
+</mat-toolbar>
