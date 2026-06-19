@@ -12,6 +12,7 @@ export interface Project {
     tileCount?: number;
     width?: number;
     height?: number;
+    pixelSize?: number;
 }
 
 @Injectable({

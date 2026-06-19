@@ -22,6 +22,7 @@ import { ProjectService, Project } from '../../core/services/project.service';
         (resetZoom)="viewerRef.resetZoom()">
       </app-top-bar>
       <app-viewer #viewerRef class="viewer" [imageUrl]="imageUrl"
+        [resolution]="project?.pixelSize ?? null"
         (zoomChange)="currentZoom = $event">
       </app-viewer>
     </div>
