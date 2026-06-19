@@ -1,6 +1,18 @@
 <div class="upload-container">
     <div class="dropzone" (dragover)="onDragOver($event)" (drop)="onDrop($event)">
 
+        <!-- Project Name -->
+        <div class="settings-section">
+            <h4 class="settings-title">Project Name</h4>
+            <div class="settings-row">
+                <mat-form-field appearance="outline" class="field-lg">
+                    <mat-label>Project name</mat-label>
+                    <input matInput type="text" [(ngModel)]="projectName"
+                           [disabled]="isUploading" required placeholder="e.g. Sample A – Run 1">
+                </mat-form-field>
+            </div>
+        </div>
+
         <!-- Scan Parameters -->
         <div class="settings-section">
             <h4 class="settings-title">Scan Parameters</h4>
