@@ -36,6 +36,12 @@
     min-width: 140px;
 }
 
+.field-lg {
+    flex: 1;
+    min-width: 300px;
+    max-width: 480px;
+}
+
 .hidden-input {
     display: none;
 }

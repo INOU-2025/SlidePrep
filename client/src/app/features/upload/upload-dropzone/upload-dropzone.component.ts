@@ -37,6 +37,8 @@ export class UploadDropzoneComponent {
     uploadProgress = 0;
     statusMessage = 'Initializing...';
 
+    projectName: string = '';
+
     // Processing options
     cleanGrid = true;
 
@@ -54,6 +56,7 @@ export class UploadDropzoneComponent {
 
     get canUpload(): boolean {
         return this.files.length > 0 && !this.isUploading &&
+               this.projectName.trim().length > 0 &&
                this.gridWidth != null && this.gridWidth > 0 &&
                this.gridHeight != null && this.gridHeight > 0;
     }
@@ -117,7 +120,7 @@ export class UploadDropzoneComponent {
             next: (response) => {
                 this.projectService.addProject({
                     id: response.job_id,
-                    name: `Project ${new Date().toLocaleString()}`,
+                    name: this.projectName.trim(),
                     date: new Date(),
                     jobId: response.job_id,
                     status: 'processing',
