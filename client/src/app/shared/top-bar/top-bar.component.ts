@@ -31,4 +31,16 @@ export class TopBarComponent {
     get hasResolution(): boolean {
         return !!this.project?.width && !!this.project?.height;
     }
+
+    get canExport(): boolean {
+        return this.project?.status === 'completed' && !!this.project?.jobId;
+    }
+
+    exportSlide() {
+        if (!this.project?.jobId) return;
+        const link = document.createElement('a');
+        link.href = `/api/jobs/${this.project.jobId}/export`;
+        link.download = `${this.project.name}.ome.tif`;
+        link.click();
+    }
 }

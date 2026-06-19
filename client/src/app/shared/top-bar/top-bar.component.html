@@ -7,7 +7,7 @@
             <span class="app-name">SlidePrep</span>
         </div>
         <span class="spacer"></span>
-        <button mat-raised-button color="accent" (click)="newProject()">
+        <button mat-raised-button type="button" color="accent" (click)="newProject()">
             <mat-icon>add</mat-icon>
             New Project
         </button>
@@ -16,7 +16,7 @@
     <!-- Workspace mode -->
     <ng-container *ngIf="mode === 'workspace'">
         <div class="bar-left">
-            <button mat-icon-button (click)="goBack()" aria-label="Back to home">
+            <button mat-icon-button type="button" (click)="goBack()" aria-label="Back to home">
                 <mat-icon>arrow_back</mat-icon>
             </button>
             <mat-divider [vertical]="true" class="bar-divider"></mat-divider>
@@ -25,6 +25,11 @@
                 {{ project!.width }} × {{ project!.height }} px
             </span>
         </div>
+        <span class="spacer"></span>
+        <button mat-stroked-button type="button" class="export-btn" [disabled]="!canExport" (click)="exportSlide()">
+            <mat-icon>download</mat-icon>
+            Export
+        </button>
     </ng-container>
 
 </mat-toolbar>
