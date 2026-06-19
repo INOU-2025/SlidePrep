@@ -141,7 +141,21 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str,
         except Exception as e:
             logger.warning(f"Could not count DZI tiles: {e}")
 
+        # Pick the highest-resolution level that still fits in a single tile.
         thumbnail_path = f"{dzi_name}_files/0/0_0.jpeg"
+        try:
+            levels = sorted(
+                (int(d) for d in os.listdir(dzi_files_dir) if d.isdigit()),
+                reverse=True,
+            )
+            for lvl in levels:
+                tiles = os.listdir(os.path.join(dzi_files_dir, str(lvl)))
+                tiles = [t for t in tiles if not t.endswith('.xml')]
+                if tiles == ['0_0.jpeg']:
+                    thumbnail_path = f"{dzi_name}_files/{lvl}/0_0.jpeg"
+                    break
+        except Exception as e:
+            logger.warning(f"Could not determine thumbnail level: {e}")
 
         logger.info(f"Job {job_id} completed successfully")
         return {
