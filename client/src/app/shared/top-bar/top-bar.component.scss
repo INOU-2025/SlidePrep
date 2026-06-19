@@ -1,0 +1,43 @@
+.top-bar {
+    min-height: 64px;
+    padding: 0 16px;
+    box-sizing: border-box;
+}
+
+.bar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.spacer {
+    flex: 1;
+}
+
+.app-icon {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+}
+
+.app-name {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.bar-divider {
+    height: 36px;
+    margin: 0 4px;
+}
+
+.project-name {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.resolution {
+    font-size: 13px;
+    font-weight: 400;
+    opacity: 0.75;
+}
