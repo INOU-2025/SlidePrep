@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Dark background -->
+  <rect width="32" height="32" rx="5" fill="#0d1018"/>
+  <!-- 3×3 grid — cells where index % 4 === 0 (diagonal: 0, 4, 8) use accent cyan -->
+  <!-- Row 0 -->
+  <rect x="2"  y="2"  width="8" height="8" rx="1.5" fill="#3ec9c1"/>
+  <rect x="12" y="2"  width="8" height="8" rx="1.5" fill="#5e6475"/>
+  <rect x="22" y="2"  width="8" height="8" rx="1.5" fill="#5e6475"/>
+  <!-- Row 1 -->
+  <rect x="2"  y="12" width="8" height="8" rx="1.5" fill="#5e6475"/>
+  <rect x="12" y="12" width="8" height="8" rx="1.5" fill="#3ec9c1"/>
+  <rect x="22" y="12" width="8" height="8" rx="1.5" fill="#5e6475"/>
+  <!-- Row 2 -->
+  <rect x="2"  y="22" width="8" height="8" rx="1.5" fill="#5e6475"/>
+  <rect x="12" y="22" width="8" height="8" rx="1.5" fill="#5e6475"/>
+  <rect x="22" y="22" width="8" height="8" rx="1.5" fill="#3ec9c1"/>
+</svg>
