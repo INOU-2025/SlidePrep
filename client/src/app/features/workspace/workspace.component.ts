@@ -176,7 +176,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
             this.imageUrl = status.result_url ? `/api${status.result_url}` : this.imageUrl;
             this.projectService.updateProject(jobId, {
               status:    'completed',
-              thumbnail: status.thumbnail_url,
+              thumbnail: status.thumbnail_url ? `/api${status.thumbnail_url}` : undefined,
               width:     status.width,
               height:    status.height,
             });
