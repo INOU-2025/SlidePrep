@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { NgForm } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -32,6 +33,8 @@ import { ProjectService } from '../../../core/services/project.service';
     styleUrls: ['./upload-dropzone.component.scss']
 })
 export class UploadDropzoneComponent {
+    @ViewChild('uploadForm') uploadForm!: NgForm;
+
     files: File[] = [];
     isUploading = false;
     uploadProgress = 0;
@@ -54,11 +57,13 @@ export class UploadDropzoneComponent {
     gridAngle: number | null = null;
     detectionThreshold: number | null = null;
 
+    get filesMatchGrid(): boolean {
+        if (!this.gridWidth || !this.gridHeight) return true;
+        return this.files.length === this.gridWidth * this.gridHeight;
+    }
+
     get canUpload(): boolean {
-        return this.files.length > 0 && !this.isUploading &&
-               this.projectName.trim().length > 0 &&
-               this.gridWidth != null && this.gridWidth > 0 &&
-               this.gridHeight != null && this.gridHeight > 0;
+        return !this.isUploading && this.filesMatchGrid;
     }
 
     constructor(
@@ -101,7 +106,8 @@ export class UploadDropzoneComponent {
     }
 
     upload() {
-        if (!this.canUpload) return;
+        this.uploadForm.markAllAsTouched();
+        if (!this.canUpload || !this.uploadForm.valid || this.files.length === 0) return;
 
         this.isUploading = true;
         this.statusMessage = 'Uploading...';
