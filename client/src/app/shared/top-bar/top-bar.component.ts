@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -17,6 +17,11 @@ import { Project } from '../../core/services/project.service';
 export class TopBarComponent {
     @Input() mode: 'home' | 'workspace' = 'home';
     @Input() project?: Project;
+    @Input() zoom: number = 1;
+
+    @Output() zoomIn = new EventEmitter<void>();
+    @Output() zoomOut = new EventEmitter<void>();
+    @Output() resetZoom = new EventEmitter<void>();
 
     constructor(private router: Router) {}
 
@@ -27,6 +32,8 @@ export class TopBarComponent {
     newProject() {
         this.router.navigate(['/upload']);
     }
+
+    get zoomLabel(): string { return this.zoom.toFixed(1) + 'x'; }
 
     get hasResolution(): boolean {
         return !!this.project?.width && !!this.project?.height;

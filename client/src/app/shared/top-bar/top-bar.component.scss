@@ -41,3 +41,16 @@
     font-weight: 400;
     opacity: 0.75;
 }
+
+.zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.zoom-label {
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 44px;
+    text-align: center;
+}
