@@ -1,56 +1,203 @@
 .top-bar {
-    min-height: 64px;
-    padding: 0 16px;
-    box-sizing: border-box;
+  height: 48px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: var(--surface-chrome);
+  border-bottom: 1px solid var(--border-default);
+  font-family: var(--font-sans);
 }
+
+/* ── Wordmark ── */
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.wordmark-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 1.5px;
+  width: 20px;
+  height: 20px;
+
+  i {
+    border-radius: 1px;
+    background: var(--gray-600);
+
+    &.accent { background: var(--accent); }
+  }
+}
+
+.wordmark-text {
+  font-weight: 600;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+
+  .accent { color: var(--accent); }
+}
+
+/* ── Layout helpers ── */
+.spacer { flex: 1; }
 
 .bar-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.spacer {
-    flex: 1;
-}
-
-.app-icon {
-    font-size: 28px;
-    width: 28px;
-    height: 28px;
-}
-
-.app-name {
-    font-size: 20px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
+.bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .bar-divider {
-    height: 36px;
-    margin: 0 4px;
+  width: 1px;
+  height: 20px;
+  background: var(--border-subtle);
+  flex: none;
 }
 
-.project-name {
-    font-size: 16px;
-    font-weight: 600;
+/* ── Slide meta ── */
+.slide-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 
-.resolution {
-    font-size: 13px;
-    font-weight: 400;
-    opacity: 0.75;
+.slide-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.2;
 }
 
-.zoom-controls {
-    display: flex;
-    align-items: center;
-    gap: 2px;
+.slide-dims {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+/* ── Status badge ── */
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+
+  &.completed {
+    background: oklch(0.25 0.06 145 / 0.4);
+    color: oklch(0.72 0.15 145);
+    .badge-dot { background: oklch(0.72 0.15 145); }
+  }
+
+  &.processing {
+    background: var(--accent-soft);
+    color: var(--accent);
+    .badge-dot {
+      background: var(--accent);
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+  }
+
+  &.failed {
+    background: oklch(0.22 0.06 25 / 0.4);
+    color: var(--danger);
+  }
+}
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.7); }
+}
+
+/* ── Buttons ── */
+.btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 12px;
+  height: 30px;
+  border: none;
+  border-radius: 4px;
+  background: var(--accent);
+  color: oklch(0.12 0.008 248);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 120ms;
+
+  .material-symbols-rounded { font-size: 16px; }
+
+  &:hover { opacity: 0.88; }
+}
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 100ms, color 100ms;
+
+  .material-symbols-rounded { font-size: 18px; }
+
+  &:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+
+  &--solid {
+    background: var(--surface-card);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+
+    &:hover {
+      background: var(--surface-hover);
+      color: var(--text-primary);
+    }
+  }
+}
+
+/* ── Zoom tool group ── */
+.tool-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
 }
 
 .zoom-label {
-    font-size: 13px;
-    font-weight: 500;
-    min-width: 44px;
-    text-align: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 36px;
+  text-align: center;
 }

@@ -1,53 +1,44 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatDividerModule } from '@angular/material/divider';
 import { Project } from '../../core/services/project.service';
+
+export const ZOOMS = [1, 2, 4, 10, 20, 40];
 
 @Component({
     selector: 'app-top-bar',
     standalone: true,
-    imports: [CommonModule, MatToolbarModule, MatButtonModule, MatIconModule, MatDividerModule],
+    imports: [CommonModule],
     templateUrl: './top-bar.component.html',
     styleUrls: ['./top-bar.component.scss']
 })
 export class TopBarComponent {
     @Input() mode: 'home' | 'workspace' = 'home';
     @Input() project?: Project;
-    @Input() zoom: number = 1;
+    @Input() zoomIdx: number = 1;
 
-    @Output() zoomIn = new EventEmitter<void>();
-    @Output() zoomOut = new EventEmitter<void>();
-    @Output() resetZoom = new EventEmitter<void>();
+    @Output() newSlide    = new EventEmitter<void>();
+    @Output() zoomIn      = new EventEmitter<void>();
+    @Output() zoomOut     = new EventEmitter<void>();
+    @Output() resetZoom   = new EventEmitter<void>();
+    @Output() export      = new EventEmitter<void>();
+
+    readonly wordmarkCells = Array.from({ length: 9 }, (_, i) => i);
+    readonly zooms = ZOOMS;
 
     constructor(private router: Router) {}
 
-    goBack() {
-        this.router.navigate(['/startup']);
+    goBack() { this.router.navigate(['/startup']); }
+
+    get currentZoomLabel(): string { return ZOOMS[this.zoomIdx] + '×'; }
+
+    get dims(): string {
+        const w = this.project?.width;
+        const h = this.project?.height;
+        return w && h ? `${w.toLocaleString()} × ${h.toLocaleString()} px` : '—';
     }
 
-    newProject() {
-        this.router.navigate(['/upload']);
-    }
-
-    get zoomLabel(): string { return this.zoom.toFixed(1) + 'x'; }
-
-    get hasResolution(): boolean {
-        return !!this.project?.width && !!this.project?.height;
-    }
-
-    get canExport(): boolean {
-        return this.project?.status === 'completed' && !!this.project?.jobId;
-    }
-
-    exportSlide() {
-        if (!this.project?.jobId) return;
-        const link = document.createElement('a');
-        link.href = `/api/jobs/${this.project.jobId}/export`;
-        link.download = `${this.project.name}.ome.tif`;
-        link.click();
+    get canShowControls(): boolean {
+        return this.project?.status === 'completed';
     }
 }
