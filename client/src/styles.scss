@@ -1,4 +1,48 @@
-@import '@angular/material/prebuilt-themes/indigo-pink.css';
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+:root {
+  --surface-void:   oklch(0.10 0.006 248);
+  --surface-app:    oklch(0.13 0.008 248);
+  --surface-chrome: oklch(0.17 0.008 248);
+  --surface-panel:  oklch(0.15 0.008 248);
+  --surface-card:   oklch(0.19 0.008 248);
+  --surface-hover:  oklch(0.22 0.008 248);
 
+  --accent:      oklch(0.78 0.14 200);
+  --accent-soft: oklch(0.78 0.14 200 / 0.15);
+
+  --border-default: oklch(0.30 0.008 248);
+  --border-subtle:  oklch(0.24 0.008 248);
+  --border-strong:  oklch(0.38 0.008 248);
+
+  --text-primary:   oklch(0.94 0.004 248);
+  --text-secondary: oklch(0.75 0.006 248);
+  --text-muted:     oklch(0.55 0.008 248);
+  --text-disabled:  oklch(0.40 0.008 248);
+
+  --gray-600: oklch(0.45 0.006 248);
+
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+
+  --danger: oklch(0.62 0.18 25);
+}
+
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: var(--font-sans);
+  background: var(--surface-void);
+  color: var(--text-primary);
+}
+* { box-sizing: border-box; }
+
+/* OSD navigator overrides (injected outside component shadow) */
+.openseadragon-navigator {
+  background: var(--surface-void) !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 14px oklch(0 0 0 / 0.45) !important;
+  overflow: hidden !important;
+}
+.openseadragon-navigator .displayregion {
+  border: 1.5px solid var(--accent) !important;
+  border-radius: 2px !important;
+}
