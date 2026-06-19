@@ -1,4 +1,5 @@
-from fastapi import APIRouter, UploadFile, File, Form
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi.responses import FileResponse
 from typing import List, Optional
 import uuid
 import os
@@ -129,6 +130,17 @@ async def get_job_status(job_id: str):
         job_id=job_id, status=status, result_url=result_url, error=error,
         message=message, progress=progress, thumbnail_url=thumbnail_url,
         width=width, height=height, tile_count=tile_count,
+    )
+
+@router.get("/jobs/{job_id}/export")
+async def export_job(job_id: str):
+    ome_tiff_path = os.path.join(UPLOAD_DIR, job_id, "processed", "stitched_slide.ome.tif")
+    if not os.path.exists(ome_tiff_path):
+        raise HTTPException(status_code=404, detail="Export file not found — job may still be processing")
+    return FileResponse(
+        path=ome_tiff_path,
+        media_type="image/tiff",
+        filename=f"{job_id}_slide.ome.tif",
     )
 
 @router.delete("/jobs/{job_id}")
