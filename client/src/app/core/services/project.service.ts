@@ -8,7 +8,7 @@ export interface Project {
     date: Date;
     thumbnail?: string;
     jobId?: string;
-    status?: 'processing' | 'completed' | 'failed';
+    status: 'processing' | 'completed' | 'failed';
     tileCount?: number;
     width?: number;
     height?: number;

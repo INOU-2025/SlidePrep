@@ -106,7 +106,7 @@ export class UploadDropzoneComponent {
     }
 
     upload() {
-        this.uploadForm.markAllAsTouched();
+        Object.values(this.uploadForm.controls).forEach(c => c.markAsTouched());
         if (!this.canUpload || !this.uploadForm.valid || this.files.length === 0) return;
 
         this.isUploading = true;

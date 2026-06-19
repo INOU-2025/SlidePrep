@@ -1,48 +1,56 @@
-<mat-toolbar color="primary" class="top-bar">
+<header class="top-bar">
 
-    <!-- Home mode -->
-    <ng-container *ngIf="mode === 'home'">
-        <div class="bar-left">
-            <mat-icon class="app-icon">biotech</mat-icon>
-            <span class="app-name">SlidePrep</span>
-        </div>
-        <span class="spacer"></span>
-        <button mat-raised-button type="button" color="accent" (click)="newProject()">
-            <mat-icon>add</mat-icon>
-            New Project
+  <!-- Home mode -->
+  <ng-container *ngIf="mode === 'home'">
+    <div class="wordmark">
+      <div class="wordmark-grid">
+        <i *ngFor="let i of wordmarkCells" [class.accent]="i % 4 === 0"></i>
+      </div>
+      <span class="wordmark-text">Slide<span class="accent">Prep</span></span>
+    </div>
+    <span class="spacer"></span>
+    <button class="btn-primary" type="button" (click)="newSlide.emit()">
+      <span class="material-symbols-rounded">add</span>
+      New slide
+    </button>
+  </ng-container>
+
+  <!-- Workspace mode -->
+  <ng-container *ngIf="mode === 'workspace'">
+    <div class="bar-left">
+      <button class="icon-btn" type="button" (click)="goBack()" aria-label="Back to slides">
+        <span class="material-symbols-rounded">arrow_back</span>
+      </button>
+      <div class="bar-divider"></div>
+      <div class="slide-meta">
+        <div class="slide-name">{{ project?.name ?? 'Untitled slide' }}</div>
+        <div class="slide-dims">{{ dims }}</div>
+      </div>
+      <div class="badge" [ngClass]="project?.status">
+        <span class="badge-dot" *ngIf="project?.status !== 'failed'"></span>
+        {{ project?.status === 'completed' ? 'Completed' : project?.status === 'processing' ? 'Processing' : 'Failed' }}
+      </div>
+    </div>
+
+    <span class="spacer"></span>
+
+    <div class="bar-right" *ngIf="canShowControls">
+      <div class="tool-group">
+        <button class="icon-btn" type="button" aria-label="Zoom out" (click)="zoomOut.emit()">
+          <span class="material-symbols-rounded">zoom_out</span>
         </button>
-    </ng-container>
-
-    <!-- Workspace mode -->
-    <ng-container *ngIf="mode === 'workspace'">
-        <div class="bar-left">
-            <button mat-icon-button type="button" (click)="goBack()" aria-label="Back to home">
-                <mat-icon>arrow_back</mat-icon>
-            </button>
-            <mat-divider [vertical]="true" class="bar-divider"></mat-divider>
-            <span class="project-name">{{ project?.name ?? 'Untitled Project' }}</span>
-            <span *ngIf="hasResolution" class="resolution">
-                {{ project!.width }} × {{ project!.height }} px
-            </span>
-        </div>
-        <span class="spacer"></span>
-        <div class="zoom-controls">
-            <button mat-icon-button type="button" aria-label="Zoom out" (click)="zoomOut.emit()">
-                <mat-icon>zoom_out</mat-icon>
-            </button>
-            <span class="zoom-label">{{ zoomLabel }}</span>
-            <button mat-icon-button type="button" aria-label="Zoom in" (click)="zoomIn.emit()">
-                <mat-icon>zoom_in</mat-icon>
-            </button>
-            <button mat-icon-button type="button" aria-label="Reset zoom" (click)="resetZoom.emit()">
-                <mat-icon>fit_screen</mat-icon>
-            </button>
-        </div>
-        <mat-divider [vertical]="true" class="bar-divider"></mat-divider>
-        <button mat-stroked-button type="button" class="export-btn" [disabled]="!canExport" (click)="exportSlide()">
-            <mat-icon>download</mat-icon>
-            Export
+        <span class="zoom-label">{{ currentZoomLabel }}</span>
+        <button class="icon-btn" type="button" aria-label="Zoom in" (click)="zoomIn.emit()">
+          <span class="material-symbols-rounded">zoom_in</span>
         </button>
-    </ng-container>
+        <button class="icon-btn" type="button" aria-label="Fit" (click)="resetZoom.emit()">
+          <span class="material-symbols-rounded">fit_screen</span>
+        </button>
+      </div>
+      <button class="icon-btn icon-btn--solid" type="button" aria-label="Export" (click)="export.emit()">
+        <span class="material-symbols-rounded">download</span>
+      </button>
+    </div>
+  </ng-container>
 
-</mat-toolbar>
+</header>
