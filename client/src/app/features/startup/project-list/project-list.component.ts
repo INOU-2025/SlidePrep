@@ -6,11 +6,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { ProjectService, Project } from '../../../core/services/project.service';
+import { TopBarComponent } from '../../../shared/top-bar/top-bar.component';
 
 @Component({
     selector: 'app-project-list',
     standalone: true,
-    imports: [CommonModule, MatCardModule, MatButtonModule, MatListModule, MatIconModule],
+    imports: [CommonModule, MatCardModule, MatButtonModule, MatListModule, MatIconModule, TopBarComponent],
     templateUrl: './project-list.component.html',
     styleUrls: ['./project-list.component.scss']
 })
