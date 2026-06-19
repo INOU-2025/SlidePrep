@@ -1,4 +1,4 @@
-import { Component, AfterViewInit, OnChanges, SimpleChanges, Input, Output, EventEmitter } from '@angular/core';
+import { Component, AfterViewInit, OnChanges, SimpleChanges, Input, Output, EventEmitter, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import OpenSeadragon from 'openseadragon';
 
@@ -6,15 +6,52 @@ import OpenSeadragon from 'openseadragon';
     selector: 'app-viewer',
     standalone: true,
     imports: [CommonModule],
-    template: '<div id="openseadragon-viewer" style="width: 100%; height: 100%;"></div>',
-    styles: [':host { display: block; height: 100%; }']
+    template: `
+        <div class="viewer-host">
+            <div id="openseadragon-viewer" style="width: 100%; height: 100%;"></div>
+            <div class="cursor-info" *ngIf="mouseInViewport">
+                <span class="coords">X: {{ mouseX }}&nbsp;&nbsp;Y: {{ mouseY }}</span>
+                <span class="resolution" *ngIf="resolution != null">{{ resolution | number:'1.3-3' }} µm/px</span>
+            </div>
+        </div>
+    `,
+    styles: [`
+        :host { display: block; height: 100%; }
+        .viewer-host { position: relative; width: 100%; height: 100%; }
+        .cursor-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.65);
+            color: #e0e0e0;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            backdrop-filter: blur(2px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .resolution { color: #90caf9; }
+    `]
 })
 export class ViewerComponent implements AfterViewInit, OnChanges {
     private viewer: any;
     private homeZoom: number = 1;
 
     @Input() imageUrl: string = '';
+    @Input() resolution: number | null = null;
     @Output() zoomChange = new EventEmitter<number>();
+
+    mouseX: number = 0;
+    mouseY: number = 0;
+    mouseInViewport: boolean = false;
+
+    constructor(private ngZone: NgZone) {}
 
     ngAfterViewInit() {
         this.initViewer();
@@ -54,6 +91,21 @@ export class ViewerComponent implements AfterViewInit, OnChanges {
 
         this.viewer.addHandler('zoom', (event: any) => {
             this.zoomChange.emit(event.zoom / this.homeZoom);
+        });
+
+        this.viewer.addHandler('canvas-mousemove', (event: any) => {
+            const imageCoords = this.viewer.viewport.viewerElementToImageCoordinates(event.position);
+            this.ngZone.run(() => {
+                this.mouseX = Math.round(imageCoords.x);
+                this.mouseY = Math.round(imageCoords.y);
+                this.mouseInViewport = true;
+            });
+        });
+
+        this.viewer.addHandler('canvas-exit', () => {
+            this.ngZone.run(() => {
+                this.mouseInViewport = false;
+            });
         });
     }
 }
