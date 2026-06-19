@@ -131,6 +131,7 @@ export class UploadDropzoneComponent {
                     jobId: response.job_id,
                     status: 'processing',
                     tileCount: (this.gridWidth ?? 0) * (this.gridHeight ?? 0) || undefined,
+                    pixelSize: this.pixelSize ?? undefined,
                 });
                 this.pollStatus(response.job_id);
             },
