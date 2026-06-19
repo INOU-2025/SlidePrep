@@ -119,7 +119,9 @@ export class UploadDropzoneComponent {
                     id: response.job_id,
                     name: `Project ${new Date().toLocaleString()}`,
                     date: new Date(),
-                    jobId: response.job_id
+                    jobId: response.job_id,
+                    status: 'processing',
+                    tileCount: (this.gridWidth ?? 0) * (this.gridHeight ?? 0) || undefined,
                 });
                 this.pollStatus(response.job_id);
             },
@@ -144,10 +146,17 @@ export class UploadDropzoneComponent {
                     if (status.status === 'COMPLETED' || status.status === 'SUCCESS') {
                         clearInterval(pollInterval);
                         this.isUploading = false;
+                        this.projectService.updateProject(jobId, {
+                            status: 'completed',
+                            thumbnail: status.thumbnail_url,
+                            width: status.width,
+                            height: status.height,
+                        });
                         this.router.navigate(['/workspace', jobId]);
                     } else if (status.status === 'FAILURE') {
                         clearInterval(pollInterval);
                         this.isUploading = false;
+                        this.projectService.updateProject(jobId, { status: 'failed' });
                         console.error('Processing failed', status.error);
                     } else {
                         console.log('Processing status:', status.status);

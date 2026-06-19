@@ -27,6 +27,10 @@ class JobStatus(BaseModel):
     error: Optional[str] = None
     message: Optional[str] = None
     progress: Optional[int] = None
+    thumbnail_url: Optional[str] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    tile_count: Optional[int] = None
 
 class AppConfig(BaseModel):
     general: GeneralConfig
