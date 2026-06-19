@@ -132,11 +132,12 @@ SlidePrep/
 │   ├── celery_app.py
 │   └── tasks.py                   # process_images_task
 │
-├── client/                        # Angular frontend
+├── client/                        # Angular frontend (Angular 19, standalone components)
 │   └── src/app/
-│       ├── features/startup/      # Project list view
-│       ├── features/upload/       # Drag-and-drop tile upload
-│       └── features/workspace/   # Slide viewer + sidebar
+│       ├── core/services/         # ApiService, ProjectService
+│       ├── shared/top-bar/        # App bar (home + workspace modes)
+│       ├── features/startup/      # Slide list + two-step create-slide modal
+│       └── features/workspace/    # Deep-zoom viewer (OpenSeadragon)
 │
 ├── config/                        # JSON configuration files
 │   ├── production.json
