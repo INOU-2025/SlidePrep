@@ -81,6 +81,7 @@ export class ViewerComponent implements AfterViewInit, OnChanges {
             id: 'openseadragon-viewer',
             prefixUrl: 'https://openseadragon.github.io/openseadragon/images/',
             tileSources: isDzi ? url : { type: 'image', url },
+            showNavigationControl: false,
             showNavigator:    true,
             navigatorPosition: 'BOTTOM_RIGHT',
             navigatorHeight:  '100px',
