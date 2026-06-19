@@ -15,6 +15,10 @@ export interface JobStatus {
     error?: string;
     message?: string;
     progress?: number;
+    thumbnail_url?: string;
+    width?: number;
+    height?: number;
+    tile_count?: number;
 }
 
 export interface UploadOptions {

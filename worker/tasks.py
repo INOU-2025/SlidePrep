@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 import subprocess
+import xml.etree.ElementTree as ET
 from glob import glob
 
 import cv2
@@ -119,9 +120,38 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str,
         subprocess.run(cmd, check=True)
 
         final_result_name = f"{dzi_name}.dzi"
+        dzi_files_dir = f"{dzi_output_path}_files"
+
+        width, height = None, None
+        try:
+            tree = ET.parse(f"{dzi_output_path}.dzi")
+            root = tree.getroot()
+            ns = root.tag.split('}')[0].lstrip('{') if '}' in root.tag else ''
+            size_tag = root.find(f'{{{ns}}}Size') if ns else root.find('Size')
+            if size_tag is not None:
+                width = int(size_tag.get('Width', 0))
+                height = int(size_tag.get('Height', 0))
+        except Exception as e:
+            logger.warning(f"Could not parse DZI dimensions: {e}")
+
+        tile_count = 0
+        try:
+            for _, _, files in os.walk(dzi_files_dir):
+                tile_count += sum(1 for f in files if not f.endswith('.xml'))
+        except Exception as e:
+            logger.warning(f"Could not count DZI tiles: {e}")
+
+        thumbnail_path = f"{dzi_name}_files/0/0_0.jpeg"
 
         logger.info(f"Job {job_id} completed successfully")
-        return {'status': 'COMPLETED', 'result_path': final_result_name}
+        return {
+            'status': 'COMPLETED',
+            'result_path': final_result_name,
+            'thumbnail_path': thumbnail_path,
+            'width': width,
+            'height': height,
+            'tile_count': tile_count,
+        }
 
     except Exception as e:
         logger.error(f"Job {job_id} failed: {e}")
