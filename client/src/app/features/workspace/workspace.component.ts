@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 
@@ -13,8 +13,17 @@ import { ProjectService, Project } from '../../core/services/project.service';
   imports: [CommonModule, ViewerComponent, TopBarComponent],
   template: `
     <div class="workspace-container">
-      <app-top-bar mode="workspace" [project]="project"></app-top-bar>
-      <app-viewer class="viewer" [imageUrl]="imageUrl"></app-viewer>
+      <app-top-bar
+        mode="workspace"
+        [project]="project"
+        [zoom]="currentZoom"
+        (zoomIn)="viewerRef.zoomIn()"
+        (zoomOut)="viewerRef.zoomOut()"
+        (resetZoom)="viewerRef.resetZoom()">
+      </app-top-bar>
+      <app-viewer #viewerRef class="viewer" [imageUrl]="imageUrl"
+        (zoomChange)="currentZoom = $event">
+      </app-viewer>
     </div>
   `,
   styles: [`
@@ -32,6 +41,8 @@ import { ProjectService, Project } from '../../core/services/project.service';
   `]
 })
 export class WorkspaceComponent implements OnInit {
+  @ViewChild('viewerRef') viewerRef!: ViewerComponent;
+
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private apiService = inject(ApiService);
@@ -39,6 +50,7 @@ export class WorkspaceComponent implements OnInit {
 
   imageUrl: string = '';
   project: Project | undefined;
+  currentZoom: number = 1;
 
   ngOnInit() {
     const jobId = this.route.snapshot.paramMap.get('id');

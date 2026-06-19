@@ -26,6 +26,19 @@
             </span>
         </div>
         <span class="spacer"></span>
+        <div class="zoom-controls">
+            <button mat-icon-button type="button" aria-label="Zoom out" (click)="zoomOut.emit()">
+                <mat-icon>zoom_out</mat-icon>
+            </button>
+            <span class="zoom-label">{{ zoomLabel }}</span>
+            <button mat-icon-button type="button" aria-label="Zoom in" (click)="zoomIn.emit()">
+                <mat-icon>zoom_in</mat-icon>
+            </button>
+            <button mat-icon-button type="button" aria-label="Reset zoom" (click)="resetZoom.emit()">
+                <mat-icon>fit_screen</mat-icon>
+            </button>
+        </div>
+        <mat-divider [vertical]="true" class="bar-divider"></mat-divider>
         <button mat-stroked-button type="button" class="export-btn" [disabled]="!canExport" (click)="exportSlide()">
             <mat-icon>download</mat-icon>
             Export
