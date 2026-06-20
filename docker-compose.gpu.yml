@@ -1,5 +1,6 @@
 services:
   worker:
+    command: celery -A worker.celery_app worker --loglevel=info --pool=solo
     deploy:
       resources:
         reservations:
