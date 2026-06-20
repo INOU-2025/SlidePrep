@@ -178,10 +178,11 @@ def main():
     if log_path is None:
         with open(args.config) as f:
             cfg = json.load(f)
-        log_path = cfg.get("log", {}).get("relative_path", "pipeline.log")
-        if not cfg.get("debug", {}).get("enabled", False):
-            print("WARNING: config 'debug.enabled' is false — per-stage breakdown "
-                  "will be empty. Enable debug mode in the config for full results.",
+        log_path = cfg.get("log", {}).get("log_file_name", "pipeline.log")
+        if cfg.get("log", {}).get("log_level", "INFO").upper() != "DEBUG":
+            print("WARNING: config 'log.log_level' is not DEBUG — per-stage breakdown "
+                  "will be empty. Set log_level to DEBUG and log_to_file to true for "
+                  "full results.",
                   file=sys.stderr)
 
     modes = []
