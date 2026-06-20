@@ -11,39 +11,44 @@ the per-stage breakdown can be parsed from the log file:
 
 ```json
 {
-  "debug": {
-    "enabled": true,
-    "log_to_file": true
-  },
   "log": {
-    "relative_path": "pipeline.log"
+    "log_to_file": true,
+    "log_to_console": false,
+    "log_file_name": "pipeline.log",
+    "log_level": "DEBUG"
   }
 }
 ```
 
-Without `debug.enabled`, end-to-end wall-clock times are still collected but
-the per-stage breakdown table will be empty. The script prints a warning in
-that case.
+Without `log_level: DEBUG`, end-to-end wall-clock times are still collected
+but the per-stage breakdown table will be empty. The script prints a warning
+in that case.
 
 ## Usage
 
-Run from the project root (the same directory as `main.py`):
+Always run a sample pass first to confirm the pipeline works end-to-end before
+committing to a full-dataset run.
+
+### Step 1 — validate on 9-tile sample
 
 ```bash
-# GPU benchmark — 3 timed runs (default)
-python scripts/benchmark_pipeline.py config/production.json
+python scripts/benchmark_pipeline.py config/benchmark_sample.json --repeats 3
+```
 
-# More repeats for tighter statistics
-python scripts/benchmark_pipeline.py config/production.json --repeats 5
+### Step 2 — full 686-tile measurement
+
+Fill in the real paths in `config/benchmark_production.json`
+(`general.input_path` and `general.output_path`), then:
+
+```bash
+# GPU only (default)
+python scripts/benchmark_pipeline.py config/benchmark_production.json --repeats 6
 
 # CPU-only (disables CUDA via CUDA_VISIBLE_DEVICES='')
-python scripts/benchmark_pipeline.py config/production.json --cpu-only
+python scripts/benchmark_pipeline.py config/benchmark_production.json --repeats 6 --cpu-only
 
 # Both CPU and GPU — produces a speedup comparison
-python scripts/benchmark_pipeline.py config/production.json --both
-
-# Explicit log path (overrides what's in the config)
-python scripts/benchmark_pipeline.py config/production.json --log-path logs/pipeline.log
+python scripts/benchmark_pipeline.py config/benchmark_production.json --repeats 6 --both
 ```
 
 ### CLI flags

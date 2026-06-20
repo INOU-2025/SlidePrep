@@ -1,0 +1,91 @@
+{
+  "general": {
+    "input_path": "sample_data/tiles",
+    "output_path": "sample_data/output",
+    "suffix_filter": "_ch00",
+    "output_suffix": "",
+    "log": true,
+    "debug": false
+  },
+  "binarization": {
+    "threshold_method": "combined_differential"
+  },
+  "img_conversion": {
+    "format": "tiff",
+    "mode": "grayscale"
+  },
+  "grid_detection": {
+    "threshold": 0.1,
+    "angles": [
+      -2.0
+    ],
+    "enable_early_exit": true,
+    "enable_template_cache": true,
+    "enable_preprocessing_cache": true,
+    "cache_max_size": 50,
+    "general": {
+      "template_length": 300,
+      "thickness": 20,
+      "min_contour_area": 100
+    },
+    "thick_border": {
+      "template_length": 60,
+      "thickness": 7,
+      "border_thickness": 30,
+      "min_contour_area": 2
+    },
+    "thin_border": {
+      "template_length": 30,
+      "thickness": 7,
+      "border_thickness": 20,
+      "min_contour_area": 1
+    }
+  },
+  "grid_refinement": {
+    "classifier": {
+      "model_path": "models/rf_detection_classifier.joblib",
+      "features": [
+        "orientation_mismatch",
+        "long_side_angle",
+        "aspect_ratio",
+        "corner_proximity",
+        "area",
+        "length"
+      ],
+      "threshold": 0.5
+    },
+    "target_inclination_angles": {
+      "horizontal": 1.7,
+      "vertical": -88.3,
+      "tolerance": 1.0
+    },
+    "target_thickness": 48,
+    "thickness_bias": 0.60
+  },
+  "inpainting": {
+    "model": "lama"
+  },
+  "stitching": {
+    "output_filename": "stitched_slide.ome.tif",
+    "pattern": "TileScan_001_s{series:3}_ch{channel:2}.tif",
+    "overlap": 0.1,
+    "pixel_size": 0.324957,
+    "width": 3,
+    "height": 3,
+    "layout": "raster",
+    "direction": "vertical",
+    "align_channel": 0
+  },
+  "debug": {
+    "saved_artifact_type": "both",
+    "save_composite_img": true,
+    "save_aggregated_data": true,
+    "artifact_sink": "local"
+  },
+  "log": {
+    "log_to_file": true,
+    "log_to_console": false,
+    "log_file_name": "pipeline.log",
+    "log_level": "DEBUG"
+  }
+}
