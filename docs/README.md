@@ -10,6 +10,7 @@ Welcome to the SlidePrep documentation. This folder contains essential guides fo
 - **[`BINARIZATION_METHODS_GUIDE.md`](BINARIZATION_METHODS_GUIDE.md)** - Binarization methods and optimization
 - **[`DEBUG_SYSTEM_GUIDE.md`](DEBUG_SYSTEM_GUIDE.md)** - Debug visualization system
 - **[`LOGGING_CONFIGURATION.md`](LOGGING_CONFIGURATION.md)** - Logging setup and configuration
+- **[`BENCHMARKING_GUIDE.md`](BENCHMARKING_GUIDE.md)** - Pipeline benchmarking for SoftwareX paper timing claims
 
 ## 🚀 Quick Start
 

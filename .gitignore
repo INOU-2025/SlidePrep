@@ -340,4 +340,7 @@ data/
 # Sample data pipeline output (tiles are committed; generated output is not)
 sample_data/output/
 
+# Benchmark script output
+benchmark_results/
+
 .DS_Store
