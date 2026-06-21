@@ -178,7 +178,9 @@ def main():
     if log_path is None:
         with open(args.config) as f:
             cfg = json.load(f)
-        log_path = cfg.get("log", {}).get("log_file_name", "pipeline.log")
+        log_file_name = cfg.get("log", {}).get("log_file_name", "pipeline.log")
+        output_path = cfg.get("general", {}).get("output_path", "")
+        log_path = os.path.join(output_path, log_file_name) if output_path else log_file_name
         if cfg.get("log", {}).get("log_level", "INFO").upper() != "DEBUG":
             print("WARNING: config 'log.log_level' is not DEBUG — per-stage breakdown "
                   "will be empty. Set log_level to DEBUG and log_to_file to true for "
