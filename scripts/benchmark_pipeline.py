@@ -69,19 +69,20 @@ def parse_stage_durations(log_path: str) -> dict:
     which already exist in the codebase's logger (src/core/logger.py) —
     no instrumentation added.
 
-    Two events are intentionally excluded from the results:
+    One measurement is intentionally omitted: the very first log event in
+    the run has no predecessor timestamp to diff against, so it is silently
+    dropped.  Under the current pipeline order that event is always the first
+    tile's binarization-complete, which means:
 
-    1. ``binarization`` — always skipped.  As the first stage per tile its
-       delta spans from the previous tile's last event (or the start of the
-       run), conflating image-load time with actual binarization cost.  No
-       dedicated load-complete event exists to separate them.
+    * ``binarization`` reports n_tiles == number_of_tiles − 1.  Its delta is
+      measured as (previous tile's inpainting-complete → binarization-complete),
+      which folds in the image-load time; that cost is small enough (~ms) to
+      leave the mean usable as a binarization proxy.
+    * All other stages report n_tiles == number_of_tiles.
 
-    2. The very first log event in the run — silently dropped because there
-       is no predecessor timestamp to diff against.  Under the current pipeline
-       order that event is binarization (already excluded by rule 1), so all
-       other stages report n_tiles == number_of_tiles.  If the pipeline order
-       changes and a different stage becomes first, that stage's n_tiles will
-       be one less than the others with no other warning.
+    If the pipeline order ever changes and a different stage becomes first,
+    that stage's n_tiles will be one less than the others with no other
+    warning.
     """
     if not os.path.exists(log_path):
         return {}
@@ -97,13 +98,7 @@ def parse_stage_durations(log_path: str) -> dict:
             ts_str, stage = m.group(1), m.group(2)
             ts = datetime.strptime(ts_str, LOG_TIMESTAMP_FMT)
 
-            # Skip binarization: it's always the first stage per tile, so the
-            # delta from the previous tile's inpainting-complete to this
-            # binarization-complete conflates image load time with actual
-            # binarization cost.  All other stages are measured as the gap
-            # from the preceding stage's completion to their own — i.e., their
-            # own execution time.
-            if prev_time is not None and stage != "binarization":
+            if prev_time is not None:
                 delta = (ts - prev_time).total_seconds()
                 if delta >= 0:
                     durations.setdefault(stage, []).append(delta)
@@ -237,9 +232,11 @@ def main():
                 pct = 100 * s["total_s"] / total_per_tile if total_per_tile else 0
                 print(f"    {stage:20s} mean={s['mean_s']:.3f}s/tile  "
                       f"({pct:.1f}% of per-tile time, n={s['n_tiles']} tiles)")
-            print("    (binarization excluded: delta conflates image-load time "
-                  "with processing cost; first log event per run is also dropped "
-                  "— n_tiles may be one less than expected if pipeline order changes)")
+            print("    (binarization n_tiles is one less than other stages: "
+                  "the first tile's binarization-complete has no predecessor "
+                  "timestamp; its delta also folds in image-load time. "
+                  "If pipeline order changes, whichever stage is first will "
+                  "show the same n_tiles deficit.)")
 
     if "cpu" in results["modes"] and "gpu" in results["modes"]:
         cpu_t = results["modes"]["cpu"]["median_s"]
