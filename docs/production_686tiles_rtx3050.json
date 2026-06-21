@@ -1,0 +1,107 @@
+{
+  "timestamp": "2026-06-21T12:59:40.632755",
+  "config": "config/benchmark_production.json",
+  "python": "3.12.13 | packaged by conda-forge | (main, Mar  5 2026, 16:50:00) [GCC 14.3.0]",
+  "modes": {
+    "cpu": {
+      "mode": "cpu",
+      "repeats": 3,
+      "wall_times_s": [
+        5236.23,
+        5404.37,
+        5393.34
+      ],
+      "median_s": 5393.34,
+      "mean_s": 5344.65,
+      "stdev_s": 94.05,
+      "stage_breakdown": {
+        "grid_detection": {
+          "mean_s": 0.053,
+          "median_s": 0.04,
+          "stdev_s": 0.0176,
+          "n_tiles": 686,
+          "total_s": 36.378
+        },
+        "grid_refinement": {
+          "mean_s": 0.0019,
+          "median_s": 0.001,
+          "stdev_s": 0.0038,
+          "n_tiles": 686,
+          "total_s": 1.304
+        },
+        "mask_creation": {
+          "mean_s": 0.0001,
+          "median_s": 0.0,
+          "stdev_s": 0.0003,
+          "n_tiles": 686,
+          "total_s": 0.062
+        },
+        "inpainting": {
+          "mean_s": 7.5385,
+          "median_s": 7.53,
+          "stdev_s": 0.0843,
+          "n_tiles": 686,
+          "total_s": 5171.424
+        },
+        "binarization": {
+          "mean_s": 0.0365,
+          "median_s": 0.036,
+          "stdev_s": 0.0012,
+          "n_tiles": 685,
+          "total_s": 24.978
+        }
+      }
+    },
+    "gpu": {
+      "mode": "gpu",
+      "repeats": 3,
+      "wall_times_s": [
+        722.97,
+        724.69,
+        724.18
+      ],
+      "median_s": 724.18,
+      "mean_s": 723.95,
+      "stdev_s": 0.88,
+      "stage_breakdown": {
+        "grid_detection": {
+          "mean_s": 0.0596,
+          "median_s": 0.049,
+          "stdev_s": 0.0197,
+          "n_tiles": 686,
+          "total_s": 40.857
+        },
+        "grid_refinement": {
+          "mean_s": 0.002,
+          "median_s": 0.001,
+          "stdev_s": 0.0039,
+          "n_tiles": 686,
+          "total_s": 1.347
+        },
+        "mask_creation": {
+          "mean_s": 0.0001,
+          "median_s": 0.0,
+          "stdev_s": 0.0003,
+          "n_tiles": 686,
+          "total_s": 0.092
+        },
+        "inpainting": {
+          "mean_s": 0.7218,
+          "median_s": 0.718,
+          "stdev_s": 0.0678,
+          "n_tiles": 686,
+          "total_s": 495.172
+        },
+        "binarization": {
+          "mean_s": 0.037,
+          "median_s": 0.036,
+          "stdev_s": 0.0035,
+          "n_tiles": 685,
+          "total_s": 25.329
+        }
+      }
+    }
+  },
+  "gpu_speedup_factor": 7.45,
+  "gpu_time_reduction_pct": 86.6
+}
