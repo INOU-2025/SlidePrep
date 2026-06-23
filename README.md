@@ -441,3 +441,9 @@ Extended guides are in the [`docs/`](docs/) folder:
 | Florentino Fdez-Riverola | ESEI · Universidade de Vigo · SING Research Group, IIS Galicia Sur (SERGAS-UVIGO) |
 
 **Contact** [ivarodriguez@uvigo.gal](mailto:ivarodriguez@uvigo.gal)
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE). A full audit of dependency licenses is available at [docs/LICENSE_AUDIT.md](docs/LICENSE_AUDIT.md); all dependencies use OSI-approved permissive licenses.
