@@ -6,52 +6,55 @@ The SlidePrep pipeline includes a comprehensive debug visualization system. Each
 
 ## 🏗️ Architecture
 
-### Registry-Based Factory Pattern
+### Constructor-Injection Pattern
 
-The debug system uses a registry-based factory pattern for extensible drawer creation:
+The debug system uses constructor injection: a `Drawer` and a `ResultWriter` are passed to `Debugger` at construction time. There is no global registry.
 
-- **`Drawer`**: Abstract base class that all drawers inherit from
-- **`Debugger`**: Registry-based factory for creating step-specific drawers
-- **Dynamic Registration**: New drawer types can be registered at runtime
+- **`Drawer`** (`src/utils/debug/drawer.py`): Abstract base class all drawers inherit from
+- **`DetectionDrawer`** (`src/utils/debug/detection_drawer.py`): Specialized for grid detection step debugging
+- **`ResultWriter`** (`src/utils/debug/result_writer.py`): Interface for persisting step data to disk
+- **`Debugger`** (`src/core/debugger.py`): Coordinates image saving, result writing, and artifact routing
 
-**Benefits:**
-- **Extensibility**: Add new drawer types without modifying core classes
-- **Decoupling**: Drawer implementations are independent of the factory
-- **Consistency**: Single, uniform interface for all drawer creation
-- **Dynamic Discovery**: Create drawers by name for flexible configuration
+### Artifact sinks
 
-### Built-in Drawer Types
+`Debugger` routes all artifacts through an `ArtifactSink`:
 
+- **`LocalArtifactSink`**: Writes images and data to a directory on disk (default)
+- **`InMemoryArtifactSink`**: Keeps artifacts in memory for streaming or deferred upload
 
-The debug system includes specialized drawers for different pipeline steps, each organized in its own module:
-
-- **`Drawer`** (`src/utils/debug/drawer.py`): Abstract base class for all drawers
-- **`DetectionDrawer`** (`src/utils/debug/detection_drawer.py`): Specialized for grid detection step debugging (now expects results and metadata, not legacy objects)
+The sink is selected automatically from `debug.artifact_sink` in the config (`"local"` or `"memory"`), or can be injected directly.
 
 ### Result Writers
 
-To persist step outputs in human-readable formats, the debug system supports attachable result writers. Each writer implements the `ResultWriter` interface and provides a `write()` method to store results (e.g., JSON or CSV). Writers attach to the `Debugger` and can be invoked via `debugger.save_results()`.
+To persist step outputs in human-readable formats, attach a `ResultWriter` to the `Debugger`. Each writer implements a `write(path, results, metadata)` method. Call `debugger.save_results()` to invoke it.
 
-**Import Structure:**
+**Import paths:**
 ```python
-# Import from individual modules (recommended)
 from src.utils.debug.drawer import Drawer
 from src.utils.debug.detection_drawer import DetectionDrawer
 from src.utils.debug.result_writer import ResultWriter
 
-# Or import from the debug package (convenience)
+# Or via the package shorthand
 from src.utils.debug import Drawer, DetectionDrawer, ResultWriter
-
 ```
 
-
-### Debugger Integration
-
-The `Debugger` class provides automatic drawer integration:
+### Debugger API
 
 ```python
-# Automatic drawer integration - preferred approach
-debugger.save_debug_image("grid_detection", "output.png", image, results, metadata)
+# Construction — inject drawer and writer at creation time
+debugger = Debugger(
+    logger=logger,
+    debug_config=debug_config,
+    debug_enabled=True,
+    drawer=DetectionDrawer(),       # optional
+    writer=DetectionResultWriter(), # optional
+)
+
+# Save a debug visualization (drawer.draw() is called when a drawer is attached)
+debugger.save_debug_image("output.png", image, results, metadata)
+
+# Persist structured data (writer.write() is called when a writer is attached)
+debugger.save_results("results.json", results, metadata)
 ```
 
 
@@ -67,11 +70,11 @@ Visualizes grid line detection results by drawing contours and annotations on th
 
 ### Usage
 ```python
-# Automatic integration (recommended)
-debugger.save_debug_image("grid_detection", "output.png", image, results, metadata)
+# Via the debugger (drawer is called automatically when attached)
+debugger.save_debug_image("output.png", image, results, metadata)
 
-# Manual usage (advanced)
-drawer = debugger.create_drawer("grid_detection")
+# Direct usage (advanced)
+drawer = DetectionDrawer()
 result_image = drawer.draw(image, results, metadata)
 ```
 
@@ -80,9 +83,7 @@ The DetectionDrawer now expects:
 - `results`: List of detected grid lines or contours (structure defined by the new pipeline)
 - `metadata`: Dictionary containing configuration and status info (e.g., thresholds, accepted/rejected status)
 
-Color mapping and status assignment are now handled via metadata/config, not legacy enums.
-
-This mapping is handled automatically by the `DetectionStatus.get_color()` utility method.
+Color mapping and status assignment are handled via the metadata/config dictionary passed to `draw()`.
 
 ## Creating Custom Drawers
 
@@ -130,15 +131,20 @@ class CustomAnalysisDrawer(Drawer):
             # Always fail gracefully
             return image.copy() if image is not None else None
 ```
-### 2. Register the Custom Drawer
+### 2. Inject the Custom Drawer
 ```python
 from src.core.debugger import Debugger
 
-# Register your custom drawer with the global registry
-Debugger.register_drawer("custom_analysis", CustomAnalysisDrawer)
+# Inject your custom drawer when constructing the Debugger
+debugger = Debugger(
+    logger=logger,
+    debug_config=debug_config,
+    debug_enabled=True,
+    drawer=CustomAnalysisDrawer(),
+)
 
-# Now you can use it anywhere in your code
-debugger.save_debug_image("custom_analysis", "output.png", image, analysis_results, {"confidence": 0.95})
+# The drawer is called automatically
+debugger.save_debug_image("output.png", image, analysis_results, {"confidence": 0.95})
 ```
 
 ### Best Practices
@@ -207,11 +213,10 @@ class MyStep(PipelineStep):
         # Process data
         result = self.process(data)
         
-        # Debug output - automatic drawer integration
+        # Debug output - drawer is called automatically when attached
         self.debugger.save_debug_image(
-            "my_step", 
-            f"{filename}_my_step.png", 
-            data, 
+            f"{filename}_my_step.png",
+            data,
             result, 
             {"processing_time": elapsed_time}
         )
@@ -272,14 +277,12 @@ Use consistent naming patterns for debug files:
 
 **Debug images not created**
 - Check `general.debug` is set to `true` in config (this is the single source of truth for debug enablement)
-- Verify output directory is writable
-- Check that drawer is registered: `Debugger.get_registered_drawers()`
-- Ensure `debugger.save_debug_image()` is called with correct step key
+- Verify the output directory is writable
+- Ensure `debugger.save_debug_image()` is called with a non-empty filename
 
 **No drawer integration**
-- Verify drawer is registered for the step: `Debugger.register_drawer("step_key", DrawerClass)`
-- Check step key matches between registration and `save_debug_image()` call
-- Images will save as plain images if no drawer is registered
+- Verify a `Drawer` instance was passed to `Debugger(drawer=...)` at construction time
+- If no drawer is attached, `save_debug_image()` saves the `results` array directly (no overlay)
 
 **Poor visualization quality**
 - Ensure drawer `draw()` method handles image format correctly

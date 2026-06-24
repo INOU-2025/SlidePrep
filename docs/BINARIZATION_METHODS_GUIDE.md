@@ -204,32 +204,19 @@ for method in methods_to_test:
     print(f"{method.value}: {coverage:.2f}% foreground coverage")
 ```
 
-## Interactive Demo
+## Batch Evaluation
 
-Use the demo script to visually compare methods:
+Use the evaluation script to compare methods across a folder of images:
 
 ```bash
-# Test all methods with synthetic image
-python demo_binarization_methods.py
+# Use the default test configuration
+python src/utils/binarization/evaluate_binarization_methods.py
 
-# Test specific method
-python demo_binarization_methods.py --method combined_differential
-
-# Test with your own image
-python demo_binarization_methods.py --image path/to/your/image.png
-
-# Test specific method on your image
-python demo_binarization_methods.py --image path/to/your/image.png --method multi_otsu
-
-# Save to custom directory
-python demo_binarization_methods.py --output my_results/
+# Use a custom configuration
+python src/utils/binarization/evaluate_binarization_methods.py path/to/config.json
 ```
 
-The demo script will:
-- Create comparison images showing results side-by-side
-- Display method statistics (coverage, pixel counts)
-- Save individual results for each method
-- Show method descriptions and use cases
+The script generates method-specific output folders, success/failure rates, and pixel-distribution statistics. See [`docs/BINARIZATION_EVALUATION.md`](BINARIZATION_EVALUATION.md) for full details.
 
 ## Integration with Production System
 

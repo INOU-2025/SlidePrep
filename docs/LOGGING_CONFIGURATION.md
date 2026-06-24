@@ -30,6 +30,17 @@ The SlidePrep pipeline uses a sophisticated logging system following industry st
 
 ### Environment-Specific Settings
 
+All `log` fields:
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `log_level` | string | `"INFO"` | One of `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
+| `log_to_file` | bool | `false` | Write log entries to a file |
+| `log_to_console` | bool | `true` | Write log entries to stdout |
+| `log_file_name` | string | `"app.log"` | Log filename (written inside `relative_path` or `output_path`) |
+| `relative_path` | string | `null` | Optional sub-directory inside the run's output path where the log file is placed |
+| `stream` | IO stream | `null` | In-process stream target (e.g. `sys.stderr`, a `StringIO`). When set, takes precedence over file logging — useful in environments without filesystem access such as the Celery worker. |
+
 #### Production Configuration
 ```json
 {
@@ -38,7 +49,7 @@ The SlidePrep pipeline uses a sophisticated logging system following industry st
     "log_to_console": true,
     "log_to_file": true,
     "log_file_name": "slideprep_production.log",
-    "relative_path": "log"  // Optional directory inside output path
+    "relative_path": "log"
   }
 }
 ```
