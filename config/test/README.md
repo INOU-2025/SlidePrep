@@ -37,6 +37,17 @@ These configurations are separate from the main pipeline configuration (`init_co
   - Contains: `general`, `stitching`, `log`, `debug`, `test` sections
   - Runs Ashlar to produce a single OME-TIFF from processed tiles
 
+### Performance Benchmarking Configs
+
+- **`performance_baseline.json`** / **`performance_optimized.json`**: Paired configs for measuring the cache-optimization speedup in `GridDetectionStep`
+  - `baseline`: disables `enable_template_cache`, `enable_preprocessing_cache`, and `enable_early_exit`
+  - `optimized`: enables all three flags
+  - Used with the `compare` subcommand of `scripts/test_adaptive_detection.py`:
+    ```bash
+    python scripts/test_adaptive_detection.py compare --repeats 5
+    ```
+  - See [docs/BENCHMARKING_GUIDE.md](../../docs/BENCHMARKING_GUIDE.md#measuring-cache-optimization-speedup) for full usage and output format.
+
 ## Testing Philosophy
 
 Test configurations are designed for algorithm development and validation:

@@ -1,8 +1,7 @@
 from typing import Any
+import csv
 
 from .result_writer import ResultWriter
-from src.utils.detection.contour_analysis import analyze_all_contours_for_batch
-import csv
 from src.utils.conversion_utils import make_csv_serializable
 
 
@@ -45,6 +44,7 @@ class DetectionAnalysisWriter(ResultWriter):
             metadata: Optional metadata, may include image_shape for proximity metrics.
         """
         try:
+            from src.utils.detection.contour_analysis import analyze_all_contours_for_batch
 
             image_shape = None
             if isinstance(metadata, dict):

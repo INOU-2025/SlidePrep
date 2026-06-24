@@ -87,9 +87,14 @@ where test images are read from and where results are written. An optional
 - **Use for:** Verifying format (jpeg/png/tiff) and mode (RGB/grayscale) conversion
 
 #### `test/performance_baseline.json` / `test/performance_optimized.json`
-- **Purpose:** Grid detection performance comparison
+- **Purpose:** Grid detection cache-optimization benchmarking
 - **Contents:** general, grid_detection, log and debug sections
-- **Key difference:** `baseline` disables template and preprocessing caches and early exit; `optimized` enables all three. Run both with `scripts/test_detection.py` to measure the speedup.
+- **Key difference:** `baseline` disables template/preprocessing caches and early-exit; `optimized` enables all three
+- **How to use:**
+  ```bash
+  python scripts/test_adaptive_detection.py compare --repeats 5
+  ```
+  See [docs/BENCHMARKING_GUIDE.md](../docs/BENCHMARKING_GUIDE.md#measuring-cache-optimization-speedup) for full usage and output interpretation.
 
 #### Using Serialized Intermediate Results
 - **Purpose:** Test grid refinement directly from saved detection results
