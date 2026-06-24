@@ -91,7 +91,7 @@ binary = methods.apply_method(ThresholdMethod.MULTI_OTSU, image)
 
 **Key Features**:
 - **7 different methods** with full parameter control
-- **Method comparison tools** (interactive demo)
+- **Batch evaluation script** (`src/utils/binarization/evaluate_binarization_methods.py`)
 - **Debug callbacks** and detailed information
 - **Comprehensive documentation** with examples
 
@@ -102,15 +102,18 @@ Pipeline steps use direct numpy array processing for optimal performance and cla
 
 ```python
 # Each step processes arrays directly and returns results
-binary_image: np.ndarray = binarization_step.run(grayscale_image)
-detections, metadata = grid_detection_step.run(binary_image)
+result = binarization_step.run(grayscale_image)   # returns StepResult
+binary_image = result.to_array()                   # numpy ndarray
+result = grid_detection_step.run(binary_image)
+detections = result.data
+metadata = result.metadata
 ```
 
 ### Type Safety (PEP 484)
 All functions include comprehensive type hints for IDE support and static analysis:
 
 ```python
-def run(self, data: np.ndarray) -> np.ndarray:
+def run(self, data: Any) -> StepResult:
     """Process input with clear type contracts and return guarantees."""
 ```
 
@@ -271,10 +274,10 @@ python scripts/test_binarization.py config/test/binarization.json
 ```
 
 ### Interactive Exploration
-Visual comparison of all binarization methods:
+Batch evaluation of all binarization methods across a folder of images:
 
 ```bash
-python demo_binarization_methods.py --image /path/to/image.png
+python src/utils/binarization/evaluate_binarization_methods.py path/to/config.json
 ```
 
 ### Grid Detection Testing
@@ -360,8 +363,8 @@ for method_name in methods.get_available_methods():
 ### Custom Debug Outputs
 1. Create custom drawer inheriting from `Drawer`
 2. Implement the `draw(image, results, metadata)` method
-3. Register with debugger: `Debugger.register_drawer("step_name", DrawerClass)`
-4. Use automatic integration: `debugger.save_debug_image("step_name", filename, image, results)`
+3. Inject into the debugger: `Debugger(logger=..., debug_config=..., drawer=CustomDrawer())`
+4. Call `debugger.save_debug_image(filename, image, results, metadata)`
 
 ---
 

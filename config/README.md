@@ -4,15 +4,20 @@
 
 ```
 config/
-├── production.json        # Production-optimized settings
-├── development.json       # Development-friendly settings
+├── production.json             # Production-optimized settings
+├── development.json            # Development-friendly settings
+├── benchmark_sample.json       # 9-tile benchmarking sample (see BENCHMARKING_GUIDE.md)
+├── benchmark_production.json   # Full-dataset benchmark (fill in real paths before use)
 └── test/
-    ├── binarization.json       # Binarization testing
-    ├── grid_detection.json     # Grid detection testing
-    ├── grid_refinement.json    # Grid refinement testing
-    ├── mask_creation.json      # Mask generation testing
-    ├── inpainting.json         # Inpainting testing
-    └── stitching.json          # Whole slide stitching testing
+    ├── binarization.json            # Binarization testing
+    ├── grid_detection.json          # Grid detection testing
+    ├── grid_refinement.json         # Grid refinement testing
+    ├── img_conversion.json          # Image format/mode conversion testing
+    ├── mask_creation.json           # Mask generation testing
+    ├── inpainting.json              # Inpainting testing
+    ├── stitching.json               # Whole slide stitching testing
+    ├── performance_baseline.json    # Grid detection with all optimisations disabled
+    └── performance_optimized.json   # Grid detection with caching and early-exit enabled
 ```
 
 Test configuration files include a dedicated `test` section that defines
@@ -75,6 +80,17 @@ where test images are read from and where results are written. An optional
 - **Use for:** Combine processed tiles into an OME-TIFF with Ashlar
 - **Debug artifacts:** stored under `<output_path>/debug`
 
+#### `test/img_conversion.json`
+- **Purpose:** Isolated image format and colour-mode conversion testing
+- **Contents:** general, img_conversion, log and debug sections
+- **Output:** Defined via `test.output_path`
+- **Use for:** Verifying format (jpeg/png/tiff) and mode (RGB/grayscale) conversion
+
+#### `test/performance_baseline.json` / `test/performance_optimized.json`
+- **Purpose:** Grid detection performance comparison
+- **Contents:** general, grid_detection, log and debug sections
+- **Key difference:** `baseline` disables template and preprocessing caches and early exit; `optimized` enables all three. Run both with `scripts/test_detection.py` to measure the speedup.
+
 #### Using Serialized Intermediate Results
 - **Purpose:** Test grid refinement directly from saved detection results
 - **Configuration:** Set `test.input_type` to `"data"` so the step consumes serialized results instead of images
@@ -84,14 +100,14 @@ where test images are read from and where results are written. An optional
 
 ```bash
 # Production usage
-python main.py --config config/production.json
+python main.py config/production.json
 
 # Development usage
-python main.py --config config/development.json
+python main.py config/development.json
 
 # Test specific components
-python src/scripts/test_binarization.py config/test/binarization.json
-python src/scripts/test_detection.py config/test/grid_detection.json
+python scripts/test_binarization.py config/test/binarization.json
+python scripts/test_detection.py config/test/grid_detection.json
 ```
 
 ## 🔧 Key Differences

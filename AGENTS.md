@@ -10,7 +10,7 @@ SlidePrep is a Python-based pipeline for processing microscopy image tiles and g
   - `core/` – pipeline infrastructure (context, bootstrap, logger).
   - `steps/` – individual processing steps like binarization and grid detection.
   - `utils/` – helper modules and research methods.
-  - `scripts/` – exploratory or validation scripts.
+- `scripts/` – step-level test runners and benchmarking (`test_runner.py`, `benchmark_pipeline.py`).
 - `docs/` – project documentation and guides.
 - `data/`, `models/`, `training/` – datasets, trained models, and training utilities.
 - `requirements.txt`, `environment.yml` – dependency listings for pip and conda.
@@ -24,7 +24,7 @@ SlidePrep is a Python-based pipeline for processing microscopy image tiles and g
 
 ## Testing & Verification
 - Run the test suite with `pytest tests/` from the repository root.
-- The DZI test is skipped automatically if `vips` is not installed.
+- The DZI test is skipped automatically if `vips` is not installed (`vips` is required for the web pipeline but not for CLI use).
 
 ## Documentation
 - Update files in `docs/` when altering behavior or exposing new features.

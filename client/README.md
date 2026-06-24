@@ -1,59 +1,63 @@
-# Client
+# SlidePrep Angular Client
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.0.0.
+Angular 19 frontend for the SlidePrep web interface. Built with standalone components and served by the nginx container in the Docker Compose stack — no Node.js installation required for production use.
 
-## Development server
+## Architecture
 
-To start a local development server, run:
-
-```bash
-ng serve
+```
+src/app/
+├── core/services/
+│   ├── api.service.ts        # HTTP client for the FastAPI backend (/jobs endpoints)
+│   └── project.service.ts    # In-memory slide state and selection management
+├── shared/top-bar/           # App bar (switches between Home and Workspace modes)
+└── features/
+    ├── startup/              # Slide list + two-step create-slide modal
+    └── workspace/            # Deep-zoom viewer (OpenSeadragon)
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+### Key flows
 
-## Code scaffolding
+- **Startup view**: lists existing slides. The "New slide" modal collects tile files (or a zip archive) in step 1, then stitching parameters (`width`, `height`, `overlap`, `pixel_size`, `direction`) and processing options (`clean_grid`, `suffix_filter`, `grid_angle`, `detection_threshold`) in step 2. On submit it calls `POST /jobs`.
+- **Workspace view**: polls `GET /jobs/{id}` until the job reaches `SUCCESS`, then loads the resulting DZI into an OpenSeadragon viewer for deep-zoom navigation.
+- **Export**: calls `GET /jobs/{id}/export` to download the raw OME-TIFF.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Development setup
 
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+The backend stack runs in Docker; only the Angular dev server needs Node.js locally.
 
 ```bash
-ng generate --help
+# 1. Start backend (Redis, FastAPI, Celery worker)
+docker compose up redis api worker
+
+# 2. Serve the Angular app with live reload
+cd client
+npm install
+ng serve          # http://localhost:4200
 ```
 
-## Building
+Set `CORS_ORIGINS=http://localhost:4200` on the `api` service (or in a `.env` file at the repo root) when using the Angular dev server instead of the nginx container.
 
-To build the project run:
+## Production build
+
+The pre-built output committed under `client/dist/` is served directly by the nginx container — you do not need to rebuild unless you change the frontend source.
+
+To rebuild:
 
 ```bash
-ng build
+cd client
+npm install
+ng build          # output lands in dist/
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Then rebuild the Docker image to pick up the new dist:
+
+```bash
+docker compose up --build
+```
 
 ## Running unit tests
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
 ```bash
+cd client
 ng test
 ```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

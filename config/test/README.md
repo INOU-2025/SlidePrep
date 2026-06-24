@@ -37,11 +37,6 @@ These configurations are separate from the main pipeline configuration (`init_co
   - Contains: `general`, `stitching`, `log`, `debug`, `test` sections
   - Runs Ashlar to produce a single OME-TIFF from processed tiles
 
-### Legacy Test Configurations
-
-- **`test_grid_detection_config.json`**: Original grid detection test config (moved from config/)
-- **`test_img_binarization.json`**: Original binarization test config (moved from config/)
-
 ## Testing Philosophy
 
 Test configurations are designed for algorithm development and validation:
@@ -57,12 +52,12 @@ Test configurations are designed for algorithm development and validation:
 
 ```bash
 # 1. Test binarization on raw grayscale images
-python src/scripts/test_binarization.py config/test/binarization.json
+python scripts/test_binarization.py config/test/binarization.json
 # Input: image001_raw.png → Debug: <test.output_path>/debug/image001_raw_binarized.png
 # Result suffix: _binarized
 
 # 2. Test grid detection on pre-binarized images
-python src/scripts/test_detection.py config/test/grid_detection.json
+python scripts/test_detection.py config/test/grid_detection.json
 # Input: image001_binarized.png → Debug: <test.output_path>/debug/image001_binarized_grid_detected.png
 # Result suffix: _grid_detected
 ```
@@ -119,7 +114,7 @@ Test configurations should only include sections relevant to the step being test
     "debug": true
   },
   "grid_detection": {
-    "angle_deg": 2.0
+    "angles": [-2.0]
     // ... other grid detection parameters
   },
   "log": {

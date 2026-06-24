@@ -7,10 +7,16 @@ Welcome to the SlidePrep documentation. This folder contains essential guides fo
 ### Core Guides
 - **[`SYSTEM_OVERVIEW.md`](SYSTEM_OVERVIEW.md)** - System architecture and development guide
 - **[`CONFIGURATION_GUIDE.md`](CONFIGURATION_GUIDE.md)** - Complete configuration reference
+- **[`TILE_PREPARATION.md`](TILE_PREPARATION.md)** - Tile naming, grid layout, pixel size, and pre-flight checklist
 - **[`BINARIZATION_METHODS_GUIDE.md`](BINARIZATION_METHODS_GUIDE.md)** - Binarization methods and optimization
 - **[`DEBUG_SYSTEM_GUIDE.md`](DEBUG_SYSTEM_GUIDE.md)** - Debug visualization system
 - **[`LOGGING_CONFIGURATION.md`](LOGGING_CONFIGURATION.md)** - Logging setup and configuration
 - **[`BENCHMARKING_GUIDE.md`](BENCHMARKING_GUIDE.md)** - Pipeline benchmarking for SoftwareX paper timing claims
+- **[`API_REFERENCE.md`](API_REFERENCE.md)** - Web API endpoints, form fields, and pipeline stages
+
+### Developer Guides
+- **[`STEP_EXTENSION_GUIDE.md`](STEP_EXTENSION_GUIDE.md)** - End-to-end walkthrough for adding a new pipeline step
+- **[`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)** - Common errors and fixes (installation, CLI, stitching, web mode)
 
 ## 🚀 Quick Start
 
@@ -51,11 +57,11 @@ methods = BinarizationMethods()
 binary = methods.apply_method(ThresholdMethod.MULTI_OTSU, image)
 ```
 
-### Interactive Demo
-Compare all methods visually:
+### Batch Evaluation
+Compare methods across a folder of images:
 
 ```bash
-python demo_binarization_methods.py --image your_image.png
+python src/utils/binarization/evaluate_binarization_methods.py path/to/config.json
 ```
 
 ## 📖 What Each Document Covers
