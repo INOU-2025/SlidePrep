@@ -193,6 +193,38 @@ All three strategy blocks are **required** — no defaults are provided to ensur
 configuration for your specific grid patterns. Refer to `config/production.json` for a
 complete working example.
 
+### Grid Refinement Configuration
+
+Controls classifier-based filtering of detected contours and line-thickness normalisation:
+
+```json
+{
+  "grid_refinement": {
+    "target_thickness": 22,
+    "thickness_bias": 0.90,
+    "classifier": {
+      "model_path": "models/rf_detection_classifier.joblib",
+      "features": ["aspect_ratio", "long_side_angle", "corner_proximity",
+                   "area", "length", "orientation_mismatch"],
+      "threshold": 0.5
+    },
+    "target_inclination_angles": {
+      "horizontal": 2.0,
+      "vertical": 90.0,
+      "tolerance": 5.0
+    }
+  }
+}
+```
+
+**Parameters:**
+- `target_thickness` (int, > 0): Target grid-line width in pixels after thickness normalisation. Default: `22`.
+- `thickness_bias` (float, 0–1): Blending factor between the detected thickness and `target_thickness` (1.0 = always use target). Default: `0.90`.
+- `classifier.model_path`: Path to the trained Random Forest classifier (`.joblib`). See *Adapting the classifier* in the README.
+- `classifier.features`: Ordered list of feature column names expected by the classifier.
+- `classifier.threshold` (float, 0–1): Minimum predicted probability for a contour to be accepted as a true grid line. Default: `0.5`.
+- `target_inclination_angles` *(optional)*: When provided, contours whose angle does not fall within `tolerance` degrees of either `horizontal` or `vertical` are rejected before classifier scoring. Omit the key entirely to disable angle filtering.
+
 ### Inpainting Configuration
 
 Controls mask-based grid removal using configurable models:
@@ -278,7 +310,9 @@ Controls debug visualization and output:
     "saved_artifact_type": "image",            // "image" | "data" | "both"
     "save_composite_img": false,                // Save side-by-side comparisons
     "save_aggregated_data": true,               // Enable aggregated result saving
-    "input_result_file_name": "results.json"   // Filename for serialized intermediate results
+    "result_file_name": "aggregated_data.json", // Output filename for aggregated data
+    "input_result_file_name": "results.json",  // Filename for serialized intermediate results
+    "artifact_sink": "local"                   // "local" (disk) or "memory" (in-process)
   }
 }
 ```
@@ -287,9 +321,11 @@ Controls debug visualization and output:
 - Debug enablement is controlled by `general.debug` (single source of truth)
 - `saved_artifact_type`: Determines whether images, data, or both are saved
 - `save_composite_img`: Creates before/after comparison images
+- `result_file_name`: Filename written when `save_aggregated_data` is true (default: `aggregated_data.json`)
 - `input_result_file_name`: JSON file containing intermediate step outputs.
   Used when `test.input_type` is set to `"data"` to locate serialized results.
-- `save_aggregated_data`: Persist step outputs to `aggregated_data.json`
+- `save_aggregated_data`: Persist step outputs to the file named by `result_file_name`
+- `artifact_sink`: Storage backend — `"local"` writes artifacts to disk, `"memory"` retains them in process for streaming (e.g. cloud upload)
 
 ## 📁 Configuration Files
 

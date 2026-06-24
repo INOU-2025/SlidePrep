@@ -1,6 +1,6 @@
 # SlidePrep — Microscopy Image Processing Pipeline
 
-A modular, production-ready pipeline for generating high-quality Whole Slide Images (WSI) from microscopy image tiles. Supports two operating modes: full preprocessing (grid-artifact removal via LaMa inpainting, then stitching) for counting-chamber tiles, and passthrough mode (`--no-grid`) for clean tiles that need only stitching and DZI generation.
+A modular, production-ready pipeline for generating high-quality Whole Slide Images (WSI) from microscopy image tiles. Supports two operating modes: full preprocessing (grid-artifact removal via LaMa inpainting, then stitching) for counting-chamber tiles, and passthrough mode (`--no-grid`) for clean tiles that need only stitching.
 
 Optimized for thick grid detection (21 px lines, ~2° rotation) with cellular content preservation.
 
@@ -84,6 +84,8 @@ The GPU override adds an NVIDIA device reservation to the Celery worker so it ca
 
 Both commands build and start four services: a Redis broker, the FastAPI backend (port 8000), a Celery worker, and an nginx container that serves the pre-built Angular frontend. Open `http://localhost` in your browser — no Node.js installation required. From another machine on the same network, use `http://<server-ip>` instead.
 
+> **Web pipeline:** after stitching, the worker runs `vips dzsave` to convert the OME-TIFF into Deep Zoom Image (DZI) tiles for the built-in OpenSeadragon viewer. `vips` (libvips) is bundled in the Docker image and is not needed for CLI use.
+
 ---
 
 ## Pipeline
@@ -144,7 +146,7 @@ SlidePrep/
 │   ├── development.json
 │   └── test/                      # Per-step test configurations
 │
-├── scripts/                       # Individual step test runners
+├── scripts/                       # Individual step test runners and benchmarking
 │   ├── test_runner.py             # StepTestRunner harness
 │   ├── test_binarization.py
 │   ├── test_detection.py
@@ -153,7 +155,9 @@ SlidePrep/
 │   ├── test_mask_creation.py
 │   ├── test_inpainting.py
 │   ├── test_img_conversion.py
-│   └── test_stitching.py
+│   ├── test_stitching.py
+│   ├── test_service.py            # End-to-end PipelineService test
+│   └── benchmark_pipeline.py     # Wall-clock and per-stage benchmarking
 │
 ├── src/
 │   ├── config/                    # Pydantic configuration schemas
@@ -250,7 +254,7 @@ pip install -r requirements.txt
 # Run the full pipeline on a folder of tiles (grid removal + stitching)
 python main.py config/production.json
 
-# Skip grid removal — stitching and DZI generation only (clean tiles)
+# Skip grid removal — stitching only (clean tiles)
 python main.py config/production.json --no-grid
 
 # Use a custom config
@@ -263,13 +267,21 @@ Processed tiles are written to `general.output_path`. Stitching produces an OME-
 
 ```python
 import cv2
-from src.core.pipeline_service import PipelineService
+from src.core.pipeline_service import PipelineService, run_pipeline
 
 gray = cv2.imread("tile.png", cv2.IMREAD_GRAYSCALE)
+
+# Reusable service (keeps model weights loaded between calls)
 service = PipelineService("config/production.json")
 result = service.run(gray, image_path="tile.png")
 output = result.image        # numpy ndarray
 metadata = result.metadata   # dict with format/mode keys
+
+# Convenience one-shot helper (creates and discards a service)
+result = run_pipeline(gray, "config/production.json", image_path="tile.png")
+
+# Async variant (runs the pipeline in a thread via asyncio.to_thread)
+result = await service.run_async(gray, image_path="tile.png")
 ```
 
 ### Custom pipeline assembly
@@ -389,13 +401,15 @@ All parameters are set via JSON configuration files. The top-level sections map 
 {
   "general":        { "input_path": "...", "output_path": "...", "output_suffix": "" },
   "binarization":   { "threshold_method": "combined_differential" },
-  "grid_detection": { "template_size": 21, "rotation_range": [-5, 5] },
-  "grid_refinement":{ "target_thickness": 21, "thickness_bias": 0.8 },
+  "grid_detection": { "threshold": 0.1, "angles": [-2.0],
+                      "general": { "..." }, "thick_border": { "..." }, "thin_border": { "..." } },
+  "grid_refinement":{ "target_thickness": 22, "thickness_bias": 0.90,
+                      "classifier": { "model_path": "...", "features": ["..."], "threshold": 0.5 } },
   "inpainting":     { "model": "lama" },
   "img_conversion": { "format": "tiff", "mode": "RGB" },
   "stitching":      { "pattern": "...", "width": 0, "height": 0, "pixel_size": 1.0 },
-  "log":            { "relative_path": "pipeline.log" },
-  "debug":          { "enabled": false }
+  "log":            { "log_to_file": true, "log_file_name": "app.log", "log_level": "INFO" },
+  "debug":          { "saved_artifact_type": "image", "save_composite_img": false }
 }
 ```
 
@@ -414,7 +428,7 @@ methods = BinarizationMethods()
 binary = methods.apply_combined_differential_threshold(gray)
 ```
 
-Available methods: `global_threshold`, `otsu`, `adaptive`, `multi_otsu`, `line_enhanced`, `morphological`, `combined_differential`.
+Available methods: `global`, `otsu`, `adaptive`, `multi_otsu`, `line_enhanced`, `morphological`, `combined_differential`.
 
 ---
 
@@ -423,10 +437,16 @@ Available methods: `global_threshold`, `otsu`, `adaptive`, `multi_otsu`, `line_e
 Extended guides are in the [`docs/`](docs/) folder:
 
 - [docs/SYSTEM_OVERVIEW.md](docs/SYSTEM_OVERVIEW.md) — Architecture and data flow
-- [docs/BINARIZATION_METHODS_GUIDE.md](docs/BINARIZATION_METHODS_GUIDE.md) — Method comparison and selection
+- [docs/TILE_PREPARATION.md](docs/TILE_PREPARATION.md) — Tile naming, grid layout, pixel size, pre-flight checklist
 - [docs/CONFIGURATION_GUIDE.md](docs/CONFIGURATION_GUIDE.md) — Full configuration reference
+- [docs/BINARIZATION_METHODS_GUIDE.md](docs/BINARIZATION_METHODS_GUIDE.md) — Method comparison and selection
 - [docs/DEBUG_SYSTEM_GUIDE.md](docs/DEBUG_SYSTEM_GUIDE.md) — Debug visualisation
 - [docs/LOGGING_CONFIGURATION.md](docs/LOGGING_CONFIGURATION.md) — Logging setup
+- [docs/BENCHMARKING_GUIDE.md](docs/BENCHMARKING_GUIDE.md) — End-to-end and per-stage benchmarking
+- [docs/API_REFERENCE.md](docs/API_REFERENCE.md) — Web API endpoints and form fields
+- [docs/STEP_EXTENSION_GUIDE.md](docs/STEP_EXTENSION_GUIDE.md) — Adding a new pipeline step
+- [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) — Common errors and fixes
+- [CONTRIBUTING.md](CONTRIBUTING.md) — Development setup, standards, and PR process
 
 ---
 
