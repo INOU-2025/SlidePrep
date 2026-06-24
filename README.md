@@ -134,7 +134,7 @@ SlidePrep/
 │   ├── celery_app.py
 │   └── tasks.py                   # process_images_task
 │
-├── client/                        # Angular frontend (Angular 19, standalone components)
+├── client/                        # Angular frontend (Angular 21, standalone components)
 │   └── src/app/
 │       ├── core/services/         # ApiService, ProjectService
 │       ├── shared/top-bar/        # App bar (home + workspace modes)

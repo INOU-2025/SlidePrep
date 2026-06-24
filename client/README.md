@@ -1,6 +1,6 @@
 # SlidePrep Angular Client
 
-Angular 19 frontend for the SlidePrep web interface. Built with standalone components and served by the nginx container in the Docker Compose stack — no Node.js installation required for production use.
+Angular 21 frontend for the SlidePrep web interface. Built with standalone components and served by the nginx container in the Docker Compose stack — no Node.js installation required for production use.
 
 ## Architecture
 
