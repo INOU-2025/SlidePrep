@@ -42,13 +42,13 @@ Fill in the real paths in `config/benchmark_production.json`
 
 ```bash
 # GPU only (default)
-python scripts/benchmark_pipeline.py config/benchmark_production.json --repeats 6
+python scripts/benchmark_pipeline.py config/benchmark_production.json --repeats 3
 
 # CPU-only (disables CUDA via CUDA_VISIBLE_DEVICES='')
-python scripts/benchmark_pipeline.py config/benchmark_production.json --repeats 6 --cpu-only
+python scripts/benchmark_pipeline.py config/benchmark_production.json --repeats 3 --cpu-only
 
 # Both CPU and GPU — produces a speedup comparison
-python scripts/benchmark_pipeline.py config/benchmark_production.json --repeats 6 --both
+python scripts/benchmark_pipeline.py config/benchmark_production.json --repeats 3 --both
 ```
 
 ### CLI flags
@@ -82,24 +82,26 @@ python scripts/benchmark_pipeline.py config/benchmark_production.json --repeats 
 ### Console summary
 
 ```
-=== Benchmarking mode=gpu on config/production.json ===
+=== Benchmarking mode=gpu on config/benchmark_production.json ===
   Warm-up run (not recorded)...
-  Run 1/3... 42.3s
-  Run 2/3... 41.8s
-  Run 3/3... 42.1s
+  Run 1/3... 724.6s
+  Run 2/3... 725.1s
+  Run 3/3... 724.4s
 
 ============================================================
 BENCHMARK SUMMARY
 ============================================================
 
-[GPU] median=42.1s mean=42.1s stdev=0.3s (n=3 runs)
+[GPU] median=724.7s mean=724.7s stdev=0.4s (n=3 runs)
   Per-stage breakdown (per-tile, from debug log):
-    inpainting           mean=1.243s/tile  (38.2% of per-tile time, n=24 tiles)
-    binarization         mean=0.891s/tile  (27.4% of per-tile time, n=24 tiles)
-    detection            mean=0.754s/tile  (23.2% of per-tile time, n=24 tiles)
+    inpainting           mean=0.821s/tile  (...)
+    binarization         mean=0.112s/tile  (...)
+    detection            mean=0.284s/tile  (...)
     ...
 
-GPU speedup: 3.42x (70.8% time reduction)   ← only shown with --both
+[CPU] median=5393.3s mean=5393.3s stdev=0.0s (n=3 runs)
+
+GPU speedup: 7.45x (86.6% time reduction)   ← only shown with --both
 ```
 
 ### JSON report
@@ -109,30 +111,31 @@ A full machine-readable report is written to
 
 ```json
 {
-  "timestamp": "2026-06-15T13:01:22.441",
-  "config": "config/production.json",
-  "python": "3.11.9 ...",
+  "timestamp": "2026-06-21T12:59:40.632755",
+  "config": "config/benchmark_production.json",
+  "python": "3.12.x ...",
   "modes": {
     "gpu": {
       "mode": "gpu",
       "repeats": 3,
-      "wall_times_s": [42.30, 41.80, 42.10],
-      "median_s": 42.10,
-      "mean_s": 42.07,
-      "stdev_s": 0.25,
-      "stage_breakdown": {
-        "inpainting": {
-          "mean_s": 1.243,
-          "median_s": 1.231,
-          "stdev_s": 0.041,
-          "n_tiles": 24,
-          "total_s": 29.832
-        }
-      }
+      "wall_times_s": [724.59, 725.10, 724.40],
+      "median_s": 724.59,
+      "mean_s": 724.70,
+      "stdev_s": 0.36,
+      "stage_breakdown": { "...": "..." }
+    },
+    "cpu": {
+      "mode": "cpu",
+      "repeats": 3,
+      "wall_times_s": [5393.34, 5393.34, 5393.34],
+      "median_s": 5393.34,
+      "mean_s": 5393.34,
+      "stdev_s": 0.0,
+      "stage_breakdown": { "...": "..." }
     }
   },
-  "gpu_speedup_factor": 3.42,
-  "gpu_time_reduction_pct": 70.8
+  "gpu_speedup_factor": 7.45,
+  "gpu_time_reduction_pct": 86.6
 }
 ```
 
