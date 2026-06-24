@@ -1,7 +1,11 @@
 import sys
 import os
 import time
+import json
+import argparse
+import statistics
 from pathlib import Path
+from datetime import datetime, timezone
 
 # Ensure project root is on Python path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -146,150 +150,199 @@ def process_image_adaptive(
     }
 
 
-def compare_performance_configs(baseline_config_path: str, optimized_config_path: str,
-                               ext: str = "png", test_image_count:  Optional[int] = None) -> None:
-    """
-    Compare performance between two different configurations using sequential bootstrap.
-    
+def compare_performance_configs(
+    baseline_config_path: str,
+    optimized_config_path: str,
+    ext: str = "png",
+    test_image_count: Optional[int] = None,
+    repeats: int = 3,
+    report_path: Optional[str] = None,
+    images_path: Optional[str] = None,
+) -> dict:
+    """Compare grid detection timing between baseline and optimized configurations.
+
+    Runs each configuration ``repeats`` times over the full image set, computing
+    median/mean/stdev of total run time per pass. Images are pre-loaded into
+    memory so file I/O is excluded from measurements. Each repeat creates a fresh
+    detector (cold caches) to simulate real per-batch conditions.
+
     Args:
-        baseline_config_path: Path to baseline configuration (required)
-        optimized_config_path: Path to optimized configuration (required)
-        ext: Image file extension
-        test_image_count: Number of images to test (default: None for all images)
-        
+        baseline_config_path: Path to baseline configuration (caching disabled).
+        optimized_config_path: Path to optimized configuration (caching enabled).
+        ext: Image file extension to glob for.
+        test_image_count: Cap on number of images to use (None = all).
+        repeats: Number of full passes over the image set per config.
+        report_path: If given, write JSON results to this path.
+
+    Returns:
+        Results dict with timing stats, speedup, and cache hit rates.
+
     Raises:
-        ValueError: If configuration files are missing or invalid
+        ValueError: If configuration files are missing or image directory is empty.
     """
-    # Validate performance test configuration files
-    if not os.path.exists(baseline_config_path):
-        raise ValueError(f"Baseline configuration file not found: {baseline_config_path}")
-    if not os.path.exists(optimized_config_path):
-        raise ValueError(f"Optimized configuration file not found: {optimized_config_path}")
-    
-    # Pre-validate both configurations before starting
-    baseline_config_manager = AppConfigManager(baseline_config_path)
-    optimized_config_manager = AppConfigManager(optimized_config_path)
-    
-    if not baseline_config_manager.grid_detection_config:
+    for path, label in [
+        (baseline_config_path, "Baseline"),
+        (optimized_config_path, "Optimized"),
+    ]:
+        if not os.path.exists(path):
+            raise ValueError(f"{label} configuration file not found: {path}")
+
+    baseline_cm = AppConfigManager(baseline_config_path)
+    optimized_cm = AppConfigManager(optimized_config_path)
+
+    if not baseline_cm.grid_detection_config:
         raise ValueError(f"grid_detection_config not found in {baseline_config_path}")
-    if not optimized_config_manager.grid_detection_config:
+    if not optimized_cm.grid_detection_config:
         raise ValueError(f"grid_detection_config not found in {optimized_config_path}")
-    
-    # Extract input path from baseline configuration
-    input_folder = baseline_config_manager.general_config.input_path
-    
+
+    input_folder = images_path or baseline_cm.general_config.input_path
     if not input_folder:
-        raise ValueError(f"input_path not specified in baseline configuration: {baseline_config_path}")
-    
-    # Get test images
-    image_paths = glob(os.path.join(input_folder, f"*.{ext}"))
+        raise ValueError(
+            "No image path specified. Use --images PATH or set general.input_path "
+            f"in {baseline_config_path}"
+        )
+
+    image_paths = sorted(glob(os.path.join(input_folder, f"*.{ext}")))
     if not image_paths:
         raise ValueError(f"No {ext} files found in {input_folder}")
-    
-    # Use all images if no limit specified
-    if test_image_count is None:
-        test_images = image_paths
-    else:
-        test_images = image_paths[:min(test_image_count, len(image_paths))]
-    
-    # Create drawer for both tests
+    if test_image_count is not None:
+        image_paths = image_paths[:min(test_image_count, len(image_paths))]
+
+    # Pre-load images into memory — file I/O must not contribute to timing.
+    images = [
+        cv2.imread(p, cv2.IMREAD_GRAYSCALE)
+        for p in image_paths
+    ]
+    images = [img for img in images if img is not None]
+    if not images:
+        raise ValueError(f"No valid images loaded from {input_folder}")
+
     drawer = DetectionDrawer()
-    
-    # Initial setup logging
+
+    print()
     print("=" * 60)
-    print("PERFORMANCE COMPARISON")
+    print("CACHE OPTIMIZATION BENCHMARK")
     print("=" * 60)
-    print(f"Input folder: {input_folder}")
-    print(f"Testing {len(test_images)} images")
-    print(f"Baseline config: {baseline_config_path}")
-    print(f"Optimized config: {optimized_config_path}")
-    
-    # Test 1: Bootstrap with BASELINE configuration
-    container = bootstrap(baseline_config_path, drawer=drawer)
-    logger = container.resolve("logger")
-    debugger = container.resolve("debugger")
+    print(f"Images:    {len(images)} ({ext}) from {input_folder}")
+    print(f"Repeats:   {repeats}")
+    print(f"Baseline:  {baseline_config_path}")
+    print(f"Optimized: {optimized_config_path}")
 
-    logger.info("Testing BASELINE configuration...")
-    logger.info(f"Debug output: {debugger._path}")
+    def _time_config(config_path: str, label: str) -> tuple[list[float], dict]:
+        container = bootstrap(config_path, drawer=drawer)
+        logger = container.resolve("logger")
+        gd_config = container.resolve("config").grid_detection_config
 
-    config_manager = container.resolve("config")
-    detector_baseline = AdaptiveLineDetector(config_manager.grid_detection_config, logger=logger)
-    
-    times_baseline = []
-    for image_path in test_images:
-        result = process_image_adaptive(image_path, "", detector_baseline, config_manager, logger, debugger)
-        if result:
-            times_baseline.append(result['detection_time'])
-    
-    avg_time_baseline = sum(times_baseline) / len(times_baseline) if times_baseline else 0
-    baseline_cache_info = detector_baseline.get_cache_info()
-    
-    # Test 2: Re-bootstrap with OPTIMIZED configuration
-    container = bootstrap(optimized_config_path, drawer=drawer)
-    logger = container.resolve("logger")
-    debugger = container.resolve("debugger")
+        run_times: list[float] = []
+        last_detector = None
+        print(f"\nRunning {label} ({repeats} repeat{'s' if repeats > 1 else ''})...")
+        for i in range(repeats):
+            detector = AdaptiveLineDetector(gd_config, logger=logger)
+            t0 = time.perf_counter()
+            for img in images:
+                detector.detect_lines(img)
+            elapsed = time.perf_counter() - t0
+            run_times.append(elapsed)
+            last_detector = detector
+            print(f"  repeat {i + 1}/{repeats}: {elapsed:.3f}s", flush=True)
 
-    logger.info("Testing OPTIMIZED configuration...")
-    logger.info(f"Debug output: {debugger._path}")
+        cache_info = last_detector.get_cache_info() if last_detector else {}
+        return run_times, cache_info
 
-    config_manager = container.resolve("config")
-    detector_optimized = AdaptiveLineDetector(config_manager.grid_detection_config, logger=logger)
-    
-    times_optimized = []
-    for image_path in test_images:
-        result = process_image_adaptive(image_path, "", detector_optimized, config_manager, logger, debugger)
-        if result:
-            times_optimized.append(result['detection_time'])
-    
-    avg_time_optimized = sum(times_optimized) / len(times_optimized) if times_optimized else 0
-    optimized_cache_info = detector_optimized.get_cache_info()
-    
-    # Log performance comparison
-    logger.info("=" * 60)
-    logger.info("PERFORMANCE RESULTS")
-    logger.info("=" * 60)
-    logger.info(f"Baseline configuration:  {avg_time_baseline:.3f}s average")
-    logger.info(f"Optimized configuration: {avg_time_optimized:.3f}s average")
-    if avg_time_baseline > 0:
-        speedup = avg_time_baseline / avg_time_optimized if avg_time_optimized > 0 else float('inf')
-        improvement = ((avg_time_baseline - avg_time_optimized) / avg_time_baseline) * 100
-        logger.info(f"Speedup: {speedup:.2f}x ({improvement:.1f}% faster)")
-    
-    # Log optimization settings comparison
-    baseline_grid = baseline_config_manager.grid_detection_config
-    optimized_grid = optimized_config_manager.grid_detection_config
-    
-    logger.info("Configuration Comparison:")
-    logger.info(f"  Early Exit - Baseline: {baseline_grid.enable_early_exit}, Optimized: {optimized_grid.enable_early_exit}")
-    logger.info(f"  Template Cache - Baseline: {baseline_grid.enable_template_cache}, Optimized: {optimized_grid.enable_template_cache}")
-    logger.info(f"  Preprocessing Cache - Baseline: {baseline_grid.enable_preprocessing_cache}, Optimized: {optimized_grid.enable_preprocessing_cache}")
-    
-    # Log cache statistics for both configurations
-    logger.info("Cache Statistics Comparison:")
-    logger.info(f"  Baseline - Template cache size: {baseline_cache_info['template_cache_size']} entries")
-    logger.info(f"  Optimized - Template cache size: {optimized_cache_info['template_cache_size']} entries")
-    
-    baseline_template_total = baseline_cache_info['template_cache_hits'] + baseline_cache_info['template_cache_misses']
-    optimized_template_total = optimized_cache_info['template_cache_hits'] + optimized_cache_info['template_cache_misses']
-    
-    if baseline_template_total > 0:
-        baseline_efficiency = (baseline_cache_info['template_cache_hits'] / baseline_template_total) * 100
-        logger.info(f"  Baseline template cache efficiency: {baseline_efficiency:.1f}%")
-    
-    if optimized_template_total > 0:
-        optimized_efficiency = (optimized_cache_info['template_cache_hits'] / optimized_template_total) * 100
-        logger.info(f"  Optimized template cache efficiency: {optimized_efficiency:.1f}%")
-    
-    baseline_preprocessing_total = baseline_cache_info['preprocessing_cache_hits'] + baseline_cache_info['preprocessing_cache_misses']
-    optimized_preprocessing_total = optimized_cache_info['preprocessing_cache_hits'] + optimized_cache_info['preprocessing_cache_misses']
-    
-    if baseline_preprocessing_total > 0:
-        baseline_preprocessing_efficiency = (baseline_cache_info['preprocessing_cache_hits'] / baseline_preprocessing_total) * 100
-        logger.info(f"  Baseline preprocessing cache efficiency: {baseline_preprocessing_efficiency:.1f}%")
-    
-    if optimized_preprocessing_total > 0:
-        optimized_preprocessing_efficiency = (optimized_cache_info['preprocessing_cache_hits'] / optimized_preprocessing_total) * 100
-        logger.info(f"  Optimized preprocessing cache efficiency: {optimized_preprocessing_efficiency:.1f}%")
+    baseline_times, baseline_cache = _time_config(baseline_config_path, "baseline")
+    optimized_times, optimized_cache = _time_config(optimized_config_path, "optimized")
+
+    def _stats(times: list[float]) -> dict:
+        return {
+            "median": statistics.median(times),
+            "mean": statistics.mean(times),
+            "stdev": statistics.stdev(times) if len(times) > 1 else 0.0,
+            "runs": times,
+        }
+
+    b = _stats(baseline_times)
+    o = _stats(optimized_times)
+
+    speedup = b["median"] / o["median"] if o["median"] > 0 else float("inf")
+    pct_reduction = (
+        (b["median"] - o["median"]) / b["median"] * 100 if b["median"] > 0 else 0.0
+    )
+
+    def _hit_rate(cache: dict, key: str) -> dict:
+        hits = cache.get(f"{key}_cache_hits", 0)
+        misses = cache.get(f"{key}_cache_misses", 0)
+        total = hits + misses
+        return {
+            "hits": hits,
+            "misses": misses,
+            "total": total,
+            "rate_pct": hits / total * 100 if total > 0 else 0.0,
+        }
+
+    tmpl = _hit_rate(optimized_cache, "template")
+    prep = _hit_rate(optimized_cache, "preprocessing")
+
+    baseline_gd = baseline_cm.grid_detection_config
+    optimized_gd = optimized_cm.grid_detection_config
+
+    print()
+    print("=" * 60)
+    print("RESULTS")
+    print("=" * 60)
+    print(
+        f"Baseline  (n={repeats}): "
+        f"median={b['median']:.3f}s  mean={b['mean']:.3f}s  stdev={b['stdev']:.3f}s"
+    )
+    print(
+        f"Optimized (n={repeats}): "
+        f"median={o['median']:.3f}s  mean={o['mean']:.3f}s  stdev={o['stdev']:.3f}s"
+    )
+    print(f"Speedup: {speedup:.2f}x  ({pct_reduction:.1f}% reduction)")
+    print()
+    print("Optimization flags (optimized config):")
+    print(f"  enable_early_exit:          {optimized_gd.enable_early_exit}")
+    print(f"  enable_template_cache:      {optimized_gd.enable_template_cache}")
+    print(f"  enable_preprocessing_cache: {optimized_gd.enable_preprocessing_cache}")
+    print()
+    print("Cache hit rates (optimized, last repeat):")
+    print(
+        f"  Template:      {tmpl['hits']}/{tmpl['total']}  ({tmpl['rate_pct']:.1f}%)"
+    )
+    print(
+        f"  Preprocessing: {prep['hits']}/{prep['total']}  ({prep['rate_pct']:.1f}%)"
+    )
+    print("=" * 60)
+
+    results = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "image_count": len(images),
+        "repeats": repeats,
+        "baseline": {
+            "config": baseline_config_path,
+            "enable_early_exit": baseline_gd.enable_early_exit,
+            "enable_template_cache": baseline_gd.enable_template_cache,
+            "enable_preprocessing_cache": baseline_gd.enable_preprocessing_cache,
+            **b,
+        },
+        "optimized": {
+            "config": optimized_config_path,
+            "enable_early_exit": optimized_gd.enable_early_exit,
+            "enable_template_cache": optimized_gd.enable_template_cache,
+            "enable_preprocessing_cache": optimized_gd.enable_preprocessing_cache,
+            **o,
+            "template_hit_rate_pct": tmpl["rate_pct"],
+            "preprocessing_hit_rate_pct": prep["rate_pct"],
+        },
+        "speedup": speedup,
+        "pct_reduction": pct_reduction,
+    }
+
+    if report_path:
+        with open(report_path, "w") as fh:
+            json.dump(results, fh, indent=2)
+        print(f"\nReport saved to: {report_path}")
+
+    return results
 
 
 def process_batch_adaptive(config_path: str, ext: str = "png") -> None:
@@ -391,14 +444,90 @@ def process_batch_adaptive(config_path: str, ext: str = "png") -> None:
 
 
 if __name__ == "__main__":
-    # Example usage with explicit configuration paths
-    
-    # Option 1: Compare performance between two configurations
-    '''
-    compare_performance_configs(
-         baseline_config_path="config/test/performance_baseline.json",
-         optimized_config_path="config/test/performance_optimized.json"
+    parser = argparse.ArgumentParser(
+        description="Adaptive grid detection — testing and cache benchmarking",
     )
-    '''
-    # Option 2: Process batch with test configuration
-    process_batch_adaptive(config_path="config/test/grid_detection.json")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # --- compare subcommand ---
+    cmp = subparsers.add_parser(
+        "compare",
+        help="Benchmark cache-optimization speedup between two configs",
+    )
+    cmp.add_argument(
+        "--baseline",
+        default="config/test/performance_baseline.json",
+        metavar="PATH",
+        help="Baseline config path (default: config/test/performance_baseline.json)",
+    )
+    cmp.add_argument(
+        "--optimized",
+        default="config/test/performance_optimized.json",
+        metavar="PATH",
+        help="Optimized config path (default: config/test/performance_optimized.json)",
+    )
+    cmp.add_argument(
+        "--repeats",
+        type=int,
+        default=3,
+        metavar="N",
+        help="Full passes over image set per config (default: 3)",
+    )
+    cmp.add_argument(
+        "--report",
+        default=None,
+        metavar="PATH",
+        help="Save JSON results to this path",
+    )
+    cmp.add_argument(
+        "--ext",
+        default="png",
+        metavar="EXT",
+        help="Image file extension (default: png)",
+    )
+    cmp.add_argument(
+        "--images",
+        default=None,
+        metavar="PATH",
+        help="Directory of images to test (overrides general.input_path in configs)",
+    )
+    cmp.add_argument(
+        "--count",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Limit number of images used",
+    )
+
+    # --- batch subcommand ---
+    bat = subparsers.add_parser(
+        "batch",
+        help="Process a batch of images with a single config",
+    )
+    bat.add_argument(
+        "--config",
+        default="config/test/grid_detection.json",
+        metavar="PATH",
+        help="Config path (default: config/test/grid_detection.json)",
+    )
+    bat.add_argument(
+        "--ext",
+        default="png",
+        metavar="EXT",
+        help="Image file extension (default: png)",
+    )
+
+    args = parser.parse_args()
+
+    if args.command == "compare":
+        compare_performance_configs(
+            baseline_config_path=args.baseline,
+            optimized_config_path=args.optimized,
+            ext=args.ext,
+            test_image_count=args.count,
+            repeats=args.repeats,
+            report_path=args.report,
+            images_path=args.images,
+        )
+    elif args.command == "batch":
+        process_batch_adaptive(config_path=args.config, ext=args.ext)
