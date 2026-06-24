@@ -153,3 +153,99 @@ A full machine-readable report is written to
   (pipeline setup, I/O, inter-tile overhead) is not attributed to any stage.
 - **n_tiles** — the count of tiles processed in the final timed run. Verify
   it matches the expected tile count for the dataset used.
+
+---
+
+## Measuring Cache Optimization Speedup
+
+`scripts/test_adaptive_detection.py compare` isolates the grid-detection stage
+and measures the speedup from template caching, preprocessing caching, and
+early-exit logic in `GridDetectionStep`. Use this to produce a citable speedup
+number for the paper that is specific to these optimizations (not diluted by
+other pipeline stages).
+
+### Usage
+
+```bash
+# Default: uses config/test/performance_baseline.json vs performance_optimized.json
+python scripts/test_adaptive_detection.py compare --repeats 5
+
+# Explicit paths + save JSON report
+python scripts/test_adaptive_detection.py compare \
+    --baseline config/test/performance_baseline.json \
+    --optimized config/test/performance_optimized.json \
+    --repeats 5 \
+    --report docs/cache_benchmark_result.json
+```
+
+### CLI flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--baseline PATH` | `config/test/performance_baseline.json` | Config with caching disabled |
+| `--optimized PATH` | `config/test/performance_optimized.json` | Config with caching enabled |
+| `--images PATH` | *(from config)* | Image directory; overrides `general.input_path` in the baseline config |
+| `--repeats N` | `3` | Full passes over image set per config |
+| `--report PATH` | *(none)* | Save full JSON results to this path |
+| `--ext EXT` | `png` | Image file extension |
+| `--count N` | *(all)* | Limit number of images used |
+
+### How it works
+
+Images are pre-loaded into memory before any timing begins, so file I/O does
+not contribute to measurements. For each repeat, a **fresh** `AdaptiveLineDetector`
+is created (cold caches), then run over the full image set in sequence — which
+mirrors real per-batch conditions where the cache warms up across tiles. After
+all repeats, median/mean/stdev are computed over total run times.
+
+Cache hit rates are read from the last optimized repeat via
+`detector.get_cache_info()`.
+
+### Sample output
+
+```
+============================================================
+CACHE OPTIMIZATION BENCHMARK
+============================================================
+Images:    14 (png) from /path/to/tiles
+Repeats:   5
+Baseline:  config/test/performance_baseline.json
+Optimized: config/test/performance_optimized.json
+
+Running baseline (5 repeats)...
+  repeat 1/5: 12.341s
+  ...
+
+Running optimized (5 repeats)...
+  repeat 1/5: 8.127s
+  ...
+
+============================================================
+RESULTS
+============================================================
+Baseline  (n=5): median=12.3s  mean=12.4s  stdev=0.08s
+Optimized (n=5): median= 8.1s  mean= 8.2s  stdev=0.06s
+Speedup: 1.52x  (34.1% reduction)
+
+Optimization flags (optimized config):
+  enable_early_exit:          True
+  enable_template_cache:      True
+  enable_preprocessing_cache: True
+
+Cache hit rates (optimized, last repeat):
+  Template:       8/14  (57.1%)
+  Preprocessing: 11/14  (78.6%)
+============================================================
+```
+
+### Interpreting the results for a paper
+
+- **Speedup** is the headline number: `baseline_median / optimized_median`.
+- **stdev** across repeats reflects OS scheduling noise, not cache variance
+  (each repeat starts cold). Values above ~3% of the median suggest system
+  load interference; re-run on an idle machine.
+- **Cache hit rates** are supporting evidence: a speedup without meaningful
+  hit rates suggests the gain comes from early-exit rather than cache reuse.
+- This benchmark covers the grid-detection step only. The full-pipeline speedup
+  (from `benchmark_pipeline.py --both`) will be smaller because other stages
+  are unaffected by these flags.
