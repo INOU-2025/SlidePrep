@@ -195,18 +195,24 @@ def compare_performance_configs(
     if not optimized_cm.grid_detection_config:
         raise ValueError(f"grid_detection_config not found in {optimized_config_path}")
 
-    input_folder = images_path or baseline_cm.general_config.input_path
+    test_cfg = baseline_cm.test_config
+    input_folder = images_path or (test_cfg.input_path if test_cfg else "")
     if not input_folder:
         raise ValueError(
-            "No image path specified. Use --images PATH or set general.input_path "
+            "No image path specified. Use --images PATH or set test.input_path "
             f"in {baseline_config_path}"
         )
+
+    # test.max_images acts as the built-in cap; --count overrides it explicitly.
+    cap = test_image_count if test_image_count is not None else (
+        test_cfg.max_images if test_cfg else None
+    )
 
     image_paths = sorted(glob(os.path.join(input_folder, f"*.{ext}")))
     if not image_paths:
         raise ValueError(f"No {ext} files found in {input_folder}")
-    if test_image_count is not None:
-        image_paths = image_paths[:min(test_image_count, len(image_paths))]
+    if cap is not None:
+        image_paths = image_paths[:min(cap, len(image_paths))]
 
     # Pre-load images into memory — file I/O must not contribute to timing.
     images = [
