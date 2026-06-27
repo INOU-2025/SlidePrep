@@ -15,6 +15,10 @@ export interface Project {
     pixelSize?: number;
 }
 
+/**
+ * Manages the local project list, persisted to localStorage.
+ * Delegates server-side job deletion to ApiService.
+ */
 @Injectable({
     providedIn: 'root'
 })
@@ -33,6 +37,7 @@ export class ProjectService {
         }
     }
 
+    /** Prepend project to the list and persist it. */
     addProject(project: Project) {
         const current = this.projectsSubject.value;
         const updated = [project, ...current];
@@ -40,10 +45,12 @@ export class ProjectService {
         localStorage.setItem('projects', JSON.stringify(updated));
     }
 
+    /** Return the project with the given id, or undefined if not found. */
     getProject(id: string): Project | undefined {
         return this.projectsSubject.value.find(p => p.id === id);
     }
 
+    /** Merge changes into the matching project and persist to localStorage. */
     updateProject(id: string, changes: Partial<Project>) {
         const current = this.projectsSubject.value;
         const updated = current.map(p => p.id === id ? { ...p, ...changes } : p);
@@ -51,6 +58,7 @@ export class ProjectService {
         localStorage.setItem('projects', JSON.stringify(updated));
     }
 
+    /** Remove project from the list; fires a best-effort server-side job deletion. */
     deleteProject(id: string) {
         const current = this.projectsSubject.value;
         const project = current.find(p => p.id === id);

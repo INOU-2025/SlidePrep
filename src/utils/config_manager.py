@@ -9,12 +9,6 @@ class ConfigManager(ABC):
     """Abstract base class for configuration management."""
 
     def __init__(self, config_path: str):
-        """
-        Initialize configuration manager.
-
-        Args:
-            config_path: Path to the configuration file
-        """
         self._path = config_path
         self._config = self._load_config(config_path)
         self._extract_config_values()
@@ -32,26 +26,11 @@ class ConfigManager(ABC):
             json.dump(self._config, f, indent=2)
 
     def get(self, key: str, default: Any = None) -> Any:
-        """
-        Get configuration value by key.
-
-        Args:
-            key: Configuration key
-            default: Default value if key not found
-
-        Returns:
-            Configuration value or default
-        """
+        """Return config value for key, or default if not found."""
         return self._config.get(key, default)
 
     def set(self, key: str, value: Any) -> None:
-        """
-        Set configuration value by key.
-
-        Args:
-            key: Configuration key
-            value: Value to set
-        """
+        """Set config value for key."""
         self._config[key] = value
 
     @abstractmethod

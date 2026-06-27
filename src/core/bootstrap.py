@@ -1,10 +1,9 @@
-from __future__ import annotations
-"""
-Application Bootstrap
+"""Sets up the dependency injection container with all required services.
 
-Sets up the dependency injection container with all required services.
 Call bootstrap() once at application startup to initialize services.
 """
+
+from __future__ import annotations
 
 from typing import Optional, TYPE_CHECKING
 

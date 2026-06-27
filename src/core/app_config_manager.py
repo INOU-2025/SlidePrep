@@ -25,12 +25,6 @@ class AppConfigManager(ConfigManager):
     """Application-specific configuration manager with typed config sections."""
 
     def __init__(self, config_path: str):
-        """
-        Initialize application configuration manager.
-
-        Args:
-            config_path: Path to the configuration file
-        """
         super().__init__(config_path)
 
     @classmethod

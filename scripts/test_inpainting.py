@@ -1,3 +1,5 @@
+"""CLI script for testing the LaMa inpainting pipeline step."""
+
 import argparse
 import sys
 from pathlib import Path

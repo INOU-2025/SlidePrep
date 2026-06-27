@@ -1,3 +1,5 @@
+"""Abstract base class for step-specific debug output writers."""
+
 from abc import ABC, abstractmethod
 from typing import Any
 

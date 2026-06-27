@@ -1,3 +1,5 @@
+"""Tests for DZI pyramid generation via libvips (skipped when vips is absent)."""
+
 import shutil
 import subprocess
 

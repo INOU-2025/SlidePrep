@@ -1,3 +1,5 @@
+"""Re-exports all pipeline step classes."""
+
 from .binarization import BinarizationStep
 from .grid_detection import GridDetectionStep
 from .grid_refinement import GridRefinementStep

@@ -1,3 +1,5 @@
+"""CLI script for running the full PipelineService end-to-end on a directory."""
+
 import requests
 import time
 import sys

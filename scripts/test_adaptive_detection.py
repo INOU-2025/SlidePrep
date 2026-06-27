@@ -1,3 +1,5 @@
+"""CLI script for running and benchmarking adaptive grid-line detection on images."""
+
 import sys
 import os
 import time
@@ -66,15 +68,12 @@ def process_image_adaptive(
         
         detector = AdaptiveLineDetector(config_manager.grid_detection_config, logger=logger)
     
-    # Time the detection
     start_time = time.time()
     results = detector.detect_lines(image)
     detection_time = time.time() - start_time
 
-    # Get metadata separately
     metadata = detector.get_detection_metadata()
     
-    # Log detection summary
     logger.info(f"Detection completed in {detection_time:.3f}s")
     total_lines_found = 0
     has_any_detections = False
@@ -95,7 +94,6 @@ def process_image_adaptive(
         else:
             logger.info(f"  {orientation_str}: No lines found")
     
-    # Log cache statistics
     if 'cache_stats' in results:
         stats = results['cache_stats']
         total_template = stats['template_cache_hits'] + stats['template_cache_misses']
@@ -106,24 +104,19 @@ def process_image_adaptive(
         
         logger.debug(f"Cache stats - Template: {template_rate} hits, Preprocessing: {preprocessing_rate} hits")
     
-    # Debug: Log what we're about to save
     logger.debug(f"Saving debug image for {filename} - Has detections: {has_any_detections}, Total lines: {total_lines_found}")
     logger.debug(f"Results structure: detections={list(results.get('detections', {}).keys())}, strategies={results.get('strategies', {})}")
 
-    # Apply output suffix from configuration to debug filename
     base_name = os.path.splitext(filename)[0]
     extension = os.path.splitext(filename)[1]
     
-    # Get suffix from provided configuration
     current_config = config_manager
     debug_filename = f"{base_name}{extension}"
     
     logger.debug(f"Debug filename with suffix: {debug_filename}")
     
-    # Save debug image with new structure
     debugger.save_debug_image(debug_filename, image, results, metadata)
     
-    # Verify the debug image was actually saved
     debug_path = os.path.join(debugger._path, debug_filename) if debugger._path else debug_filename
     if os.path.exists(debug_path):
         logger.debug(f"✓ Debug image successfully saved: {debug_path}")
@@ -133,7 +126,6 @@ def process_image_adaptive(
         logger.warning(f"  Debugger enabled: {debugger._enabled}")
         logger.warning(f"  Drawer available: {debugger._drawer is not None}")
     
-    # Only copy to output_path if specified and not empty
     if output_path and output_path.strip():
         if os.path.exists(debug_path):
             import shutil
@@ -371,16 +363,13 @@ def process_batch_adaptive(config_path: str, ext: str = "png") -> None:
     if not config_manager.grid_detection_config:
         raise ValueError(f"grid_detection_config not found in {config_path} - check configuration file structure")
     
-    # Extract input path from configuration
     input_folder = config_manager.general_config.input_path
     
     if not input_folder:
         raise ValueError(f"input_path not specified in configuration: {config_path}")
     
-    # Create adaptive detection drawer (strategy overlay removed)
     drawer = DetectionDrawer()
     
-    # Bootstrap the system
     container = bootstrap(config_path, drawer=drawer)
     logger = container.resolve("logger")
     debugger = container.resolve("debugger")
@@ -400,7 +389,6 @@ def process_batch_adaptive(config_path: str, ext: str = "png") -> None:
     logger.info("=" * 60)
     logger.info(f"Found {len(image_paths)} images to process")
     
-    # Process all images with the configuration
     detector = AdaptiveLineDetector(config_manager.grid_detection_config, logger=logger)
     logger.info("Using detector configuration from JSON file")
     
@@ -420,7 +408,6 @@ def process_batch_adaptive(config_path: str, ext: str = "png") -> None:
     
     total_time = time.time() - total_start_time
     
-    # Final summary
     logger.info("=" * 60)
     logger.info("BATCH PROCESSING SUMMARY")
     logger.info("=" * 60)
@@ -435,7 +422,6 @@ def process_batch_adaptive(config_path: str, ext: str = "png") -> None:
         logger.info(f"Total lines detected: {total_lines}")
         logger.info(f"Processing rate: {len(all_results)/total_time:.2f} images/second")
         
-        # Cache efficiency summary
         final_cache_info = detector.get_cache_info()
         template_total = final_cache_info['template_cache_hits'] + final_cache_info['template_cache_misses']
         preprocessing_total = final_cache_info['preprocessing_cache_hits'] + final_cache_info['preprocessing_cache_misses']
@@ -455,7 +441,6 @@ if __name__ == "__main__":
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # --- compare subcommand ---
     cmp = subparsers.add_parser(
         "compare",
         help="Benchmark cache-optimization speedup between two configs",
@@ -505,7 +490,6 @@ if __name__ == "__main__":
         help="Limit number of images used",
     )
 
-    # --- batch subcommand ---
     bat = subparsers.add_parser(
         "batch",
         help="Process a batch of images with a single config",

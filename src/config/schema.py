@@ -14,12 +14,12 @@ class GeneralConfig(BaseModel):
     coherent before processing begins.
     """
 
-    input_path: str = ""  # Source file or directory path
-    output_path: str = "output"  # Destination directory for results
-    suffix_filter: str = ""  # File suffix filter for batch processing
-    output_suffix: str = ""  # Suffix added to output filenames
-    log: bool = True  # Enable logging operations
-    debug: bool = False  # Enable debug mode with additional output
+    input_path: str = ""
+    output_path: str = "output"
+    suffix_filter: str = ""
+    output_suffix: str = ""
+    log: bool = True
+    debug: bool = False
 
     @field_validator("input_path")
     @classmethod
@@ -96,7 +96,7 @@ class BinarizationConfig(BaseModel):
     algorithms with automatic parameter selection or custom optimization.
     """
 
-    threshold_method: str = "combined_differential"  # Binarization algorithm name
+    threshold_method: str = "combined_differential"
 
     @field_validator("threshold_method")
     @classmethod
@@ -128,11 +128,9 @@ class GridDetectionConfig(BaseModel):
     Contains all adaptive detector settings directly without extra nesting.
     """
 
-    # Global template matching settings
     threshold: float = 0.1
     angles: List[float] = Field(default_factory=lambda: [2.0, -2.0])
 
-    # Performance optimizations
     enable_early_exit: bool = True
     enable_template_cache: bool = True
     enable_preprocessing_cache: bool = True

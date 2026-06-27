@@ -1,3 +1,5 @@
+"""ResultWriter subclass that saves per-contour analysis metrics to CSV."""
+
 from typing import Any
 import csv
 
@@ -22,7 +24,6 @@ class DetectionAnalysisWriter(ResultWriter):
             raise ValueError(
                 "No analysis results to save or not valid CSV path.")
 
-        # Ensure .csv extension
         if not csv_path.lower().endswith(".csv"):
             csv_path += ".csv"
 

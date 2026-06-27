@@ -1,3 +1,5 @@
+"""Pipeline step that stitches processed tiles into a single OME-TIFF using Ashlar."""
+
 from __future__ import annotations
 
 import os
@@ -46,13 +48,6 @@ class StitchingStep(PipelineStep):
     """Stitch processed tiles into a single OME-TIFF using Ashlar."""
 
     def __init__(self, config: StitchingConfig) -> None:
-        """Initialize the stitching step with configuration.
-
-        Args:
-            config: Stitching configuration specifying Ashlar parameters
-                such as file pattern, tile grid dimensions, and output
-                file name.
-        """
         super().__init__(name="stitching", config=config)
 
     def run(self, data: Any) -> StepResult:
@@ -63,7 +58,7 @@ class StitchingStep(PipelineStep):
                 file paths.
 
         Returns:
-            :class:`~api.schemas.StepResult` with the output path and metadata.
+            :class:`~src.core.step_result.StepResult` with the output path and metadata.
         """
         if isinstance(data, (list, tuple)):
             paths = list(data)

@@ -1,3 +1,5 @@
+"""Image pre-processing utilities and caching for the detection pipeline."""
+
 import cv2
 import numpy as np
 import hashlib
@@ -19,9 +21,7 @@ def create_detection_mask(response_map: np.ndarray, threshold: float) -> np.ndar
 
 
 class ImagePreprocessingCache:
-    """
-    Cache for preprocessed images to improve performance.
-    """
+    """MD5-keyed cache for bitwise_not results, avoiding redundant inversion during multi-template matching."""
 
     def __init__(self, max_size: int = 50):
         self.cache: Dict[str, np.ndarray] = {}
@@ -30,7 +30,6 @@ class ImagePreprocessingCache:
         self.misses = 0
 
     def _get_image_hash(self, image: np.ndarray) -> str:
-        """Generate hash for image caching."""
         return hashlib.md5(image.tobytes()).hexdigest()
 
     def get_inverted_image(self, image: np.ndarray) -> np.ndarray:
@@ -44,9 +43,7 @@ class ImagePreprocessingCache:
         self.misses += 1
         inverted = cv2.bitwise_not(image)
 
-        # Manage cache size
-        if len(self.cache) >= self.max_size:
-            # Remove oldest entry (simple FIFO)
+        if len(self.cache) >= self.max_size:  # FIFO eviction once cache is full
             oldest_key = next(iter(self.cache))
             del self.cache[oldest_key]
 
@@ -54,13 +51,11 @@ class ImagePreprocessingCache:
         return inverted
 
     def clear(self) -> None:
-        """Clear cache."""
         self.cache.clear()
         self.hits = 0
         self.misses = 0
 
     def get_stats(self) -> Dict[str, int]:
-        """Get cache statistics."""
         return {
             'hits': self.hits,
             'misses': self.misses,

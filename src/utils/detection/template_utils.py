@@ -1,20 +1,15 @@
+"""Template generation and matching utilities for grid-line detection."""
+
 import cv2
 import numpy as np
 from typing import List, Tuple
 
 
 def generate_blurred_template(length: int, thickness: int, angle_deg: float, orientation: str) -> np.ndarray:
-    """
-    Generate a blurred template for line detection.
+    """Generate a Gaussian-blurred line template.
 
     Args:
-        length: Template length in pixels
-        thickness: Template thickness in pixels
-        angle_deg: Rotation angle in degrees
         orientation: 'horizontal' or 'vertical'
-
-    Returns:
-        Blurred template as numpy array
     """
     if orientation == 'horizontal':
         template = np.zeros((thickness, length), dtype=np.uint8)
@@ -34,16 +29,7 @@ def generate_blurred_template(length: int, thickness: int, angle_deg: float, ori
 
 
 def pad_response(response: np.ndarray, target_shape: Tuple[int, int]) -> np.ndarray:
-    """
-    Pad template matching response to target shape.
-
-    Args:
-        response: Template matching response
-        target_shape: Target (height, width) shape
-
-    Returns:
-        Padded response array
-    """
+    """Pad or crop response to target_shape (height, width)."""
     pad_y = target_shape[0] - response.shape[0]
     pad_x = target_shape[1] - response.shape[1]
     return cv2.copyMakeBorder(response, 0, pad_y, 0, pad_x, cv2.BORDER_CONSTANT, value=1.0)

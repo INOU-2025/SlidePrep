@@ -11,7 +11,6 @@ from src.utils.detection.contour_analysis import analyze_contour
 from src.utils.detection.models import DetectionStrategy, Orientation, DetectionRegion
 
 
-# ----------------- helpers -----------------
 
 def _as_cnt(a: np.ndarray) -> np.ndarray:
     """
@@ -88,6 +87,7 @@ class GridRefinementStep(PipelineStep):
     EXPANSION_FACTOR: float = 1.5
 
     def __init__(self, config: GridRefinementConfig) -> None:
+        """Load the pre-trained border classifier from config.classifier.model_path."""
         super().__init__(name="grid_refinement", config=config)
 
         self.model = joblib.load(config.classifier.model_path)

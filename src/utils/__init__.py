@@ -1,3 +1,5 @@
+"""Re-exports utility helpers for image processing and configuration."""
+
 from .config_manager import ConfigManager
 from .conversion_utils import make_csv_serializable, get_extension_for_format
 from .image_utils import (

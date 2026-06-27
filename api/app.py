@@ -1,3 +1,5 @@
+"""FastAPI application factory: CORS middleware, static-file mount, and router registration."""
+
 import os
 
 from fastapi import FastAPI
@@ -15,7 +17,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files for results
 os.makedirs("data/results", exist_ok=True)
 app.mount("/results", StaticFiles(directory="data/results"), name="results")
 

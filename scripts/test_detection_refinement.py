@@ -1,3 +1,5 @@
+"""CLI script for testing grid detection followed by border-classifier refinement."""
+
 import argparse
 import sys
 from pathlib import Path

@@ -1,3 +1,5 @@
+"""CLI script for testing the binarization pipeline step on a directory of images."""
+
 import argparse
 import sys
 from pathlib import Path

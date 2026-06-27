@@ -1,3 +1,5 @@
+"""Re-exports the public detection API: detector, result container, enums, and contour helpers."""
+
 from .models import DetectionStrategy, DetectionRegion, Orientation
 from .detection_result_dict import DetectionResultDict
 from .adaptive_detector import AdaptiveLineDetector

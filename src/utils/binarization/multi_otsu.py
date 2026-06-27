@@ -1,3 +1,5 @@
+"""Multi-level Otsu thresholding for binarization."""
+
 import numpy as np
 from typing import Optional, Callable
 

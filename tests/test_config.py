@@ -1,3 +1,5 @@
+"""Tests for AppConfigManager loading and config schema validation."""
+
 import pytest
 from pydantic import ValidationError
 

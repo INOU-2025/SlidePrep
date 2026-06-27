@@ -1,3 +1,5 @@
+"""Combined differential thresholding — the primary production binarization method."""
+
 import cv2
 import numpy as np
 from typing import Optional, Callable
@@ -9,7 +11,7 @@ def apply_combined_differential_threshold(
     gray: np.ndarray,
     debug_callback: Optional[Callable] = None,
 ) -> np.ndarray:
-    """Apply combined differential thresholding (production method)."""
+    """Apply combined differential thresholding."""
     if debug_callback:
         debug_callback(
             "Applying combined differential threshold (multi_otsu - spurious elements)")

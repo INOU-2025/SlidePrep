@@ -1,3 +1,5 @@
+"""Tests for InpaintingStep using a mocked LaMa model."""
+
 from unittest.mock import MagicMock
 
 import numpy as np

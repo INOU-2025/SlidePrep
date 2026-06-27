@@ -1,3 +1,5 @@
+"""CLI script for batch-evaluating binarization methods on a directory of images."""
+
 import argparse
 import os
 import sys
@@ -17,14 +19,11 @@ from src.core.bootstrap import bootstrap
 def evaluate_binarization_methods(config_path: str):
     """Evaluate different binarization methods on all images in a folder."""
 
-    # Bootstrap the application with all services
     container = bootstrap(config_path)
 
-    # Get services from container
     cfg = container.resolve("config")
     logger = container.resolve("logger")
 
-    # Get input folder from config
     input_folder = cfg.general_config.input_path
     suffix_filter = cfg.general_config.suffix_filter
 
@@ -37,14 +36,12 @@ def evaluate_binarization_methods(config_path: str):
         logger.error(f"Input folder not found: {input_folder}")
         return
 
-    # Get all supported images from the folder
     image_extensions = get_supported_image_patterns()
     images = []
     for ext in image_extensions:
         images.extend(glob(os.path.join(input_folder, ext)))
         images.extend(glob(os.path.join(input_folder, ext.upper())))
 
-    # Apply suffix filter if specified
     images = filter_images_by_suffix(images, suffix_filter)
     if suffix_filter:
         logger.info(f"Applied suffix filter: '{suffix_filter}'")
@@ -60,7 +57,6 @@ def evaluate_binarization_methods(config_path: str):
 
     logger.info(f"Found {len(images)} images to process in {input_folder}")
 
-    # Get output directory from debug config
     output_base_dir = cfg.debug_config.path
 
     if not output_base_dir:
@@ -69,7 +65,6 @@ def evaluate_binarization_methods(config_path: str):
 
     logger.info(f"Output will be saved to: {output_base_dir}")
 
-    # Test the current production method
     methods = [
         {
             "name": "Combined Differential (Production)",
@@ -79,7 +74,6 @@ def evaluate_binarization_methods(config_path: str):
         }
     ]
 
-    # Create output directories for each method
     method_dirs = {}
     for method in methods:
         method_safe_name = method['name'].replace(
@@ -89,17 +83,14 @@ def evaluate_binarization_methods(config_path: str):
         method_dirs[method_safe_name] = method_dir
         logger.info(f"Created output directory: {method_dir}")
 
-    # Statistics tracking
     total_processed = 0
     method_stats = {method['name']: {'success': 0,
                                      'failed': 0, 'files': []} for method in methods}
 
-    # Process each image
     for image_path in images:
         fname = os.path.basename(image_path)
         base_name = os.path.splitext(fname)[0]
 
-        # Load the image
         gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
         if gray is None:
             logger.warning(f"Could not load image: {fname}")
@@ -108,36 +99,29 @@ def evaluate_binarization_methods(config_path: str):
         logger.info(f"\nProcessing {fname} ({gray.shape[1]}x{gray.shape[0]})")
         total_processed += 1
 
-        # Test each method on this image
         for method in methods:
             method_name = method['name']
             method_safe_name = method_name.replace(
                 " ", "_").replace("(", "").replace(")", "").lower()
 
             try:
-                # Create config from method settings
                 from src.config import BinarizationConfig
                 config = BinarizationConfig(**method['config'])
 
-                # Create step (services injected via container)
                 step = BinarizationStep(config, container=container)
 
-                # Run binarization directly on image data
                 result_image = step.run(gray.copy())
 
                 if result_image is not None:
-                    # Save the binarized result
                     output_filename = f"{base_name}_binarized.png"
                     output_path = os.path.join(
                         method_dirs[method_safe_name], output_filename)
 
                     cv2.imwrite(output_path, result_image)
 
-                    # Update statistics
                     method_stats[method_name]['success'] += 1
                     method_stats[method_name]['files'].append(output_path)
 
-                    # Calculate pixel statistics
                     white_pixels = np.sum(result_image == 255)
                     total_pixels = result_image.size
                     white_percent = 100 * white_pixels / total_pixels
@@ -153,7 +137,6 @@ def evaluate_binarization_methods(config_path: str):
                 method_stats[method_name]['failed'] += 1
                 logger.error(f"  ✗ {method_name}: Error - {e}")
 
-    # Print final summary
     logger.info(f"\n{'='*60}")
     logger.info(f"BATCH PROCESSING SUMMARY")
     logger.info(f"{'='*60}")

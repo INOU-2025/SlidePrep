@@ -1,3 +1,5 @@
+"""CLI script for testing the image-stitching pipeline step."""
+
 from src.steps import StitchingStep
 from scripts.test_runner import StepTestRunner
 import argparse

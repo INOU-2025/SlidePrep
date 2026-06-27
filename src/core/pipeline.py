@@ -8,20 +8,12 @@ from src.core.step import PipelineStep
 
 
 class Pipeline:
-    """
-    Sequential pipeline for executing processing steps on data.
-    
-    This pipeline executes a series of PipelineStep instances in order,
-    passing the output of each step as input to the next. It provides
-    centralized error handling and logging for the entire processing chain.
-    
-    The pipeline stops execution if any step raises an exception and returns
-    None to indicate failure. All steps are expected to follow the PipelineStep
-    interface contract.
+    """Run PipelineStep instances in order, passing each output as the next input.
+
+    Stops at the first exception and returns None; on success returns the last step's StepResult.
     """
 
     def __init__(self, steps: List[PipelineStep], container: Container) -> None:
-        """Initialize pipeline with a sequence of processing steps."""
 
         self.steps = list(steps)
         self.container = container

@@ -12,7 +12,6 @@ class InpaintingStep(PipelineStep):
     """Pipeline step for mask-based image inpainting."""
 
     def __init__(self, config: InpaintingConfig) -> None:
-        """Initialize inpainting step with specified model."""
         super().__init__(name="inpainting", config=config)
 
         model_name = self.config.model.lower()

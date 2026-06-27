@@ -90,8 +90,6 @@ class Debugger:
         writer: Optional[ResultWriter] = None,
         sink: Optional[ArtifactSink] = None,
     ) -> None:
-        """Create a debugger instance."""
-
         self._enabled = debug_enabled
         self._save_images = debug_config.saved_artifact_type in {"image", "both"}
         self._save_composite = debug_config.save_composite_img
