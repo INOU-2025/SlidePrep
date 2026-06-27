@@ -8,6 +8,7 @@ class DetectionStrategy(Enum):
     THIN_BORDER = "thin_border"
 
 class DetectionRegion(Enum):
+    """Image region sampled when running template matching."""
     TOP = "top"
     BOTTOM = "bottom"
     LEFT = "left"
@@ -15,5 +16,6 @@ class DetectionRegion(Enum):
     CENTER = "center"
 
 class Orientation(Enum):
+    """Axis along which grid lines are detected."""
     HORIZONTAL = "horizontal"
     VERTICAL = "vertical"

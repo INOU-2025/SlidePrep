@@ -69,6 +69,7 @@ class BinarizationMethods:
         return apply_combined_differential_threshold(gray, debug_callback=self.debug, **kwargs)
 
     def apply_method(self, method: ThresholdMethod, gray: np.ndarray, **kwargs) -> np.ndarray:
+        """Dispatch to the named ThresholdMethod and return the binary result."""
         method_map = {
             ThresholdMethod.GLOBAL: self.apply_global_threshold,
             ThresholdMethod.OTSU: self.apply_otsu_threshold,
@@ -83,9 +84,11 @@ class BinarizationMethods:
         return method_map[method](gray, **kwargs)
 
     def get_available_methods(self) -> list:
+        """Return all ThresholdMethod values as strings."""
         return [method.value for method in ThresholdMethod]
 
     def get_method_info(self, method: ThresholdMethod) -> Dict[str, Any]:
+        """Return description, accepted parameters, and typical use-case for method."""
         method_info = {
             ThresholdMethod.GLOBAL: {
                 "description": "Fixed threshold value",

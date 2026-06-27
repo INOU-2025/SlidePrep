@@ -1,7 +1,8 @@
+"""Celery application and worker configuration."""
+
 import os
 from celery import Celery
 
-# Get Redis URL from env or default to localhost
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 celery_app = Celery(

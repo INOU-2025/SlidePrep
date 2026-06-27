@@ -1,3 +1,5 @@
+"""CLI script for testing template-based grid-line detection on images."""
+
 import argparse
 import sys
 from pathlib import Path
@@ -5,7 +7,6 @@ from pathlib import Path
 # Add project root to Python path FIRST
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-# Now import project modules
 from src.utils.debug.detection_drawer import DetectionDrawer
 from scripts.test_runner import StepTestRunner
 from src.steps import GridDetectionStep

@@ -1,3 +1,5 @@
+"""Standard Otsu thresholding for binarization."""
+
 import cv2
 import numpy as np
 from typing import Optional, Callable
@@ -11,13 +13,8 @@ def apply_otsu_threshold(
     """
     Apply Otsu's automatic thresholding to a grayscale image.
 
-    Otsu's method automatically determines the optimal threshold value by
-    minimizing intra-class variance of the pixel intensities. This method
-    works well for images with bimodal histograms where the foreground
-    and background have distinct intensity distributions.
-
-    The function supports both normal and inverted binary output depending
-    on whether dark or light regions should be considered foreground.
+    Otsu's method minimizes intra-class pixel intensity variance to determine
+    the optimal threshold automatically — effective for bimodal histograms.
 
     Args:
         gray: Grayscale input image as uint8 numpy array

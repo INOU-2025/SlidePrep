@@ -20,8 +20,7 @@ class TemplateCache:
 
     def get_templates(self, strategy: DetectionStrategy, orientation: str,
                       config: Dict[str, Any]) -> List[np.ndarray]:
-        """Get templates with caching. Orientation should be a string (enum.value) for cache keys."""
-        # Orientation is always passed as enum.value from detector
+        """Return cached templates for strategy+orientation, generating them on first miss."""
         if strategy in self.cache and orientation in self.cache[strategy]:
             self.hits += 1
             return self.cache[strategy][orientation]
@@ -58,7 +57,7 @@ class TemplateCache:
 
 class AdaptiveLineDetector:
     """
-    Sophisticated adaptive line detector that tries multiple strategies.
+    Adaptive line detector that tries multiple strategies.
 
     Optimizations included:
     - Early exit strategy: Stop when both orientations are found
@@ -84,30 +83,25 @@ class AdaptiveLineDetector:
         """
         self.logger = logger or getLogger(__name__)
 
-        # Extract parameters from config
         self.threshold = grid_config.threshold
         self.angles = grid_config.angles
 
-        # Performance optimizations from config
         self.enable_early_exit = grid_config.enable_early_exit
         self.enable_template_cache = grid_config.enable_template_cache
         self.enable_preprocessing_cache = grid_config.enable_preprocessing_cache
         self.cache_max_size = grid_config.cache_max_size
 
-        # Strategy configurations from config
         self.configs = {
             DetectionStrategy.GENERAL: grid_config.general or {},
             DetectionStrategy.THICK_BORDER: grid_config.thick_border or {},
             DetectionStrategy.THIN_BORDER: grid_config.thin_border or {}
         }
 
-        # Initialize caches
         self.template_cache = TemplateCache() if self.enable_template_cache else None
         self.preprocessing_cache = ImagePreprocessingCache(
             max_size=self.cache_max_size
         ) if self.enable_preprocessing_cache else None
 
-        # Storage for detection results
         self.detection_results: Dict[Orientation, List[dict]] = {}
         self.strategies_used: Dict[Orientation, Optional[DetectionStrategy]] = {}
 
@@ -174,13 +168,10 @@ class AdaptiveLineDetector:
         """
         config = self.configs[strategy]
 
-        # Use cached preprocessing
         inverted = self._get_preprocessed_image(image)
 
-        # Use cached templates
         templates = self._get_templates(strategy, orientation)
 
-        # Perform template matching
         response_map = perform_template_matching(inverted, templates)
         mask = create_detection_mask(response_map, self.threshold)  # Use global threshold
 
@@ -301,6 +292,11 @@ class AdaptiveLineDetector:
         return self._create_result_dict(missing_orientations)
     
     def analyze_results(self, results: dict) -> dict:
+        """Return per-contour geometry analysis keyed by orientation string.
+
+        Accepts the dict produced by detect_lines and enriches each detected
+        contour with bounding-box metrics from analyze_contour.
+        """
         logger = self.logger
         analysis = {}
         for orientation in [Orientation.HORIZONTAL, Orientation.VERTICAL]:
@@ -323,13 +319,11 @@ class AdaptiveLineDetector:
 
     def _create_result_dict(self, missing_orientations: List[Orientation]) -> Dict[str, Any]:
         """Create standardized result dictionary."""
-        # Handle any still missing orientations
         if missing_orientations:
             for orientation in missing_orientations:
                 self.detection_results[orientation] = []
                 self.strategies_used[orientation] = None
 
-        # Print final summary
         logger = self.logger
         logger.info("Detection Summary:")
         for orientation in [Orientation.HORIZONTAL, Orientation.VERTICAL]:
@@ -344,7 +338,6 @@ class AdaptiveLineDetector:
                 if logger:
                     logger.info(f"  {orientation.value.capitalize()}: No lines found")
 
-        # Print cache performance
         cache_stats = self.get_cache_info()
         if logger:
             logger.info(f"Cache Performance:")
@@ -353,7 +346,6 @@ class AdaptiveLineDetector:
             logger.info(
                 f"  Preprocessing cache - Hits: {cache_stats['preprocessing_cache_hits']}, Misses: {cache_stats['preprocessing_cache_misses']}")
 
-        # Return detections and strategies together
         return {
             'detections': self.detection_results,
             'strategies': self.strategies_used

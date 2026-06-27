@@ -1,3 +1,5 @@
+"""CLI script for testing the image-conversion pipeline step."""
+
 from src.steps import ImgConversionStep
 from scripts.test_runner import StepTestRunner
 import argparse

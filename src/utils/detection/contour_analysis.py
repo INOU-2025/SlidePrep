@@ -1,3 +1,5 @@
+"""Geometry analysis helpers for contours produced by the adaptive line detector."""
+
 from typing import List, Tuple, Optional
 import cv2
 import numpy as np
@@ -6,10 +8,9 @@ from src.core.logger import Logger
 
 
 def corner_proximity_from_box(box, W, H):
-    """
-    Normalized by FULL diagonal.
-    0 = exactly on a corner, ~1 = near image center.
-    Uses the min distance from any box vertex to any image corner.
+    """Return min normalized distance (0=corner, ~1=center) from any box vertex to the nearest image corner.
+
+    Normalized by the full image diagonal.
     Args:
         box: Nx2 array of box vertices (e.g., from cv2.boxPoints)
         W: image width
@@ -28,10 +29,9 @@ def corner_proximity_from_box(box, W, H):
 
 
 def border_proximity_from_box(box, W, H):
-    """
-    Normalized by max image dimension.
-    0 = touching a border, ~0.5 = centered along the short dimension.
-    Uses the min distance from any box vertex to the nearest border.
+    """Return min normalized distance (0=on border) from any box vertex to the nearest image border.
+
+    Normalized by the max image dimension.
     Args:
         box: Nx2 array of box vertices (e.g., from cv2.boxPoints)
         W: image width
@@ -56,7 +56,7 @@ def get_contour_zone(box: np.ndarray, img_shape: Tuple[int, int],
         orientation: Orientation of the contour ('horizontal' or 'vertical')
 
     Returns:
-        True if contour is fully within appropriate border zone
+        The matching DetectionRegion, or None if the contour is not in any border zone.
     """
     h, w = img_shape
     if orientation == Orientation.HORIZONTAL:
@@ -73,16 +73,7 @@ def get_contour_zone(box: np.ndarray, img_shape: Tuple[int, int],
 
 
 def filter_contours_by_area(contours: List[np.ndarray], min_area: int) -> List[np.ndarray]:
-    """
-    Filter contours by minimum area.
-
-    Args:
-        contours: List of contours
-        min_area: Minimum area threshold
-
-    Returns:
-        Filtered list of contours
-    """
+    """Return contours with area >= min_area."""
     return [cnt for cnt in contours if cv2.contourArea(cnt) >= min_area]
 
 
@@ -224,15 +215,7 @@ def analyze_contour(
 
 
 def has_orientation_mismatch(passed_orientation, computed_orientation):
-    """
-    Returns True if there is a mismatch between the passed and computed orientation.
-    Args:
-        passed_orientation: Orientation enum or string
-        computed_orientation: Orientation enum or string
-    Returns:
-        bool: True if mismatch, False otherwise
-    """
-    # Normalize to string for comparison
+    """Return True if passed_orientation and computed_orientation differ."""
     passed = passed_orientation.value if hasattr(
         passed_orientation, 'value') else str(passed_orientation)
     computed = computed_orientation.value if hasattr(
@@ -242,7 +225,7 @@ def has_orientation_mismatch(passed_orientation, computed_orientation):
 
 def analyze_all_contours_for_image(results, image_shape=None, logger: Optional[Logger] = None):
     """
-    Iterate through contours in grid detection results obtained for am image and analyze each contour.
+    Iterate through contours in grid detection results obtained for an image and analyze each contour.
     Args:
         results: dict with 'detections' (orientation -> list of contour dicts)
         image_shape: tuple (height, width) of image (optional, for proximity metrics)
@@ -255,7 +238,6 @@ def analyze_all_contours_for_image(results, image_shape=None, logger: Optional[L
         for item in contour_dicts:
             contour = item['contour']
             zone = item.get('zone', None)
-            # Pass orientation as enum or string, strategy if available
             strategy = results.get('strategies', {}).get(orientation, None)
             analysis = analyze_contour(
                 contour,

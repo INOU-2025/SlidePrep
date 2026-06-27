@@ -19,8 +19,13 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str,
                          config_path: str, clean_grid: bool = True,
                          stitching_overrides: dict = None, general_overrides: dict = None,
                          grid_detection_overrides: dict = None):
-    """
-    Celery task to run the image processing pipeline.
+    """Process all images in input_path, stitch them, and produce a DZI pyramid.
+
+    Reads config from config_path, applies per-job overrides, then runs each image
+    through PipelineService. Progress is reported via Celery task state. Returns a
+    dict with result_path, thumbnail_path, width, height, and tile_count on success.
+
+    Raises ValueError if no images are found in input_path.
     """
     logger.info(f"Starting job {job_id}")
     self.update_state(state='PROCESSING', meta={'status': 'Initializing pipeline...'})

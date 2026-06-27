@@ -1,3 +1,5 @@
+"""Re-exports all pipeline configuration dataclasses."""
+
 from .schema import (
     GeneralConfig,
     TestConfig,

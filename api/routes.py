@@ -1,3 +1,5 @@
+"""FastAPI routes for job submission, status polling, and file management."""
+
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import FileResponse
 from typing import List, Optional
@@ -34,13 +36,11 @@ async def create_job(
     job_dir = os.path.join(UPLOAD_DIR, job_id)
     os.makedirs(job_dir, exist_ok=True)
 
-    # Save uploaded files
     for file in files:
         file_path = os.path.join(job_dir, file.filename)
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # Extract zip archives
         if file.filename.endswith('.zip'):
             try:
                 with zipfile.ZipFile(file_path, 'r') as zip_ref:
@@ -70,7 +70,6 @@ async def create_job(
             except zipfile.BadZipFile:
                 pass
 
-    # Build per-job config overrides from form fields
     stitching_overrides = {}
     if grid_width:  stitching_overrides['width']      = int(grid_width)
     if grid_height: stitching_overrides['height']     = int(grid_height)

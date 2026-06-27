@@ -41,7 +41,6 @@ class GridDetectionStep(PipelineStep):
             f"Starting adaptive grid detection on image shape: {data.shape}")
 
         try:
-            # Run adaptive detection
             results = self.detector.detect_lines(data)
 
             self.log("Detection completed.")
@@ -58,7 +57,6 @@ class GridDetectionStep(PipelineStep):
                 else:
                     self.debug(f"  {orientation_str}: not found")
 
-            # Log cache performance (get from detector)
             cache_stats = self.detector.get_cache_info()
             template_total = (
                 cache_stats["template_cache_hits"]

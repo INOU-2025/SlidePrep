@@ -10,7 +10,7 @@ from src.core.debugger import Debugger
 from src.core.logger import Logger
 
 
-# Context variable holding the container for the current execution context
+# ContextVar isolates one container per coroutine context, preventing state bleed between concurrent requests
 _current_container: ContextVar["Container | None"] = ContextVar(
     "current_container", default=None
 )
@@ -23,9 +23,6 @@ class Container:
     _factories: Dict[str, Callable[[], Any]] = field(default_factory=dict)
     _singletons: Dict[str, Any] = field(default_factory=dict)
 
-    # ------------------------------------------------------------------
-    # Registration and resolution
-    # ------------------------------------------------------------------
     def register_factory(self, name: str, factory: Callable[[], Any]) -> None:
         """Register a factory that creates a new instance each time."""
 
@@ -78,9 +75,6 @@ class Container:
             services[name] = "factory"
         return services
 
-    # ------------------------------------------------------------------
-    # Context management
-    # ------------------------------------------------------------------
     @classmethod
     def set_current(cls, container: "Container") -> None:
         """Bind ``container`` to the current execution context."""

@@ -1,3 +1,5 @@
+"""Drawer subclass that overlays detected grid lines and border zones onto images."""
+
 import cv2
 import numpy as np
 from typing import Any, Optional, List
@@ -15,12 +17,6 @@ class DetectionDrawer(Drawer):
     """
 
     def __init__(self, show_border_zones: bool = True):
-        """
-        Initialize the detection drawer.
-
-        Args:
-            show_border_zones: Whether to show border zone overlays
-        """
         self.show_border_zones = show_border_zones
 
     def draw(self, image: np.ndarray, results: Any = None, metadata: Any = None) -> Optional[np.ndarray]:
@@ -28,7 +24,6 @@ class DetectionDrawer(Drawer):
         if results is None:
             return cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 
-        # Convert to BGR for visualization
         base = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 
         detections = results.get('detections', {}) if results else {}
@@ -67,7 +62,6 @@ class DetectionDrawer(Drawer):
         h, w = image.shape[:2]
         overlay = image.copy()
 
-        # Ensure overlay is BGR
         if len(overlay.shape) == 2:
             overlay = cv2.cvtColor(overlay, cv2.COLOR_GRAY2BGR)
 
@@ -112,8 +106,7 @@ class DetectionDrawer(Drawer):
             rect = cv2.minAreaRect(cnt)
             box = cv2.boxPoints(rect).astype(np.intp)
 
-            # Since contours are pre-filtered by detector, all are valid
-            # Just apply strategy-based coloring
+            # contours are pre-corrected and pre-filtered by the detector
             if strategy == DetectionStrategy.GENERAL:
                 color = (0, 255, 0) if orientation == Orientation.VERTICAL else (255, 0, 0)
             elif strategy == DetectionStrategy.THICK_BORDER:
@@ -123,11 +116,9 @@ class DetectionDrawer(Drawer):
 
             cv2.drawContours(result, [box], 0, color, 2)
 
-            # Visualize zone metadata if present
             zone = item.get('zone', None)
             if zone is not None:
                 zone_str = zone.value if hasattr(zone, 'value') else str(zone)
-                # Place zone label at the center of the contour
                 M = cv2.moments(cnt)
                 if M['m00'] != 0:
                     cx = int(M['m10'] / M['m00'])

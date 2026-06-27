@@ -1,3 +1,5 @@
+"""Tests for BinarizationStep: grayscale and RGB inputs produce binary output."""
+
 from src.config import BinarizationConfig
 from src.steps.binarization import BinarizationStep
 

@@ -27,13 +27,12 @@ class BinarizationStep(PipelineStep):
         """Convert grayscale image to binary using configured thresholding method.
 
         Automatically converts color images to grayscale before applying binarization.
-        Uses production-optimized algorithms for consistent results across image types.
 
         Args:
             data: Input image as numpy array. Can be grayscale (2D) or color (3D).
 
         Returns:
-            :class:`~api.schemas.StepResult` containing the binary image.
+            :class:`~src.core.step_result.StepResult` containing the binary image.
 
         Raises:
             ValueError: If threshold method is unknown or image validation fails.

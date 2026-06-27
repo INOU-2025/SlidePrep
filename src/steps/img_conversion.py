@@ -1,3 +1,5 @@
+"""Pipeline step that converts images to a target colour mode."""
+
 from typing import Any
 
 import numpy as np
@@ -13,11 +15,6 @@ class ImgConversionStep(PipelineStep):
     """Convert images to a specified format and mode."""
 
     def __init__(self, config: ImgConversionConfig) -> None:
-        """Initialize the conversion step with configuration.
-
-        Args:
-            config: Configuration defining target format and mode.
-        """
         super().__init__(name="img_conversion", config=config)
         self._format = validate_image_format(config.format)
         self._mode = config.mode.upper()
@@ -29,7 +26,7 @@ class ImgConversionStep(PipelineStep):
             data: Input image as a NumPy array.
 
         Returns:
-            :class:`~api.schemas.StepResult` with the converted image and metadata.
+            :class:`~src.core.step_result.StepResult` with the converted image and metadata.
         """
         self._validate_image_input(data)
         converted = convert_image_mode(data, self._mode)

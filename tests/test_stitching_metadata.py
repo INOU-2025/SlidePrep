@@ -1,3 +1,5 @@
+"""Tests for OME-TIFF physical-size injection in the stitching step."""
+
 import re
 import xml.etree.ElementTree as ET
 

@@ -1,3 +1,5 @@
+"""Shared pytest fixtures for the SlidePrep test suite."""
+
 import json
 
 import numpy as np

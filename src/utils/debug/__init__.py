@@ -1,3 +1,5 @@
+"""Re-exports debug writers and visualisation helpers."""
+
 from .drawer import Drawer
 from .detection_drawer import DetectionDrawer
 from .result_writer import ResultWriter

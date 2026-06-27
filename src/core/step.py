@@ -39,12 +39,6 @@ class PipelineStep(ABC):
         pass
 
     def log(self, message: str) -> None:
-        """
-        Log an info message with step prefix.
-
-        Args:
-            message: Message to log
-        """
         logger = self.logger
         if logger:
             logger.info(f"[{self.name}] {message}")
@@ -52,12 +46,6 @@ class PipelineStep(ABC):
             print(f"[{self.name}] {message}")
 
     def debug(self, message: str) -> None:
-        """
-        Log a debug message with step prefix.
-
-        Args:
-            message: Message to log
-        """
         logger = self.logger
         if logger:
             logger.debug(f"[{self.name}] {message}")
@@ -65,12 +53,6 @@ class PipelineStep(ABC):
             print(f"[{self.name}] DEBUG: {message}")
 
     def warning(self, message: str) -> None:
-        """
-        Log a warning message with step prefix.
-
-        Args:
-            message: Message to log
-        """
         logger = self.logger
         if logger:
             logger.warning(f"[{self.name}] {message}")
@@ -78,12 +60,6 @@ class PipelineStep(ABC):
             print(f"[{self.name}] WARNING: {message}")
 
     def error(self, message: str) -> None:
-        """
-        Log an error message with step prefix.
-
-        Args:
-            message: Message to log
-        """
         logger = self.logger
         if logger:
             logger.error(f"[{self.name}] {message}")
@@ -91,12 +67,6 @@ class PipelineStep(ABC):
             print(f"[{self.name}] ERROR: {message}")
 
     def critical(self, message: str) -> None:
-        """
-        Log a critical message with step prefix.
-
-        Args:
-            message: Message to log
-        """
         logger = self.logger
         if logger:
             logger.critical(f"[{self.name}] {message}")
@@ -105,7 +75,6 @@ class PipelineStep(ABC):
 
     @property
     def logger(self):
-        """Get the logger from the container."""
         if self.container:
             try:
                 return self.container.resolve("logger")
@@ -115,7 +84,6 @@ class PipelineStep(ABC):
 
     @property
     def debugger(self):
-        """Get the debugger from the container."""
         if self.container:
             try:
                 return self.container.resolve("debugger")
@@ -144,8 +112,8 @@ class PipelineStep(ABC):
             data: Input data to validate
 
         Raises:
-            ValueError: If input image must exist and must be a well-formed image
-            TypeError: If input image must exist and must be a well-formed image
+            ValueError: if data is None or zero-size
+            TypeError: if data is not an ndarray
         """
         if data is None:
             raise ValueError(

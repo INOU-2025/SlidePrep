@@ -33,6 +33,10 @@ export interface UploadOptions {
     detectionThreshold?: number | null;
 }
 
+/**
+ * HTTP client for the SlidePrep backend API.
+ * Handles job submission, status polling, and job deletion.
+ */
 @Injectable({
     providedIn: 'root'
 })
@@ -41,6 +45,7 @@ export class ApiService {
 
     constructor(private http: HttpClient) { }
 
+    /** Submit files and UploadOptions as a multipart job; returns the assigned job_id. */
     uploadImages(files: File[], options: UploadOptions = {}): Observable<JobResponse> {
         const formData = new FormData();
         files.forEach(file => {
@@ -58,10 +63,12 @@ export class ApiService {
         return this.http.post<JobResponse>(`${this.apiUrl}/jobs`, formData);
     }
 
+    /** Poll the processing status and result metadata for a job. */
     getJobStatus(jobId: string): Observable<JobStatus> {
         return this.http.get<JobStatus>(`${this.apiUrl}/jobs/${jobId}`);
     }
 
+    /** Delete a job and its associated files from the server. */
     deleteJob(jobId: string): Observable<any> {
         return this.http.delete(`${this.apiUrl}/jobs/${jobId}`);
     }

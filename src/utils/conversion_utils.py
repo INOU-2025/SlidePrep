@@ -1,9 +1,7 @@
+"""Utility functions for data conversion and manipulation."""
+
 import numpy as np
 from typing import Dict
-
-'''
-Utility functions for data conversion and manipulation.
-'''
 
 SUPPORTED_IMAGE_FORMATS: Dict[str, str] = {
     "jpeg": ".jpeg",
@@ -12,6 +10,10 @@ SUPPORTED_IMAGE_FORMATS: Dict[str, str] = {
 }
 
 def make_csv_serializable(obj):
+    """Recursively convert obj to a JSON-primitive type safe for CSV serialisation.
+
+    Handles nested dicts and lists, enums (via .value), and numpy arrays (via .tolist()).
+    """
     if isinstance(obj, dict):
         return {k: make_csv_serializable(v) for k, v in obj.items()}
     elif isinstance(obj, list):

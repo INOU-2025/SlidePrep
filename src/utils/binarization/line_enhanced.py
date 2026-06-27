@@ -1,3 +1,5 @@
+"""Line-enhanced thresholding using directional filter responses."""
+
 import cv2
 import numpy as np
 from typing import Optional, Callable

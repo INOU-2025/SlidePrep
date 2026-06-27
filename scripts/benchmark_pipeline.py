@@ -216,7 +216,6 @@ def main():
     for mode in modes:
         results["modes"][mode] = run_benchmark(args.config, args.repeats, mode, log_path)
 
-    # Print summary table
     print("\n" + "=" * 60)
     print("BENCHMARK SUMMARY")
     print("=" * 60)
@@ -247,7 +246,6 @@ def main():
         results["gpu_speedup_factor"] = round(speedup, 2)
         results["gpu_time_reduction_pct"] = round(reduction_pct, 1)
 
-    # Save JSON report
     out_dir = Path("benchmark_results")
     out_dir.mkdir(exist_ok=True)
     out_path = out_dir / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_benchmark.json"

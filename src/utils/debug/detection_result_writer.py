@@ -1,3 +1,5 @@
+"""ResultWriter subclass that serialises raw detection results to JSON."""
+
 from typing import Any
 from .result_writer import ResultWriter
 from src.utils.detection  import DetectionResultDict
@@ -8,19 +10,10 @@ class DetectionResultWriter(ResultWriter):
     """Result writer for grid detection step."""
 
     def _save_results_to_json(self, results, metadata, path):
-        """
-        Save detection results and optional metadata to a JSON file.
-
-        Args:
-            results: Detection results to be saved.
-            metadata: Optional metadata associated with the results.
-            path: Path to output JSON file.
-            data_is_aggregated: If True, include metadata; else, omit.
-        """
+        """Save detection results to a JSON file at path."""
         if not results or not path:
             raise ValueError("No results to save or not valid JSON path.")
 
-        # Ensure .json extension
         if not path.lower().endswith(".json"):
             path += ".json"
 

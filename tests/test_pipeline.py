@@ -1,3 +1,5 @@
+"""Tests for PipelineService and the passthrough pipeline factory."""
+
 import numpy as np
 
 from src.core.pipeline_service import PipelineService, build_passthrough_pipeline

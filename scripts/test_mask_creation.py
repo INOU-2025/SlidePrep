@@ -1,3 +1,5 @@
+"""CLI script for testing grid-mask generation on detected grid lines."""
+
 from src.steps import MaskCreationStep
 from scripts.test_runner import StepTestRunner
 import argparse

@@ -1,3 +1,5 @@
+"""Filesystem and format helpers for loading and filtering pipeline input images."""
+
 import os
 from typing import List, Tuple
 
@@ -6,36 +8,18 @@ from PIL import Image
 
 
 def get_supported_image_formats() -> Tuple[str, ...]:
-    """
-    Get tuple of supported image file extensions (lowercase).
-
-    Returns:
-        Tuple of supported file extensions including the dot (e.g., '.png', '.jpg')
-    """
+    """Dot-prefixed, lowercase extension strings for all supported input formats."""
     return (".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp")
 
 
 def get_supported_image_patterns() -> List[str]:
-    """
-    Get list of glob patterns for supported image formats.
-
-    Returns:
-        List of glob patterns (e.g., ['*.png', '*.jpg', ...])
-    """
+    """Glob patterns (e.g. '*.png') for all supported input image formats."""
     formats = get_supported_image_formats()
     return [f"*{ext}" for ext in formats]
 
 
 def is_supported_image_file(filename: str) -> bool:
-    """
-    Check if a filename has a supported image extension.
-
-    Args:
-        filename: The filename to check
-
-    Returns:
-        True if the file extension is supported, False otherwise
-    """
+    """Return True if filename has a supported image extension."""
     return filename.lower().endswith(get_supported_image_formats())
 
 

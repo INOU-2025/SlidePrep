@@ -15,27 +15,21 @@ class NoOpLogger:
     """
 
     def info(self, *args: Any, **kwargs: Any) -> None:
-        """No-op info logging method."""
         pass
     
     def error(self, *args: Any, **kwargs: Any) -> None:
-        """No-op error logging method."""
         pass
     
     def exception(self, *args: Any, **kwargs: Any) -> None:
-        """No-op exception logging method."""
         pass
     
     def debug(self, *args: Any, **kwargs: Any) -> None:
-        """No-op debug logging method."""
         pass
     
     def warning(self, *args: Any, **kwargs: Any) -> None:
-        """No-op warning logging method."""
         pass
 
     def critical(self, *args: Any, **kwargs: Any) -> None:
-        """No-op critical logging method."""
         pass
 
 
@@ -72,12 +66,6 @@ class Logger:
 
     @property
     def enabled(self) -> bool:
-        """
-        Check if logging is enabled.
-        
-        Returns:
-            True if logging operations are active, False if using no-op logger
-        """
         return self._enabled
 
     def _setup_handlers(self, log_config: LogConfig) -> None:
@@ -89,7 +77,6 @@ class Logger:
         Args:
             log_config: Configuration specifying output destinations and formats
         """
-        # Only proceed if we have a real logger (not NoOpLogger)
         if not isinstance(self.logger, logging.Logger):
             return
             

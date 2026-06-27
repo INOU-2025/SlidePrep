@@ -1,3 +1,5 @@
+"""Shared per-run state passed through the pipeline."""
+
 from dataclasses import dataclass
 from typing import Optional
 

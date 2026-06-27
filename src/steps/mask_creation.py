@@ -1,3 +1,5 @@
+"""Pipeline step that creates binary masks from grid-detection results."""
+
 from typing import Any
 
 import cv2
@@ -11,7 +13,6 @@ class MaskCreationStep(PipelineStep):
     """Pipeline step for generating a binary mask from refined contours."""
 
     def __init__(self) -> None:
-        """Initialize the mask creation step."""
         super().__init__(name="mask_creation", config=None)
 
     def run(self, data: Any) -> StepResult:
@@ -23,7 +24,7 @@ class MaskCreationStep(PipelineStep):
                 mapping orientations to contour information.
 
         Returns:
-            :class:`~api.schemas.StepResult` with the generated mask.
+            :class:`~src.core.step_result.StepResult` with the generated mask.
 
         Raises:
             TypeError: If input is not the expected dictionary structure.

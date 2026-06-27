@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Utilities for running and testing pipeline steps."""
+
+from __future__ import annotations
 
 import asyncio
 import os

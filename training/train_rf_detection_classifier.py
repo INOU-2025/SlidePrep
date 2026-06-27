@@ -1,3 +1,5 @@
+"""Train a Random Forest classifier to distinguish true grid-line detections from false positives."""
+
 import argparse
 import os
 import random
@@ -33,17 +35,16 @@ def parse_box(box_str: str):
 
 
 def load_and_prepare(path_in: Path):
+    """Load CSV, drop unlabelled rows, and normalise bool columns to 0/1 ints."""
     df = pd.read_csv(path_in)
 
     df["_box"] = df["box_points"].map(parse_box)
 
-    # Drop rows with missing label
     df = df.dropna(subset=["is_detection"]).copy()
 
-    # Convert is_detection to int (handles TRUE/FALSE, 1/0, etc.)
+    # Input data uses TRUE/FALSE strings and 1/0 interchangeably
     df["is_detection"] = df["is_detection"].astype(str).str.upper().map(
         {"TRUE": 1, "FALSE": 0, "1": 1, "0": 0}).astype(int)
-    # Convert orientation_mismatch to int (handles TRUE/FALSE, 1/0, etc.)
     df["orientation_mismatch"] = df["orientation_mismatch"].astype(
         str).str.upper().map({"TRUE": 1, "FALSE": 0, "1": 1, "0": 0}).astype(int)
 
@@ -84,7 +85,6 @@ def main():
 
     y = df["is_detection"].astype(int)
 
-    # Simple holdout split
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, stratify=y, test_size=args.test_size, random_state=args.random_state
     )
@@ -101,7 +101,6 @@ def main():
         "rf__max_depth": [None, 10],
         "rf__min_samples_split": [2, 5],
         "rf__min_samples_leaf": [1, 2],
-        # "rf__max_features": ["sqrt", None],  # optional
     }
 
     cv = StratifiedKFold(n_splits=5, shuffle=True,

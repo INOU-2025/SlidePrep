@@ -1,3 +1,5 @@
+"""Re-exports core pipeline primitives: Container, Pipeline, PipelineStep, and supporting services."""
+
 from .app_config_manager import AppConfigManager
 from .debugger import Debugger
 from .logger import Logger
