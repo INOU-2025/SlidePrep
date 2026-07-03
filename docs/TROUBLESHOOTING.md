@@ -204,7 +204,7 @@ Verify: `ashlar --version`
 
 **Fix:** Read the µm/pixel value from your microscope's acquisition log and set it in the config:
 ```json
-"stitching": { "pixel_size": 0.324957 }
+"stitching": { "pixel_size": 0.630 }
 ```
 After re-running, verify in QuPath: *Image → Show image info* should show physical pixel size in µm.
 

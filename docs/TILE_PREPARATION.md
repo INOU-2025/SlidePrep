@@ -102,11 +102,11 @@ Check your microscope software's acquisition log — it will record the grid dim
 
 `stitching.pixel_size` is the physical size of one pixel in **micrometres (µm)**. It is used to write calibrated `PhysicalSizeX`/`PhysicalSizeY` metadata into the output OME-TIFF so that downstream tools (QuPath, FIJI, napari, CellProfiler) report measurements in real units.
 
-Find the value in your microscope's acquisition log — it is typically labelled "pixel size", "image scale", or "µm/pixel". For the sample data included with this repository the value is `0.324957` µm/pixel.
+Find the value in your microscope's acquisition log — it is typically labelled "pixel size", "image scale", or "µm/pixel". For the sample data included with this repository the value is `0.630` µm/pixel.
 
 ```json
 "stitching": {
-  "pixel_size": 0.324957,
+  "pixel_size": 0.630,
   ...
 }
 ```

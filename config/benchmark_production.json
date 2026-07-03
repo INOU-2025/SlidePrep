@@ -69,7 +69,7 @@
     "output_filename": "stitched_slide.ome.tif",
     "pattern": "TileScan_001_s{series:3}_ch{channel:2}.tif",
     "overlap": 0.1,
-    "pixel_size": 0.324957,
+    "pixel_size": 0.630,
     "width": 14,
     "height": 49,
     "layout": "raster",

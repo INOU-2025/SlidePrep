@@ -254,7 +254,7 @@ Controls whole slide assembly using Ashlar:
     "output_filename": "stitched_slide.ome.tif", // Output OME-TIFF name
     "pattern": "TileScan_001_s{series:3}_ch{channel:2}.tiff", // Tile naming pattern
     "overlap": 0.1,                 // Fractional overlap between tiles
-    "pixel_size": 0.324957,         // Physical pixel size in microns
+    "pixel_size": 0.630,         // Physical pixel size in microns
     "width": 14,                    // Tile grid width
     "height": 49,                   // Tile grid height
     "layout": "raster",            // Acquisition layout

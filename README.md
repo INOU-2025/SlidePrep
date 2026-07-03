@@ -51,7 +51,7 @@ tiles/
 
 ```json
 "general":  { "input_path": "/path/to/tiles", "output_path": "/path/to/output" },
-"stitching": { "width": 14, "height": 49, "overlap": 0.1, "pixel_size": 0.324957 }
+"stitching": { "width": 14, "height": 49, "overlap": 0.1, "pixel_size": 0.630 }
 ```
 
 `width` × `height` must equal the total number of tiles. `pixel_size` is in µm/pixel (check your microscope's acquisition log).

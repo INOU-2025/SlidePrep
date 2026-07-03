@@ -9,7 +9,7 @@ import tifffile
 
 from src.steps.stitching import _inject_physical_size
 
-PIXEL_SIZE = 0.324957
+PIXEL_SIZE = 0.630
 
 
 def test_inject_physical_size(tmp_path):
