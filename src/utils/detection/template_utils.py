@@ -11,21 +11,31 @@ def generate_blurred_template(length: int, thickness: int, angle_deg: float, ori
     Args:
         orientation: 'horizontal' or 'vertical'
     """
-    if orientation == 'horizontal':
-        template = np.zeros((thickness, length), dtype=np.uint8)
-        cv2.rectangle(template, (0, 0), (length-1, thickness-1), 255, -1)
-    else:
-        template = np.zeros((length, thickness), dtype=np.uint8)
-        cv2.rectangle(template, (0, 0), (thickness-1, length-1), 255, -1)
+    out_h, out_w = (thickness, length) if orientation == 'horizontal' else (length, thickness)
 
+    if angle_deg == 0:
+        template = np.zeros((out_h, out_w), dtype=np.uint8)
+        cv2.rectangle(template, (0, 0), (out_w - 1, out_h - 1), 255, -1)
+        return cv2.GaussianBlur(template, (5, 5), 0)
+
+    # Draw on a canvas padded to the rotated bounding box so the line's ends
+    # aren't clipped by the rotation, then crop back to the requested size.
+    theta = np.radians(abs(angle_deg))
+    pad_h = int(np.ceil(out_w * np.sin(theta) + out_h * np.cos(theta) - out_h)) + 2
+    pad_w = int(np.ceil(out_w * np.cos(theta) + out_h * np.sin(theta) - out_w)) + 2
+
+    top, left = pad_h // 2, pad_w // 2
+    template = np.zeros((out_h + pad_h, out_w + pad_w), dtype=np.uint8)
+    cv2.rectangle(template, (left, top), (left + out_w - 1, top + out_h - 1), 255, -1)
     template = cv2.GaussianBlur(template, (5, 5), 0)
 
-    if angle_deg != 0:
-        center = (template.shape[1] // 2, template.shape[0] // 2)
-        M = cv2.getRotationMatrix2D(center, angle_deg, 1.0)
-        template = cv2.warpAffine(template, M, (template.shape[1], template.shape[0]),
-                                  flags=cv2.INTER_LINEAR, borderValue=0)
-    return template
+    center = (template.shape[1] / 2, template.shape[0] / 2)
+    M = cv2.getRotationMatrix2D(center, angle_deg, 1.0)
+    template = cv2.warpAffine(template, M, (template.shape[1], template.shape[0]),
+                              flags=cv2.INTER_LINEAR, borderValue=0)
+
+    crop_top, crop_left = (template.shape[0] - out_h) // 2, (template.shape[1] - out_w) // 2
+    return template[crop_top:crop_top + out_h, crop_left:crop_left + out_w]
 
 
 def pad_response(response: np.ndarray, target_shape: Tuple[int, int]) -> np.ndarray:
