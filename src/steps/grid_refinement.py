@@ -184,7 +184,7 @@ class GridRefinementStep(PipelineStep):
         Rect -> Rect (GENERAL): set the short side to target_thickness, keep center fixed.
         """
         (cx, cy), (w, h), angle = min_rect
-        if computed_orientation == Orientation.HORIZONTAL:
+        if w >= h:
             return ((cx, cy), (w, float(target_thickness)), angle)
         else:
             return ((cx, cy), (float(target_thickness), h), angle)
@@ -209,8 +209,7 @@ class GridRefinementStep(PipelineStep):
             bias = 0.5
 
         (cx, cy), (w, h), angle = min_rect
-        long_len, short_len = (
-            w, h) if computed_orientation == Orientation.HORIZONTAL else (h, w)
+        long_len, short_len = (w, h) if w >= h else (h, w)
 
         # New thickness and total added thickness
         T = float(target_thickness)
@@ -230,9 +229,47 @@ class GridRefinementStep(PipelineStep):
         c_shift = n * float(delta_c)
 
         c_new = (float(cx) + float(c_shift[0]), float(cy) + float(c_shift[1]))
-        size_new = (long_len, T) if computed_orientation == Orientation.HORIZONTAL else (
-            T, long_len)
+        size_new = (long_len, T) if w >= h else (T, long_len)
         return (c_new, size_new, angle)
+
+    def _filter_collinear_contours(
+        self,
+        contours: List[np.ndarray],
+        orientation: Orientation,
+        strategy: DetectionStrategy,
+        image_shape: Tuple[int, int],
+        max_perp_distance: float,
+    ) -> List[np.ndarray]:
+        """
+        Keep only contours that lie on (approximately) the same line as the longest
+        contour, dropping spatially separate detections (false positives or other,
+        unrelated grid lines) that would otherwise corrupt a convex-hull merge.
+        """
+        analyzed = [
+            (c, analyze_contour(_as_cnt(c), orientation, strategy, image_shape))
+            for c in contours
+        ]
+        ref_contour, ref_analysis = max(analyzed, key=lambda t: t[1]["length"])
+        ref_angle = np.radians(ref_analysis["long_side_angle"])
+        ref_centroid = np.array(ref_analysis["centroid"], dtype=np.float64)
+        direction = np.array(
+            [np.cos(ref_angle), np.sin(ref_angle)], dtype=np.float64)
+
+        kept = []
+        for c, analysis in analyzed:
+            centroid = np.array(analysis["centroid"], dtype=np.float64)
+            offset = centroid - ref_centroid
+            perp_dist = float(
+                abs(offset[0] * direction[1] - offset[1] * direction[0]))
+            if perp_dist <= max_perp_distance:
+                kept.append(c)
+            else:
+                self.debug(
+                    f"Discarding non-collinear contour for {orientation}: "
+                    f"perp_dist={perp_dist:.1f}px > {max_perp_distance:.1f}px "
+                    f"(likely a separate line or false positive)"
+                )
+        return kept
 
     def _process_contour(
         self,
@@ -311,6 +348,15 @@ class GridRefinementStep(PipelineStep):
                     "zone", DetectionRegion.CENTER) if contour_dicts else DetectionRegion.CENTER
 
                 if contours:
+                    # drop spatially separate contours (false positives / other grid
+                    # lines) before merging, so only fragments of the same physical
+                    # line get combined
+                    if len(contours) > 1:
+                        contours = self._filter_collinear_contours(
+                            contours, orientation, strategy, image_shape,
+                            max_perp_distance=target_thickness
+                        )
+
                     # normalize and merge if needed
                     if len(contours) > 1:
                         self.debug(

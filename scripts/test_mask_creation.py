@@ -1,12 +1,13 @@
 """CLI script for testing grid-mask generation on detected grid lines."""
 
-from src.steps import MaskCreationStep
-from scripts.test_runner import StepTestRunner
 import argparse
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from src.steps import MaskCreationStep
+from scripts.test_runner import StepTestRunner
 
 
 def main(config_path: str) -> None:
