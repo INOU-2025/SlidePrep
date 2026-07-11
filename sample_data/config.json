@@ -1,7 +1,7 @@
 {
   "general": {
-    "input_path": "",
-    "output_path": "",
+    "input_path": "sample_data/tiles",
+    "output_path": "sample_data/tiles/output",
     "suffix_filter": "_ch00",
     "output_suffix": "",
     "log": true,
@@ -57,7 +57,7 @@
       "vertical": -88.3,
       "tolerance": 1.0
     },
-    "target_thickness": 48,
+    "target_thickness": 60,
     "thickness_bias": 0.60
   },
   "inpainting": {
