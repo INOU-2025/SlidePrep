@@ -3,6 +3,8 @@ from typing import Optional, List, Dict, Any, IO
 
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 
+from src.utils.binarization import ThresholdMethod
+
 
 class GeneralConfig(BaseModel):
     """
@@ -91,34 +93,34 @@ class BinarizationConfig(BaseModel):
     """
     Configuration for image binarization processing step.
 
-    Specifies the thresholding method to use for converting grayscale
-    images to binary format. Supports both adaptive and global thresholding
-    algorithms with automatic parameter selection or custom optimization.
+    :class:`~src.steps.binarization.BinarizationStep` only runs
+    "combined_differential", the production method. The other methods on
+    :class:`~src.utils.binarization.BinarizationMethods` are research-only
+    (see docs/BINARIZATION_METHODS_GUIDE.md) and are not selectable here.
     """
 
-    threshold_method: str = "combined_differential"
+    threshold_method: str = ThresholdMethod.COMBINED_DIFFERENTIAL.value
 
     @field_validator("threshold_method")
     @classmethod
     def _validate_threshold_method(cls, v: str) -> str:
         """Validate binarization method selection."""
-        valid_methods = {
-            "otsu",
-            "triangle",
-            "li",
-            "yen",
-            "isodata",
-            "minimum",
-            "combined_differential",
-            "adaptive_gaussian",
-            "adaptive_mean",
-        }
-        if v.lower() not in valid_methods:
+        wired_methods = {ThresholdMethod.COMBINED_DIFFERENTIAL.value}
+        if v.lower() in wired_methods:
+            return v
+
+        research_methods = {method.value for method in ThresholdMethod} - wired_methods
+        if v.lower() in research_methods:
             raise ValueError(
-                f"Invalid threshold method: {v}. "
-                f"Valid methods: {', '.join(sorted(valid_methods))}"
+                f"'{v}' is a research-only method on BinarizationMethods, not "
+                f"wired into the pipeline. See docs/BINARIZATION_METHODS_GUIDE.md "
+                f"to run it offline. Valid methods here: {', '.join(sorted(wired_methods))}"
             )
-        return v
+
+        raise ValueError(
+            f"Invalid threshold method: {v}. "
+            f"Valid methods: {', '.join(sorted(wired_methods))}"
+        )
 
 
 class GridDetectionConfig(BaseModel):

@@ -2,7 +2,13 @@
 
 ## Overview
 
-The `evaluate_binarization_methods.py` script is a comprehensive evaluation tool for different binarization methods. It processes batches of images and provides detailed analysis and statistics.
+The `evaluate_binarization_methods.py` script is a batch evaluation tool for
+comparing binarization methods exposed by `BinarizationMethods`
+(`src/utils/binarization/__init__.py`). It processes batches of images and
+provides detailed analysis and statistics. Currently its `methods` list only
+runs `combined_differential` (the production method); add entries to that
+list to compare other `BinarizationMethods` methods (`global`, `otsu`,
+`adaptive`, `multi_otsu`, `line_enhanced`, `morphological`) side by side.
 
 ## Purpose
 
@@ -15,12 +21,10 @@ This script is designed for:
 ## Usage
 
 ```bash
-# Use default test configuration
-python src/utils/binarization/evaluate_binarization_methods.py
-
-# Use custom configuration
 python src/utils/binarization/evaluate_binarization_methods.py path/to/config.json
 ```
+
+The config path is a required argument — there is no default.
 
 ## Output
 
@@ -32,12 +36,19 @@ The script generates:
 
 ## Configuration
 
-Uses `config/test/binarization_test_config.json` by default. Key configuration sections:
+A ready-made evaluation config lives at `config/test/binarization.json`. Key
+configuration sections:
 - `general.input_path`: Source folder for images
 - `general.output_path`: Base output directory
 - `general.suffix_filter`: Optional file suffix filter
-- `binarization.threshold_method`: Method to evaluate
+- `binarization.threshold_method`: Method used by the pipeline's
+  `BinarizationStep` (currently only `combined_differential` is wired up
+  there; see [BINARIZATION_METHODS_GUIDE.md](BINARIZATION_METHODS_GUIDE.md))
 
-## Future Development
+## Related tooling
 
-This script name change reserves `test_binarization.py` for future unit testing of the `BinarizationStep` class specifically.
+- `scripts/test_binarization.py config/test/binarization.json` runs the
+  production `BinarizationStep` through the shared `StepTestRunner` for a
+  quick single-step smoke test.
+- `tests/test_binarization.py` has unit tests for `BinarizationStep`
+  (grayscale and RGB inputs).
