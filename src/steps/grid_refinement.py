@@ -36,7 +36,7 @@ def _edge_unit_vector(
     Unit vector pointing toward the image edge we consider 'outside' for thickness bias.
     Uses zone when provided; otherwise chooses nearest edge along the normal axis.
     """
-    H, W = image_shape[:2]
+    W, H = image_shape[:2]
     cx, cy = center
 
     if computed_orientation == Orientation.HORIZONTAL:
@@ -165,7 +165,7 @@ class GridRefinementStep(PipelineStep):
         Rect -> Rect: expand the rectangle along its long axis to traverse the image.
         """
         (cx, cy), (w, h), angle = min_rect
-        H, W = image_shape[:2]
+        W, H = image_shape[:2]
 
         if computed_orientation == Orientation.HORIZONTAL:
             new_w, new_h = W * self.EXPANSION_FACTOR, h
