@@ -6,7 +6,7 @@ import { ProjectService } from '../../../core/services/project.service';
 
 const PROCESSING_PHASES = [
     { until: 22,  message: 'Detecting grid' },
-    { until: 52,  message: 'Aligning tiles' },
+    { until: 52,  message: 'Removing grid'  },
     { until: 82,  message: 'Stitching'      },
     { until: 97,  message: 'Finalising'     },
     { until: 100, message: 'Completing'     },

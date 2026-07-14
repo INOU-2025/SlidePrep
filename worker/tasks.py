@@ -10,9 +10,23 @@ from celery.utils.log import get_task_logger
 
 from .celery_app import celery_app
 from src.core.app_config_manager import AppConfigManager
-from src.core.pipeline_service import PipelineService
+from src.core.pipeline_service import PipelineService, build_passthrough_pipeline
+from src.utils import get_extension_for_format
 
 logger = get_task_logger(__name__)
+
+# Maps internal PipelineStep names to the user-facing phase labels used by
+# the client's progress UI (client/src/app/.../create-modal.component.ts).
+# Internal step names are an implementation detail and should never reach
+# the frontend directly.
+STEP_PHASE_LABELS = {
+    "binarization": "Detecting grid",
+    "grid_detection": "Detecting grid",
+    "grid_refinement": "Detecting grid",
+    "mask_creation": "Removing grid",
+    "inpainting": "Removing grid",
+    "img_conversion": "Removing grid",
+}
 
 @celery_app.task(bind=True)
 def process_images_task(self, job_id: str, input_path: str, output_path: str,
@@ -47,8 +61,10 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str,
             config_data["grid_detection"].update(grid_detection_overrides)
 
         config_manager = AppConfigManager.from_dict(config_data)
-        service = PipelineService(config=config_manager)
+        pipeline_factory = build_passthrough_pipeline if not clean_grid else None
+        service = PipelineService(config=config_manager, pipeline_factory=pipeline_factory)
         cfg = service.config
+        output_ext = get_extension_for_format(cfg.img_conversion_config.format)
 
         image_extensions = ['*.jpg', '*.jpeg', '*.png', '*.tif', '*.tiff']
         images = []
@@ -71,7 +87,7 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str,
         for i, image_path in enumerate(images):
             fname = os.path.basename(image_path)
             name_root, _ = os.path.splitext(fname)
-            out_name = f"{name_root}.tif"
+            out_name = f"{name_root}{output_ext}"
             out_path = os.path.join(processed_dir, out_name)
 
             gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
@@ -82,14 +98,19 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str,
             fname_without_ext = os.path.splitext(fname)[0]
             matches_filter = not suffix_filter or fname_without_ext.endswith(suffix_filter)
 
-            should_process = clean_grid and matches_filter
+            # clean_grid disabled: every tile is converted via the passthrough pipeline
+            # (mirrors CLI's --no-grid). clean_grid enabled: only tiles matching
+            # suffix_filter go through the full grid-removal pipeline; other channels
+            # are copied raw so they still make it into the stitched output.
+            run_via_pipeline = not clean_grid or matches_filter
 
-            if should_process:
+            if run_via_pipeline:
                 def on_step_start(step_name):
                     current_progress = int((i) / total_images * 80)
+                    phase = STEP_PHASE_LABELS.get(step_name, step_name)
                     self.update_state(state='PROCESSING', meta={
                         'progress': current_progress,
-                        'status': f'Processing {i+1}/{total_images}: {step_name}'
+                        'status': f'{phase} ({i+1}/{total_images})'
                     })
 
                 result = service.run(gray, image_path=image_path, on_step_start=on_step_start)
@@ -113,16 +134,19 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str,
             progress = int((i + 1) / total_images * 80)
             self.update_state(state='PROCESSING', meta={'progress': progress, 'status': f'Processed {processed_count}/{total_images}'})
 
-        self.update_state(state='PROCESSING', meta={'progress': 80, 'status': 'Stitching...'})
+        self.update_state(state='PROCESSING', meta={'progress': 80, 'status': 'Stitching'})
         stitched_path = service.stitch(processed_dir).data
 
         result_dir = os.path.join(output_path, "..", "..", "results")
         dzi_name = f"{job_id}_panorama"
         dzi_output_path = os.path.join(result_dir, dzi_name)
 
+        self.update_state(state='PROCESSING', meta={'progress': 88, 'status': 'Finalising'})
         logger.info(f"Generating DZI tiles at {dzi_output_path}.dzi")
         cmd = ["vips", "dzsave", stitched_path, dzi_output_path]
         subprocess.run(cmd, check=True)
+
+        self.update_state(state='PROCESSING', meta={'progress': 97, 'status': 'Completing'})
 
         final_result_name = f"{dzi_name}.dzi"
         dzi_files_dir = f"{dzi_output_path}_files"

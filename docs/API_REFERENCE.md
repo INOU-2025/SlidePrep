@@ -39,7 +39,7 @@ Uploads tile files and starts an async pipeline run. Accepts `multipart/form-dat
 {
   "job_id": "uuid",
   "status": "PROCESSING",     // QUEUED | PROCESSING | SUCCESS | FAILURE
-  "message": "Processing 3/9: inpainting",
+  "message": "Removing grid (3/9)",
   "progress": 40,             // 0–100 (only during PROCESSING)
   "result_url": null,         // set on SUCCESS: path to the .dzi file
   "thumbnail_url": null,      // set on SUCCESS: path to the thumbnail tile
@@ -79,11 +79,21 @@ When a job runs, the worker executes these stages in order:
 | Stage | Detail |
 |---|---|
 | Upload extraction | Zip archives are unpacked; `__MACOSX` directories are stripped |
-| Tile processing | Each tile is run through the configured pipeline steps (binarization → grid detection → refinement → mask → inpainting → conversion), or skipped if `clean_grid=false` |
+| Tile processing | If `clean_grid=true` (default): tiles whose filename matches `suffix_filter` are run through the full pipeline (binarization → grid detection → refinement → mask → inpainting → conversion); tiles that don't match are copied through unprocessed. If `clean_grid=false`: every tile is run through a passthrough pipeline (conversion only) — equivalent to CLI `--no-grid` |
 | Stitching | Processed tiles are assembled into an OME-TIFF via Ashlar (`service.stitch()`) |
 | DZI generation | `vips dzsave` converts the OME-TIFF into Deep Zoom Image tiles for the OpenSeadragon viewer |
 
-`progress` in `GET /jobs/{job_id}` tracks 0–80% across tile processing; stitching and DZI generation account for the remainder.
+`progress`/`message` in `GET /jobs/{job_id}` follow these phases:
+
+| Progress | `message` | Corresponds to |
+|---|---|---|
+| 0–80% | `"Detecting grid (i/n)"` | Binarization, grid detection, grid refinement for tile `i` of `n` |
+| 0–80% | `"Removing grid (i/n)"` | Mask creation, inpainting, format conversion for tile `i` of `n` |
+| 80% | `"Stitching"` | Ashlar assembling the OME-TIFF |
+| 88% | `"Finalising"` | `vips dzsave` generating DZI tiles |
+| 97% | `"Completing"` | Reading DZI metadata and building the job result |
+
+Within 0–80%, `progress` is `int(i / n * 80)` for tile `i` of `n` — it does not advance further within a single tile's steps, only the `message` phase label does.
 
 ---
 
