@@ -12,7 +12,7 @@ config/
     ├── binarization.json            # Binarization testing
     ├── grid_detection.json          # Grid detection testing
     ├── grid_refinement.json         # Grid refinement testing
-    ├── img_conversion.json          # Image format/mode conversion testing
+    ├── img_conversion.json          # Image format conversion testing
     ├── mask_creation.json           # Mask generation testing
     ├── inpainting.json              # Inpainting testing
     ├── stitching.json               # Whole slide stitching testing
@@ -81,10 +81,10 @@ where test images are read from and where results are written. An optional
 - **Debug artifacts:** stored under `<output_path>/debug`
 
 #### `test/img_conversion.json`
-- **Purpose:** Isolated image format and colour-mode conversion testing
+- **Purpose:** Isolated image format conversion testing
 - **Contents:** general, img_conversion, log and debug sections
 - **Output:** Defined via `test.output_path`
-- **Use for:** Verifying format (jpeg/png/tiff) and mode (RGB/grayscale) conversion
+- **Use for:** Verifying format (jpeg/png/tiff) conversion
 
 #### `test/performance_baseline.json` / `test/performance_optimized.json`
 - **Purpose:** Grid detection cache-optimization benchmarking

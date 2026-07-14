@@ -34,7 +34,7 @@ def minimal_config(tmp_path):
     """Path to a minimal JSON config that satisfies AppConfigManager without any real files."""
     cfg = {
         "general": {},
-        "img_conversion": {"format": "png", "mode": "RGB"},
+        "img_conversion": {"format": "png"},
         "binarization": {"threshold_method": "combined_differential"},
         # pattern's extension must match img_conversion.format's output
         # extension (.png here) — see bootstrap._check_format_pattern_match.

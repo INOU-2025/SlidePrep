@@ -11,8 +11,7 @@
     "threshold_method": "combined_differential"
   },
   "img_conversion": {
-    "format": "tiff",
-    "mode": "grayscale"
+    "format": "tiff"
   },
   "grid_detection": {
     "threshold": 0.1,

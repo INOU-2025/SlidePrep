@@ -29,7 +29,7 @@ These configurations are separate from the main pipeline configuration (`init_co
   - Debug and logging always enabled for analysis
   - Debug artifacts stored under `<test.output_path>/debug`
   - No binarization section - expects pre-binarized images
-- **`img_conversion.json`**: Configuration for testing format and mode conversion
+- **`img_conversion.json`**: Configuration for testing format conversion
   - Contains: `general`, `img_conversion`, `log`, `debug`, `test` sections
   - Output suffix: `_conv`
   - Debug artifacts saved using the selected format

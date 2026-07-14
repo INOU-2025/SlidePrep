@@ -8,8 +8,7 @@
     "debug": true
   },
   "img_conversion": {
-    "format": "tiff",
-    "mode": "grayscale"
+    "format": "tiff"
   },
   "log": {
     "log_to_file": true,

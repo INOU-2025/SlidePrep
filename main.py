@@ -93,8 +93,13 @@ def run_pipeline(config_path: str, no_grid: bool = False,
             output_image = result.image
             metadata = result.metadata
 
-            if output_image.ndim == 3 and output_image.shape[2] == 3:
-                output_image = cv2.cvtColor(output_image, cv2.COLOR_RGB2BGR)
+            # Source tiles are always loaded via IMREAD_GRAYSCALE, so mode="RGB"
+            # never carries real color — it only replicates gray into 3 channels.
+            # Collapsing back to grayscale here (matching worker/tasks.py) keeps
+            # StitchingStep's tiles 2D, which Ashlar's fileseries reader requires
+            # for TIFF (its channel-slicing only works for jpg/jpeg/gif/png).
+            if output_image.ndim == 3:
+                output_image = cv2.cvtColor(output_image, cv2.COLOR_RGB2GRAY)
 
             name, ext = os.path.splitext(fname)
             if metadata and "format" in metadata:

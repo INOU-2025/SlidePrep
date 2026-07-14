@@ -12,12 +12,11 @@ from src.utils.image_utils import convert_image_mode
 
 
 class ImgConversionStep(PipelineStep):
-    """Convert images to a specified format and mode."""
+    """Convert images to a specified format."""
 
     def __init__(self, config: ImgConversionConfig) -> None:
         super().__init__(name="img_conversion", config=config)
         self._format = validate_image_format(config.format)
-        self._mode = config.mode.upper()
 
     def run(self, data: Any) -> StepResult:
         """Convert input image according to the configuration.
@@ -29,6 +28,10 @@ class ImgConversionStep(PipelineStep):
             :class:`~src.core.step_result.StepResult` with the converted image and metadata.
         """
         self._validate_image_input(data)
-        converted = convert_image_mode(data, self._mode)
-        metadata = {"format": self._format, "mode": self._mode}
+        # Both entry points collapse any non-grayscale output back to grayscale
+        # before writing (StitchingStep/Ashlar requires 2D tiles for TIFF), so
+        # this step always normalises to grayscale rather than taking a mode
+        # from config.
+        converted = convert_image_mode(data, "grayscale")
+        metadata = {"format": self._format}
         return StepResult.from_array(converted, metadata)

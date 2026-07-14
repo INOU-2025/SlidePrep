@@ -67,7 +67,6 @@ class ImgConversionConfig(BaseModel):
     """Configuration for image format and mode conversion."""
 
     format: str = "png"
-    mode: str = "RGB"
 
     @field_validator("format")
     @classmethod
@@ -78,14 +77,6 @@ class ImgConversionConfig(BaseModel):
                 f"Invalid format: {v}. "
                 f"Valid formats: {', '.join(sorted(valid_formats))}"
             )
-        return v
-
-    @field_validator("mode")
-    @classmethod
-    def _validate_mode(cls, v: str) -> str:
-        valid_modes = {"rgb", "grayscale", "greyscale"}
-        if v.lower() not in valid_modes:
-            raise ValueError("Invalid mode: {v}. Valid modes: RGB, Greyscale")
         return v
 
 
