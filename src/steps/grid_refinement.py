@@ -94,6 +94,21 @@ class GridRefinementStep(PipelineStep):
         self.log(
             f"Loaded refinement model from {config.classifier.model_path}")
 
+        # predict_proba() below is called with a positional feature array, so
+        # config.classifier.features must list features in the exact order
+        # the model was trained on. Catch a silent misinterpretation here,
+        # at construction time, rather than downstream in every prediction.
+        expected_features = getattr(self.model, "feature_names_in_", None)
+        if expected_features is not None:
+            configured_features = list(config.classifier.features)
+            if configured_features != list(expected_features):
+                raise ValueError(
+                    "grid_refinement.classifier.features order "
+                    f"{configured_features} does not match the order the "
+                    f"model at {config.classifier.model_path} was trained "
+                    f"on: {list(expected_features)}"
+                )
+
     def _filter_out_border_detections(self, analyzed_contours: List[dict], orientation, strategy) -> List[dict]:
         """
         Filter out border detections using the classifier.

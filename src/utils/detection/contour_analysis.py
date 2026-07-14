@@ -163,6 +163,8 @@ def analyze_contour(
     if image_shape is not None and strategy in [DetectionStrategy.THICK_BORDER, DetectionStrategy.THIN_BORDER]:
         W, H = image_shape[:2]
         corner_proximity = corner_proximity_from_box(box_i, W, H)
+        # Not part of the RF classifier's feature set (see grid_refinement's
+        # classifier.features config) — kept here for the debug log below.
         border_proximity = border_proximity_from_box(box_i, W, H)
     else:
         corner_proximity = None
