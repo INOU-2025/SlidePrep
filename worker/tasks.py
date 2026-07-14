@@ -11,7 +11,7 @@ from celery.utils.log import get_task_logger
 from .celery_app import celery_app
 from src.core.app_config_manager import AppConfigManager
 from src.core.pipeline_service import PipelineService, build_passthrough_pipeline
-from src.utils import get_extension_for_format
+from src.utils import get_extension_for_format, get_supported_image_patterns
 
 logger = get_task_logger(__name__)
 
@@ -66,7 +66,7 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str,
         cfg = service.config
         output_ext = get_extension_for_format(cfg.img_conversion_config.format)
 
-        image_extensions = ['*.jpg', '*.jpeg', '*.png', '*.tif', '*.tiff']
+        image_extensions = get_supported_image_patterns()
         images = []
         for ext in image_extensions:
             images.extend(glob(os.path.join(input_path, ext)))

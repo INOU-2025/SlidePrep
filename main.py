@@ -1,4 +1,5 @@
 import os
+import shutil
 import cv2
 from glob import glob
 from typing import Optional
@@ -54,47 +55,68 @@ def run_pipeline(config_path: str, no_grid: bool = False,
         images.extend(glob(os.path.join(input_folder, ext)))
         images.extend(glob(os.path.join(input_folder, ext.upper())))
 
-    images = filter_images_by_suffix(images, suffix_filter)
-    if suffix_filter:
-        logger.debug(
-            f"Applied suffix filter '{suffix_filter}', "
-            f"found {len(images)} matching images",
-        )
-
     if not images:
         logger.warning(f"No images found in {input_folder}")
         return False
+
+    # suffix_filter selects which channel gets grid-cleaned, not which images
+    # are processed at all: tiles that don't match are carried through raw so
+    # multichannel acquisitions still reach StitchingStep intact (mirrors
+    # worker/tasks.py's run_via_pipeline branch).
+    matching_images = set(filter_images_by_suffix(images, suffix_filter))
+    if suffix_filter:
+        logger.debug(
+            f"Applied suffix filter '{suffix_filter}', "
+            f"{len(matching_images)}/{len(images)} images will be grid-cleaned; "
+            f"the rest are carried through unprocessed for stitching",
+        )
 
     logger.info(f"Starting batch processing of {len(images)} images")
 
     successful_count = 0
     for image_path in images:
         fname = os.path.basename(image_path)
-        logger.debug(f"Loading image: {fname}")
-        gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-        if gray is None:
-            logger.error(f"Could not read {fname}")
-            continue
+        run_via_pipeline = no_grid or image_path in matching_images
 
-        result = service.run(gray, image_path=image_path)
-        if result is None:
-            logger.error(f"Processing failed for {fname}")
-            continue
+        if run_via_pipeline:
+            logger.debug(f"Loading image: {fname}")
+            gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+            if gray is None:
+                logger.error(f"Could not read {fname}")
+                continue
 
-        output_image = result.image
-        metadata = result.metadata
+            result = service.run(gray, image_path=image_path)
+            if result is None:
+                logger.error(f"Processing failed for {fname}")
+                continue
 
-        if output_image.ndim == 3 and output_image.shape[2] == 3:
-            output_image = cv2.cvtColor(output_image, cv2.COLOR_RGB2BGR)
+            output_image = result.image
+            metadata = result.metadata
 
-        name, ext = os.path.splitext(fname)
-        if metadata and "format" in metadata:
-            ext = get_extension_for_format(metadata['format'])
-        out_name = f"{name}{output_suffix}{ext}"
-        out_path = os.path.join(output_folder, out_name)
-        if not cv2.imwrite(out_path, output_image):
-            logger.error(f"Failed to save result for {fname}")
-            continue
+            if output_image.ndim == 3 and output_image.shape[2] == 3:
+                output_image = cv2.cvtColor(output_image, cv2.COLOR_RGB2BGR)
+
+            name, ext = os.path.splitext(fname)
+            if metadata and "format" in metadata:
+                ext = get_extension_for_format(metadata['format'])
+            out_name = f"{name}{output_suffix}{ext}"
+            out_path = os.path.join(output_folder, out_name)
+            if not cv2.imwrite(out_path, output_image):
+                logger.error(f"Failed to save result for {fname}")
+                continue
+        else:
+            logger.debug(f"Carrying through unprocessed (suffix filter): {fname}")
+            name, _ = os.path.splitext(fname)
+            ext = get_extension_for_format(cfg.img_conversion_config.format)
+            out_name = f"{name}{output_suffix}{ext}"
+            out_path = os.path.join(output_folder, out_name)
+            raw_gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+            if raw_gray is not None:
+                if not cv2.imwrite(out_path, raw_gray):
+                    logger.error(f"Failed to carry through {fname}")
+                    continue
+            else:
+                shutil.copy2(image_path, out_path)
 
         successful_count += 1
         logger.debug(f"Successfully processed {fname}")
