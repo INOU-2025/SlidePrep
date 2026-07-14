@@ -101,20 +101,21 @@ test runs. When omitted, all matching files are processed.
 
 ### Image Conversion Configuration
 
-Controls output format and color mode of processed images:
+Controls output format of processed images:
 
 ```json
 {
   "img_conversion": {
-    "format": "png",   // "jpeg", "png" or "tiff"
-    "mode": "RGB"      // "RGB" or "grayscale"
+    "format": "png"   // "jpeg", "png" or "tiff"
   }
 }
 ```
 
 - `format`: Desired file format for the converted image.
-- `mode`: Output color mode. Use `"RGB"` for color or `"grayscale"` for
-  single-channel images.
+
+Output is always normalised to grayscale (single-channel), regardless of
+the input color mode — this is required by `StitchingStep`/Ashlar, which
+only supports 2D tiles for TIFF fileseries input.
 
 ### Binarization Configuration
 
@@ -219,7 +220,7 @@ Controls classifier-based filtering of detected contours and line-thickness norm
 
 **Parameters:**
 - `target_thickness` (int, > 0): Target grid-line width in pixels after thickness normalisation. Default: `22`.
-- `thickness_bias` (float, 0–1): Blending factor between the detected thickness and `target_thickness` (1.0 = always use target). Default: `0.90`.
+- `thickness_bias` (float, 0.5–1): Only applies to border-strategy detections (`thick_border`/`thin_border`), which are partial line fragments clipped at the tile edge. When growing a detected line to `target_thickness`, this controls what fraction of the *added* thickness is placed on the tile-edge side of the fragment versus the interior side — `0.5` grows the line symmetrically around its detected center, values above `0.5` shift more of the growth toward the edge (where the line likely continues past the tile boundary). Not used for `general`-strategy detections, which are expanded symmetrically. Default: `0.90`.
 - `classifier.model_path`: Path to the trained Random Forest classifier (`.joblib`). See *Adapting the classifier* in the README.
 - `classifier.features`: Ordered list of feature column names expected by the classifier.
 - `classifier.threshold` (float, 0–1): Minimum predicted probability for a contour to be accepted as a true grid line. Default: `0.5`.

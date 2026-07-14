@@ -275,7 +275,7 @@ gray = cv2.imread("tile.png", cv2.IMREAD_GRAYSCALE)
 service = PipelineService("config/production.json")
 result = service.run(gray, image_path="tile.png")
 output = result.image        # numpy ndarray
-metadata = result.metadata   # dict with format/mode keys
+metadata = result.metadata   # dict with format key
 
 # Convenience one-shot helper (creates and discards a service)
 result = run_pipeline(gray, "config/production.json", image_path="tile.png")
@@ -406,7 +406,7 @@ All parameters are set via JSON configuration files. The top-level sections map 
   "grid_refinement":{ "target_thickness": 22, "thickness_bias": 0.90,
                       "classifier": { "model_path": "...", "features": ["..."], "threshold": 0.5 } },
   "inpainting":     { "model": "lama" },
-  "img_conversion": { "format": "tiff", "mode": "RGB" },
+  "img_conversion": { "format": "tiff" },
   "stitching":      { "pattern": "...", "width": 0, "height": 0, "pixel_size": 1.0 },
   "log":            { "log_to_file": true, "log_file_name": "app.log", "log_level": "INFO" },
   "debug":          { "saved_artifact_type": "image", "save_composite_img": false }

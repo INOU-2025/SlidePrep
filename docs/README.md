@@ -34,13 +34,13 @@ binary_image = result.to_array()
 ```
 
 ### Image Conversion
-Convert images to a specific format and color mode:
+Convert images to a specific format (output is always normalised to grayscale):
 
 ```python
 from src.steps import ImgConversionStep
 from src.config import ImgConversionConfig
 
-cfg = ImgConversionConfig(format="jpeg", mode="RGB")
+cfg = ImgConversionConfig(format="jpeg")
 step = ImgConversionStep(cfg)
 result = step.run(image_array)
 converted = result.to_array()

@@ -15,7 +15,7 @@ The per-image pipeline (`build_default_pipeline`) runs these six steps in sequen
 3. **Detection Refinement** (`GridRefinementStep`) - Filter detections using a classifier and angle/thickness constraints
 4. **Grid Mask Generation** (`MaskCreationStep`) - Create binary masks from refined detections
 5. **Grid Removal / Inpainting** (`InpaintingStep`) - Remove grid artifacts using the LaMa inpainting model
-6. **Image Conversion** (`ImgConversionStep`) - Convert processed images to the configured output format and color mode
+6. **Image Conversion** (`ImgConversionStep`) - Convert processed images to the configured output format (always normalised to grayscale)
 
 After all images are processed, a seventh step runs once:
 
