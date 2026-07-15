@@ -320,13 +320,30 @@ Controls debug visualization and output:
 
 **Debug Options:**
 - Debug enablement is controlled by `general.debug` (single source of truth)
-- `saved_artifact_type`: Determines whether images, data, or both are saved
+- `saved_artifact_type`: Determines whether images, data, or both are saved. This is the only
+  gate `Debugger` itself checks before calling `save_results()` — set it to `"data"` or `"both"`
+  to get any structured output at all.
 - `save_composite_img`: Creates before/after comparison images
-- `result_file_name`: Filename written when `save_aggregated_data` is true (default: `aggregated_data.json`)
+- `result_file_name`: Base filename `StepTestRunner` uses when it batches all processed tiles
+  into one aggregated result. Each attached `ResultWriter` normalizes the extension itself
+  (e.g. `DetectionResultWriter` writes `.json`, `DetectionAnalysisWriter` writes `.csv`), so the
+  actual file(s) on disk may not match this name's extension verbatim.
 - `input_result_file_name`: JSON file containing intermediate step outputs.
   Used when `test.input_type` is set to `"data"` to locate serialized results.
-- `save_aggregated_data`: Persist step outputs to the file named by `result_file_name`
+- `save_aggregated_data`: **Only read by `scripts/test_runner.py`**, not by `Debugger`. When
+  `true` (and `saved_artifact_type` is `"data"`/`"both"`), the runner batches every tile's
+  result into a single call to `debugger.save_results(result_file_name, ...)` at the end of the
+  run. When `false`, it instead calls `save_results()` once per tile as it's processed (named
+  after each tile), giving per-tile output without aggregation. Either way, `Debugger` still
+  requires `saved_artifact_type` to include `"data"` for anything to be written.
 - `artifact_sink`: Storage backend — `"local"` writes artifacts to disk, `"memory"` retains them in process for streaming (e.g. cloud upload)
+
+> **Note:** Result writers (`DetectionResultWriter`, `DetectionAnalysisWriter`, etc.) are not
+> selected from config — they're constructor-injected per test script (see
+> [DEBUG_SYSTEM_GUIDE.md](DEBUG_SYSTEM_GUIDE.md)). The production entry point
+> (`main.py` → `PipelineService` → `bootstrap()`) does not currently attach a writer, so
+> `saved_artifact_type`/`save_aggregated_data` have no effect on structured-result saving
+> outside the test scripts — only debug images are affected in that path.
 
 ## 📁 Configuration Files
 

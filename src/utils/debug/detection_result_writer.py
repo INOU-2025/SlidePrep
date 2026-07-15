@@ -17,10 +17,10 @@ class DetectionResultWriter(ResultWriter):
         if not path.lower().endswith(".json"):
             path += ".json"
 
-        DetectionResultDict(results).to_json(
-            path,
-            indent=2
-        )
+        if isinstance(results, list):
+            DetectionResultDict.write_batch(path, results, indent=2)
+        else:
+            DetectionResultDict(results).to_json(path, indent=2)
 
     def write(self, path: str, results: Any, metadata: Any = None) -> None:
         """Serialize detection results to a JSON file.

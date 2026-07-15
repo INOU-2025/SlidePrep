@@ -28,6 +28,21 @@ The sink is selected automatically from `debug.artifact_sink` in the config (`"l
 
 To persist step outputs in human-readable formats, attach a `ResultWriter` to the `Debugger`. Each writer implements a `write(path, results, metadata)` method. Call `debugger.save_results()` to invoke it.
 
+Writers are step-specific — they assume the `results` shape produced by a particular pipeline
+step — so they're wired per test script, not chosen from config:
+
+- **`DetectionResultWriter`** (`src/utils/debug/detection_result_writer.py`): serializes raw
+  grid detection/refinement results (`{"detections": ..., "strategies": ...}`) to JSON.
+- **`DetectionAnalysisWriter`** (`src/utils/debug/detection_analysis_writer.py`): runs
+  per-contour analysis (center, angle, length, strategy, tile filename, ...) on the same result
+  shape and writes it to CSV. It normalizes the output path's extension to `.csv` itself,
+  regardless of what `result_file_name` is configured as.
+- **`MultiResultWriter`** (`src/utils/debug/multi_result_writer.py`): fans a single
+  `write()` call out to several writers, e.g.
+  `MultiResultWriter([DetectionResultWriter(), DetectionAnalysisWriter()])` to get both the raw
+  JSON and the analysis CSV from one run. Each sub-writer still normalizes its own extension, so
+  they don't collide on the same file.
+
 **Import paths:**
 ```python
 from src.utils.debug.drawer import Drawer
@@ -172,10 +187,20 @@ Debug visualization is controlled by the debug configuration:
 ```
 
 - **`relative_path`**: Optional directory inside the run's output where artifacts are stored
-- **`saved_artifact_type`**: Specify whether to save images, data, or both
+- **`saved_artifact_type`**: Specify whether to save images, data, or both. This is the only
+  flag `Debugger` itself checks before writing results — it must include `"data"` for
+  `save_results()` to do anything.
 - **`save_composite_img`**: Create side-by-side comparisons when possible
-- **`save_aggregated_data`**: Persist step results to `aggregated_data.json`
+- **`save_aggregated_data`**: **Not read by `Debugger`.** It's read by `scripts/test_runner.py`
+  only, to choose between batching every tile into one `result_file_name` (`true`) or writing
+  one result per tile as it's processed (`false`). See
+  [CONFIGURATION_GUIDE.md](CONFIGURATION_GUIDE.md) for the full breakdown.
 - **`artifact_sink`**: Choose storage backend. `local` writes to disk, while `memory` keeps artifacts in memory for streaming.
+
+> **Production note:** the production entry point (`main.py` → `PipelineService` →
+> `bootstrap()`) never passes a `writer=` argument, so no `ResultWriter` is attached there —
+> `saved_artifact_type`/`save_aggregated_data` only affect structured-result saving in the test
+> scripts below, not in a normal pipeline run.
 
 ### Selecting a Storage Backend
 

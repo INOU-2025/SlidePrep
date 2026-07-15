@@ -5,14 +5,13 @@
     "suffix_filter": "_ch00",
     "output_suffix": "",
     "log": true,
-    "debug": false
+    "debug": true
   },
   "binarization": {
     "threshold_method": "combined_differential"
   },
   "img_conversion": {
-    "format": "tiff",
-    "mode": "grayscale"
+    "format": "tiff"
   },
   "grid_detection": {
     "threshold": 0.1,
@@ -66,7 +65,7 @@
   "stitching": {
     "output_filename": "stitched_slide.ome.tif",
     "pattern": "TileScan_001_s{series:3}_ch{channel:2}.tif",
-    "overlap": 0.1,
+    "overlap": 0.1008,
     "pixel_size": 0.630,
     "width": 3,
     "height": 3,
@@ -75,8 +74,14 @@
     "align_channel": 0
   },
   "log": {
-    "log_to_file": false,
+    "log_to_file": true,
     "log_to_console": true,
-    "log_level": "INFO"
+    "log_level": "DEBUG"
+  },
+    "debug": {
+    "saved_artifact_type": "both",
+    "save_composite_img": true,
+    "save_aggregated_data": true,
+    "artifact_sink": "local"
   }
 }

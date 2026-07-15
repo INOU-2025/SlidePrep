@@ -13,14 +13,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.test_runner import StepTestRunner
 from src.steps import GridRefinementStep
 from src.utils.debug.detection_drawer import DetectionDrawer
+from src.utils.debug.detection_analysis_writer import DetectionAnalysisWriter
 from src.utils.debug.detection_result_writer import DetectionResultWriter
+from src.utils.debug.multi_result_writer import MultiResultWriter
 
 
 def main(config_path: str) -> None:
     drawer = DetectionDrawer()
-    detection_writer = DetectionResultWriter()
+    writer = MultiResultWriter([DetectionResultWriter(), DetectionAnalysisWriter()])
 
-    runner = StepTestRunner(config_path, drawer, detection_writer)
+    runner = StepTestRunner(config_path, drawer, writer)
 
     step = GridRefinementStep(config=runner.cfg.grid_refinement_config)
 

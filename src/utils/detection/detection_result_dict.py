@@ -93,6 +93,18 @@ class DetectionResultDict(MutableMapping):
             json.dump(payload, f, ensure_ascii=False, indent=indent)
 
     @classmethod
+    def write_batch(cls, path: str, batch: list, *, indent: int | None = 2) -> None:
+        """Write a list of per-item results (e.g. ``{"filename": ..., "result": ...}``).
+
+        Unlike ``to_json``, this does not route the list through ``dict(*args)`` —
+        passing a list of same-shaped dicts there silently collapses them into a
+        single pair via dict()'s iterable-of-pairs semantics, discarding the data.
+        """
+        payload = _encode(batch)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=indent)
+
+    @classmethod
     def from_json(cls, path: str) -> "DetectionResultDict":
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)

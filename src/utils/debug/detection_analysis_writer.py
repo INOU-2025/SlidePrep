@@ -2,6 +2,7 @@
 
 from typing import Any
 import csv
+import os
 
 from .result_writer import ResultWriter
 from src.utils.conversion_utils import make_csv_serializable
@@ -25,7 +26,7 @@ class DetectionAnalysisWriter(ResultWriter):
                 "No analysis results to save or not valid CSV path.")
 
         if not csv_path.lower().endswith(".csv"):
-            csv_path += ".csv"
+            csv_path = f"{os.path.splitext(csv_path)[0]}.csv"
 
         fieldnames = list(analysis_results[0].keys())
         with open(csv_path, 'w', newline='') as csvfile:
