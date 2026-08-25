@@ -1,8 +1,8 @@
 """FastAPI routes for job submission, status polling, and file management."""
 
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
-from typing import List, Optional
+from typing import Any, List
 import uuid
 import os
 import shutil
@@ -17,20 +17,28 @@ UPLOAD_DIR = "data/uploads"
 CONFIG_PATH = os.environ.get("SLIDEPREP_CONFIG", "config/production.json")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+# Starlette's default form parser caps a multipart request at 1000 files, which a
+# multi-channel whole-slide tile set easily exceeds. FastAPI's `File(...)`/`Form(...)`
+# injection calls `request.form()` with no way to override that limit, so the form is
+# parsed manually here instead.
+MAX_UPLOAD_FILES = 100_000
+
 @router.post("/jobs", response_model=JobResponse)
-async def create_job(
-    files: List[UploadFile] = File(...),
-    clean_grid: str = Form("true"),
-    grid_width: Optional[str] = Form(None),
-    grid_height: Optional[str] = Form(None),
-    overlap: Optional[str] = Form(None),
-    pixel_size: Optional[str] = Form(None),
-    direction: Optional[str] = Form(None),
-    suffix_filter: Optional[str] = Form(None),
-    grid_angle: Optional[str] = Form(None),
-    detection_threshold: Optional[str] = Form(None),
-):
-    clean_grid_bool = clean_grid.lower() == 'true'
+async def create_job(request: Request):
+    form = await request.form(max_files=MAX_UPLOAD_FILES)
+    files: List[Any] = form.getlist("files")
+    if not files:
+        raise HTTPException(status_code=400, detail="No files uploaded")
+
+    clean_grid_bool = str(form.get("clean_grid", "true")).lower() == 'true'
+    grid_width = form.get("grid_width")
+    grid_height = form.get("grid_height")
+    overlap = form.get("overlap")
+    pixel_size = form.get("pixel_size")
+    direction = form.get("direction")
+    suffix_filter = form.get("suffix_filter")
+    grid_angle = form.get("grid_angle")
+    detection_threshold = form.get("detection_threshold")
 
     job_id = str(uuid.uuid4())
     job_dir = os.path.join(UPLOAD_DIR, job_id)
