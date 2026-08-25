@@ -4,7 +4,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import { ViewerComponent } from './viewer/viewer.component';
-import { TopBarComponent, ZOOMS } from '../../shared/top-bar/top-bar.component';
+import { TopBarComponent } from '../../shared/top-bar/top-bar.component';
 import { ApiService, JobStatus } from '../../core/services/api.service';
 import { ProjectService, Project } from '../../core/services/project.service';
 
@@ -17,10 +17,10 @@ import { ProjectService, Project } from '../../core/services/project.service';
       <app-top-bar
         mode="workspace"
         [project]="project"
-        [zoomIdx]="zoomIdx"
+        [zoom]="currentZoom"
         (zoomIn)="stepZoom(1)"
         (zoomOut)="stepZoom(-1)"
-        (resetZoom)="zoomIdx = 1; viewerRef?.resetZoom()"
+        (resetZoom)="viewerRef?.resetZoom()"
         (export)="doExport()">
       </app-top-bar>
 
@@ -52,7 +52,8 @@ import { ProjectService, Project } from '../../core/services/project.service';
         #viewerRef
         class="viewer"
         [imageUrl]="imageUrl"
-        [resolution]="project?.pixelSize ?? null">
+        [resolution]="project?.pixelSize ?? null"
+        (zoomChange)="currentZoom = $event">
       </app-viewer>
     </div>
   `,
@@ -130,7 +131,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
 
   imageUrl = '';
   project: Project | undefined;
-  zoomIdx  = 1;
+  currentZoom = 1;
 
   private pollInterval: any;
   private sub?: Subscription;
@@ -153,10 +154,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   }
 
   stepZoom(dir: 1 | -1) {
-    const next = this.zoomIdx + dir;
-    if (next < 0 || next >= ZOOMS.length) return;
-    this.zoomIdx = next;
-    if (dir === 1)  this.viewerRef?.zoomIn();
+    if (dir === 1) this.viewerRef?.zoomIn();
     else            this.viewerRef?.zoomOut();
   }
 

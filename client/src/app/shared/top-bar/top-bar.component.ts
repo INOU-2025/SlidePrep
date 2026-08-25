@@ -3,8 +3,6 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Project } from '../../core/services/project.service';
 
-export const ZOOMS = [1, 2, 4, 10, 20, 40];
-
 @Component({
     selector: 'app-top-bar',
     standalone: true,
@@ -15,7 +13,8 @@ export const ZOOMS = [1, 2, 4, 10, 20, 40];
 export class TopBarComponent {
     @Input() mode: 'home' | 'workspace' = 'home';
     @Input() project?: Project;
-    @Input() zoomIdx: number = 1;
+    /** Actual OpenSeadragon zoom, relative to the home/fit level (1 = fit to viewport). */
+    @Input() zoom: number = 1;
 
     @Output() newSlide    = new EventEmitter<void>();
     @Output() zoomIn      = new EventEmitter<void>();
@@ -24,13 +23,16 @@ export class TopBarComponent {
     @Output() export      = new EventEmitter<void>();
 
     readonly wordmarkCells = Array.from({ length: 9 }, (_, i) => i);
-    readonly zooms = ZOOMS;
 
     constructor(private router: Router) {}
 
     goBack() { this.router.navigate(['/startup']); }
 
-    get currentZoomLabel(): string { return ZOOMS[this.zoomIdx] + '×'; }
+    get currentZoomLabel(): string {
+        const rounded = Math.round(this.zoom * 10) / 10;
+        const text = Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1);
+        return text + '×';
+    }
 
     get dims(): string {
         const w = this.project?.width;

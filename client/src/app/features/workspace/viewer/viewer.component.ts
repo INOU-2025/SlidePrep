@@ -69,7 +69,11 @@ export class ViewerComponent implements AfterViewInit, OnChanges {
 
     zoomIn()    { this.viewer?.viewport.zoomBy(2, null, true); }
     zoomOut()   { this.viewer?.viewport.zoomBy(0.5, null, true); }
-    resetZoom() { this.viewer?.viewport.goHome(true); }
+
+    resetZoom() {
+        this.viewer?.viewport.goHome(true);
+        this.zoomChange.emit(1.0);
+    }
 
     private initViewer() {
         if (this.viewer) return;
