@@ -4,7 +4,6 @@ import cv2
 from glob import glob
 from typing import Optional
 from src.core.pipeline_service import PipelineService, build_passthrough_pipeline
-from src.steps import StitchingStep
 from src.utils import get_supported_image_patterns, filter_images_by_suffix, get_extension_for_format
 
 
@@ -109,6 +108,7 @@ def run_pipeline(config_path: str, no_grid: bool = False,
             if not cv2.imwrite(out_path, output_image):
                 logger.error(f"Failed to save result for {fname}")
                 continue
+            service.write_tile_mask(out_path)
         else:
             logger.debug(f"Carrying through unprocessed (suffix filter): {fname}")
             name, _ = os.path.splitext(fname)
@@ -130,8 +130,7 @@ def run_pipeline(config_path: str, no_grid: bool = False,
         f"Batch processing completed: {successful_count}/{len(images)} images processed successfully")
 
     try:
-        stitching_step = StitchingStep(config=cfg.stitching_config)
-        stitched_path = stitching_step.run(output_folder).data
+        stitched_path = service.stitch(output_folder).data
         logger.info(f"Stitched slide written to {stitched_path}")
     except Exception as e:
         logger.error(f"Failed to stitch slide: {e}")

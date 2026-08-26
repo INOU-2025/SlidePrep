@@ -164,6 +164,13 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     link.href     = `/api/jobs/${this.project.jobId}/export`;
     link.download = `${this.project.name}.ome.tif`;
     link.click();
+
+    if (this.project.maskAvailable) {
+      const maskLink = document.createElement('a');
+      maskLink.href     = `/api/jobs/${this.project.jobId}/export/mask`;
+      maskLink.download = `${this.project.name}_inpaint_mask.tif`;
+      maskLink.click();
+    }
   }
 
   private startPolling(jobId: string) {
@@ -173,10 +180,11 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
           if (status.status === 'SUCCESS' || status.status === 'COMPLETED') {
             this.imageUrl = status.result_url ? `/api${status.result_url}` : this.imageUrl;
             this.projectService.updateProject(jobId, {
-              status:    'completed',
-              thumbnail: status.thumbnail_url ? `/api${status.thumbnail_url}` : undefined,
-              width:     status.width,
-              height:    status.height,
+              status:       'completed',
+              thumbnail:    status.thumbnail_url ? `/api${status.thumbnail_url}` : undefined,
+              width:        status.width,
+              height:       status.height,
+              maskAvailable: status.mask_available,
             });
             clearInterval(this.pollInterval);
           } else if (status.status === 'FAILURE') {

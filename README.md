@@ -113,6 +113,10 @@ After all tiles are processed, **Stitching** (`StitchingStep`) runs once on the 
 
 After Ashlar writes the file, SlidePrep patches the embedded OME-XML to set `PhysicalSizeX` and `PhysicalSizeY` (in µm) from `stitching.pixel_size` in your configuration. This ensures that bioimage analysis tools — QuPath, FIJI, napari, CellProfiler — read calibrated physical units instead of raw pixels for any downstream measurement.
 
+### Inpaint mask output
+
+Whenever grid removal actually ran (i.e. not under `--no-grid`), stitching also writes `<mosaic_base>_inpaint_mask.tif` alongside the OME-TIFF — a single-channel `uint8` TIFF at the same width, height, and geometry as the mosaic, where `255` marks a pixel reconstructed by LaMa inpainting and `0` marks an observed pixel. It is derived from each tile's own detection mask, placed into mosaic space using the same per-tile positions Ashlar computed for the pixel data, with overlapping tiles combined by logical OR (any reconstructed contribution marks the pixel reconstructed). It is not added as an extra OME-TIFF channel and no Deep Zoom pyramid is generated for it.
+
 ---
 
 ## Project structure
@@ -186,7 +190,8 @@ SlidePrep/
 │       ├── detection/             # Adaptive detector, contour analysis
 │       ├── debug/                 # Visualization and result writers
 │       ├── image_utils.py
-│       └── conversion_utils.py
+│       ├── conversion_utils.py
+│       └── stitching_utils.py     # OME-XML calibration, inpaint mask composition
 │
 ├── models/
 │   └── rf_detection_classifier.joblib   # Grid refinement classifier
@@ -312,6 +317,8 @@ docker-compose up --build
 
 Builds and starts four services: Redis, the FastAPI backend (port 8000), a Celery worker, and an nginx container (port 80) serving the pre-built Angular app. Open `http://localhost` in your browser (or `http://<server-ip>` from another machine on the same network). Uploads and results are stored under `data/`.
 
+The workspace's Export button downloads the OME-TIFF via `GET /jobs/{job_id}/export`; when grid removal ran, it also downloads the inpaint mask via `GET /jobs/{job_id}/export/mask`.
+
 ### Manual startup (development)
 
 For iterative frontend development, run the backend stack with Docker Compose and serve the Angular app locally:
@@ -344,7 +351,7 @@ Set `CORS_ORIGINS=http://localhost:4200` on the `api` service (or in a `.env` fi
 pytest tests/ -v
 ```
 
-Ten tests covering config parsing, pipeline factory and step chaining, binarization on synthetic images, inpainting (LaMa model mocked), OME-TIFF physical calibration injection, and DZI generation. The DZI test is skipped automatically when `vips` is not installed.
+Covers config parsing, pipeline factory and step chaining, binarization on synthetic images, inpainting (LaMa model mocked), OME-TIFF physical calibration injection, and DZI generation (skipped automatically when `vips` is not installed). Also covers inpaint-mask composition across a tile overlap (unit test), and an integration test that runs grid removal and stitching end-to-end over `sample_data/`, asserting the composed mask matches the mosaic's dimensions and is nonempty — skipped automatically when the `ashlar` CLI is not installed.
 
 ---
 

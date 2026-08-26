@@ -123,6 +123,7 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str,
                     output_image = cv2.cvtColor(output_image, cv2.COLOR_RGB2GRAY)
 
                 cv2.imwrite(out_path, output_image)
+                service.write_tile_mask(out_path)
             else:
                 raw_gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
                 if raw_gray is not None:
@@ -135,7 +136,9 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str,
             self.update_state(state='PROCESSING', meta={'progress': progress, 'status': f'Processed {processed_count}/{total_images}'})
 
         self.update_state(state='PROCESSING', meta={'progress': 80, 'status': 'Stitching'})
-        stitched_path = service.stitch(processed_dir).data
+        stitch_result = service.stitch(processed_dir)
+        stitched_path = stitch_result.data
+        mask_available = bool(stitch_result.metadata and stitch_result.metadata.get("inpaint_mask_path"))
 
         result_dir = os.path.join(output_path, "..", "..", "results")
         dzi_name = f"{job_id}_panorama"
@@ -194,6 +197,7 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str,
             'width': width,
             'height': height,
             'tile_count': tile_count,
+            'mask_available': mask_available,
         }
 
     except Exception as e:

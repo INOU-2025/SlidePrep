@@ -19,6 +19,7 @@ export interface JobStatus {
     width?: number;
     height?: number;
     tile_count?: number;
+    mask_available?: boolean;
 }
 
 export interface UploadOptions {

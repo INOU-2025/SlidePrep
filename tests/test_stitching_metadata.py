@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 import tifffile
 
-from src.steps.stitching import _inject_physical_size
+from src.utils.stitching_utils import inject_physical_size
 
 PIXEL_SIZE = 0.630
 
@@ -21,7 +21,7 @@ def test_inject_physical_size(tmp_path):
         metadata={"axes": "YXS"},
     )
 
-    _inject_physical_size(str(out), PIXEL_SIZE)
+    inject_physical_size(str(out), PIXEL_SIZE)
 
     with tifffile.TiffFile(str(out)) as tif:
         xml_str = tif.ome_metadata

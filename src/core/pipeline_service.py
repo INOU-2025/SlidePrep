@@ -5,6 +5,9 @@ from __future__ import annotations
 from typing import Callable, Optional, TYPE_CHECKING
 
 import asyncio
+import os
+
+import cv2
 import numpy as np
 
 from src.core.bootstrap import bootstrap
@@ -101,6 +104,7 @@ class PipelineService:
 
         self.context.original_image = image
         self.context.image_shape = (image.shape[1], image.shape[0])
+        self.context.inpaint_mask = None
         if image_path is not None:
             self.context.input_image_path = image_path
 
@@ -128,19 +132,59 @@ class PipelineService:
         self._prepare_context(image, image_path)
         return self.pipeline.run(image, on_step_start=on_step_start)
 
+    def write_tile_mask(self, tile_output_path: str) -> Optional[str]:
+        """Persist the most recent run()'s inpaint mask as a sidecar file, if any.
+
+        Must be called immediately after ``run()`` for a given tile, before the
+        next ``run()`` call resets the context. Writes a PNG named after the
+        processed tile's own basename into an ``inpaint_masks`` subdirectory
+        alongside it, so a later stitching pass can match sidecars back to
+        tiles by filename.
+
+        Args:
+            tile_output_path: Path the processed tile image was written to.
+
+        Returns:
+            The path the mask sidecar was written to, or ``None`` if this
+            tile produced no mask (e.g. ``--no-grid``, or a tile carried
+            through raw without going through ``run()`` at all).
+        """
+        mask = self.context.inpaint_mask
+        if mask is None:
+            return None
+        mask_dir = os.path.join(os.path.dirname(tile_output_path), "inpaint_masks")
+        os.makedirs(mask_dir, exist_ok=True)
+        stem = os.path.splitext(os.path.basename(tile_output_path))[0]
+        mask_path = os.path.join(mask_dir, f"{stem}.png")
+        cv2.imwrite(mask_path, mask)
+        return mask_path
+
     def stitch(self, processed_dir: str) -> StepResult:
         """Stitch a directory of processed tiles into a single OME-TIFF.
+
+        Also composes the mosaic-space inpaint mask (if any per-tile masks
+        were written during ``run()``/``write_tile_mask()`` for this job),
+        chained after stitching the same way :class:`~src.core.pipeline.Pipeline`
+        chains per-tile steps — this is the orchestration layer, so step
+        sequencing lives here rather than in one step reaching into another.
 
         Args:
             processed_dir: Path to the directory containing processed tile images.
 
         Returns:
-            :class:`~src.core.step_result.StepResult` with the output path and tile count metadata.
+            :class:`~src.core.step_result.StepResult` with the output path and
+            metadata (tile count, and ``inpaint_mask_path`` if a mask was written).
         """
         from src.steps import StitchingStep
+        from src.utils.stitching_utils import write_inpaint_mask
         step = StitchingStep(config=self.config.stitching_config)
         step.container = self.container
-        return step.run(processed_dir)
+        stitch_result = step.run(processed_dir)
+
+        mask_path = write_inpaint_mask(processed_dir, stitch_result.data, self.config.stitching_config)
+
+        metadata = {**stitch_result.metadata, "inpaint_mask_path": mask_path}
+        return StepResult.from_data(stitch_result.data, metadata)
 
     async def run_async(
         self, image: np.ndarray, *, image_path: Optional[str] = None

@@ -13,6 +13,7 @@ export interface Project {
     width?: number;
     height?: number;
     pixelSize?: number;
+    maskAvailable?: boolean;
 }
 
 /**

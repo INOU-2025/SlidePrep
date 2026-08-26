@@ -46,6 +46,7 @@ Uploads tile files and starts an async pipeline run. Accepts `multipart/form-dat
   "width": null,              // WSI width in pixels (set on SUCCESS)
   "height": null,             // WSI height in pixels (set on SUCCESS)
   "tile_count": null,         // total DZI tiles generated (set on SUCCESS)
+  "mask_available": null,     // set on SUCCESS: whether an inpaint mask was written
   "error": null               // error message (set on FAILURE)
 }
 ```
@@ -59,6 +60,14 @@ When `status` is `"SUCCESS"`, `result_url` points to a Deep Zoom Image (`.dzi`) 
 Returns the Ashlar-generated OME-TIFF as `application/tiff`. The file is served with the filename `{job_id}_slide.ome.tif`.
 
 Returns `404` if the job is still processing or has not yet produced an OME-TIFF.
+
+---
+
+## `GET /jobs/{job_id}/export/mask` — Download the inpaint mask
+
+Returns `<mosaic_base>_inpaint_mask.tif` as `application/tiff` — a single-channel binary TIFF, same width/height as the OME-TIFF, marking pixels reconstructed by LaMa inpainting. The file is served with the filename `{job_id}_inpaint_mask.tif`.
+
+Only produced when grid removal actually ran (see `mask_available` in `JobStatus`); returns `404` if the job used `clean_grid=false` or the mask has not been written yet.
 
 ---
 

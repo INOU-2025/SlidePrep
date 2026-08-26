@@ -10,6 +10,7 @@ import zipfile
 from .schemas import JobResponse, JobStatus
 from worker.tasks import process_images_task
 from celery.result import AsyncResult
+from src.utils.stitching_utils import mosaic_mask_path
 
 router = APIRouter()
 
@@ -114,6 +115,7 @@ async def get_job_status(job_id: str):
     width = None
     height = None
     tile_count = None
+    mask_available = None
 
     if status == 'SUCCESS':
         result = task_result.result
@@ -125,6 +127,7 @@ async def get_job_status(job_id: str):
             width = result.get('width')
             height = result.get('height')
             tile_count = result.get('tile_count')
+            mask_available = result.get('mask_available')
     elif status == 'FAILURE':
         error = str(task_result.result)
     elif status == 'PROCESSING':
@@ -137,6 +140,7 @@ async def get_job_status(job_id: str):
         job_id=job_id, status=status, result_url=result_url, error=error,
         message=message, progress=progress, thumbnail_url=thumbnail_url,
         width=width, height=height, tile_count=tile_count,
+        mask_available=mask_available,
     )
 
 @router.get("/jobs/{job_id}/export")
@@ -148,6 +152,18 @@ async def export_job(job_id: str):
         path=ome_tiff_path,
         media_type="image/tiff",
         filename=f"{job_id}_slide.ome.tif",
+    )
+
+@router.get("/jobs/{job_id}/export/mask")
+async def export_job_mask(job_id: str):
+    ome_tiff_path = os.path.join(UPLOAD_DIR, job_id, "processed", "stitched_slide.ome.tif")
+    mask_path = mosaic_mask_path(ome_tiff_path)
+    if not os.path.exists(mask_path):
+        raise HTTPException(status_code=404, detail="Inpaint mask not found — job may not have run grid removal, or is still processing")
+    return FileResponse(
+        path=mask_path,
+        media_type="image/tiff",
+        filename=f"{job_id}_inpaint_mask.tif",
     )
 
 @router.delete("/jobs/{job_id}")

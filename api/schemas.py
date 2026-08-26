@@ -35,6 +35,7 @@ class JobStatus(BaseModel):
     width: Optional[int] = None
     height: Optional[int] = None
     tile_count: Optional[int] = None
+    mask_available: Optional[bool] = None
 
 class AppConfig(BaseModel):
     """Complete pipeline configuration submitted as JSON in the request body."""

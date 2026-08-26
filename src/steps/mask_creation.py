@@ -50,5 +50,6 @@ class MaskCreationStep(PipelineStep):
                     continue
                 cv2.fillPoly(mask, [np.asarray(contour, dtype=np.int32)], 255)
 
+        context.inpaint_mask = mask
         return StepResult.from_array(mask)
 
