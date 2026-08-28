@@ -323,11 +323,11 @@ The workspace's Export button downloads the OME-TIFF via `GET /jobs/{job_id}/exp
 
 ### Manual startup (development)
 
-For iterative frontend development, run the backend stack with Docker Compose and serve the Angular app locally:
+For iterative frontend development, run the backend stack with Docker Compose and serve the Angular app locally. `docker-compose.yml` on its own runs the production `uvicorn` command (no autoreload); layering `docker-compose.dev.yml` on top adds `--reload` on the `api` service:
 
 ```bash
-# Start the backend stack
-docker-compose up redis api worker
+# Start the backend stack with --reload enabled
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up redis api worker
 
 # In a separate terminal — Angular dev server (requires Node.js)
 cd client
@@ -344,6 +344,28 @@ Set `CORS_ORIGINS=http://localhost:4200` on the `api` service (or in a `.env` fi
 | `REDIS_URL` | `redis://localhost:6379/0` | Celery broker URL |
 | `SLIDEPREP_CONFIG` | `config/production.json` | Config file used by the worker |
 | `CORS_ORIGINS` | `http://localhost` | Comma-separated allowed origins |
+| `SLIDEPREP_MAX_FILE_SIZE_BYTES` | `524288000` (500 MB) | Max size of a single uploaded tile file (or one member of an uploaded zip) |
+| `SLIDEPREP_MAX_TOTAL_UPLOAD_BYTES` | `32212254720` (30 GB) | Max total upload size per job — keep in sync with `client_max_body_size` in `client/nginx.conf` |
+| `SLIDEPREP_MAX_FILES_PER_JOB` | `5000` | Max number of tile files per job (after zip extraction) |
+
+### Security and data retention
+
+**This deployment has no authentication or access control.** Anyone who can
+reach the nginx/API port can submit jobs, and can read or delete any job by
+its ID — job IDs are only unpredictable (UUIDs), never access-controlled.
+It is intended for **trusted local or internal-network environments**
+(a single lab workstation, a LAN with no untrusted users), not for exposure
+on the open internet or to untrusted users. If you need per-user access
+control, put a reverse proxy with its own authentication in front of it —
+none is provided here.
+
+**Data retention is manual, not automatic.** Uploaded tiles (`data/uploads/<job_id>/`)
+and results (`data/results/<job_id>_*`) are kept indefinitely — nothing in
+this codebase expires or cleans them up on a schedule. The only way data for
+a job is removed is an explicit `DELETE /jobs/{job_id}` call (which the
+workspace UI's delete action makes) or an operator manually clearing `data/`.
+Plan disk space and any external cleanup (e.g. a cron job) accordingly for
+long-running deployments.
 
 ---
 

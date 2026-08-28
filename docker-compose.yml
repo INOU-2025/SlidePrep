@@ -3,15 +3,18 @@ version: '3.8'
 services:
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    # No `ports:` — Redis is reachable at redis:6379 from the api/worker
+    # containers over the compose network, and has no authentication of its
+    # own, so it must never be published to the host.
     volumes:
       - redis_data:/data
 
   api:
     build: .
     platform: linux/amd64
-    command: uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload
+    # Production entrypoint — no --reload (that's a development setting; see
+    # docker-compose.dev.yml).
+    command: uvicorn api.app:app --host 0.0.0.0 --port 8000
     volumes:
       - .:/app
       - ./data:/app/data
