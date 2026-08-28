@@ -12,7 +12,25 @@ import cv2
 import numpy as np
 import tifffile
 from ashlar import reg, utils as ashlar_utils
-from ashlar.fileseries import FileSeriesReader
+from ashlar.fileseries import FileSeriesReader, format_to_regex
+
+
+def count_tile_positions(tile_paths: list[str], pattern: str) -> int:
+    """Number of distinct (well, series) grid positions among ``tile_paths``,
+    parsed via ashlar's own ``format_to_regex`` — the same parser ASHLAR
+    itself uses for this pattern, so this can never disagree with how ASHLAR
+    will interpret the same files. Channels collapse: a 2-channel
+    acquisition's two files for the same position count as one position, not
+    two — a raw file-count glob would count every channel separately.
+    """
+    name_regex = re.compile(format_to_regex(pattern))
+    positions = set()
+    for path in tile_paths:
+        m = name_regex.match(os.path.basename(path))
+        if m:
+            gd = m.groupdict()
+            positions.add((gd.get('well'), gd['series']))
+    return len(positions)
 
 
 def _parse_pixels(xml_str: str) -> tuple[ET.Element, str, list[ET.Element]]:

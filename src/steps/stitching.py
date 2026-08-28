@@ -11,7 +11,7 @@ from typing import Any
 from src.core.step_result import StepResult
 from src.config import StitchingConfig
 from src.core.step import PipelineStep
-from src.utils.stitching_utils import inject_physical_size
+from src.utils.stitching_utils import inject_physical_size, count_tile_positions
 
 
 class StitchingStep(PipelineStep):
@@ -46,6 +46,17 @@ class StitchingStep(PipelineStep):
         if not tiles:
             raise ValueError(
                 f"No tiles found using pattern {glob_pattern} in {tile_dir}"
+            )
+
+        num_positions = count_tile_positions(tiles, self.config.pattern)
+        expected_positions = self.config.width * self.config.height
+        if num_positions != expected_positions:
+            raise ValueError(
+                f"Tile count mismatch in {tile_dir}: found {num_positions} tile position(s) "
+                f"({len(tiles)} file(s) across all channels), but stitching.width={self.config.width} "
+                f"x stitching.height={self.config.height} declares {expected_positions} position(s). "
+                "Ashlar's tile_rc() has no bounds validation and will silently assign wrong "
+                "rows/columns to a mosaic assembled from this directory if this mismatch is ignored."
             )
 
         output_path = (
