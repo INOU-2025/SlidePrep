@@ -37,3 +37,32 @@ def test_inject_physical_size(tmp_path):
     assert float(pixels.get("PhysicalSizeY")) == pytest.approx(PIXEL_SIZE)
     assert pixels.get("PhysicalSizeXUnit") == "µm"
     assert pixels.get("PhysicalSizeYUnit") == "µm"
+
+
+def test_inject_physical_size_missing_file_raises():
+    """Reading a nonexistent file used to be swallowed by a bare
+    `except Exception: return` — it must now raise instead of failing
+    silently."""
+    with pytest.raises(FileNotFoundError):
+        inject_physical_size("/nonexistent/path/to/slide.ome.tif", PIXEL_SIZE)
+
+
+def test_inject_physical_size_no_pixels_element_raises(tmp_path):
+    """A non-empty ImageDescription that isn't OME-XML with a <Pixels>
+    element used to silently no-op (zero regex/iter matches, then the
+    unmodified XML got written back and the function returned normally).
+    It must now raise, and must not have touched the file at all."""
+    out = tmp_path / "slide.tif"
+    original_description = "<Foo>not OME-XML with a Pixels element</Foo>"
+    tifffile.imwrite(
+        str(out),
+        np.zeros((64, 64, 3), dtype=np.uint8),
+        photometric="rgb",
+        description=original_description,
+    )
+
+    with pytest.raises(RuntimeError):
+        inject_physical_size(str(out), PIXEL_SIZE)
+
+    # Confirm nothing was silently patched — the description is unchanged.
+    assert tifffile.tiffcomment(str(out)) == original_description

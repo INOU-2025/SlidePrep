@@ -1,3 +1,4 @@
+import math
 import os
 from typing import Optional, List, Dict, Any, IO
 
@@ -283,8 +284,8 @@ class StitchingConfig(BaseModel):
             raise ValueError("pattern must be specified")
         if not 0 <= values.overlap < 1:
             raise ValueError("overlap must be between 0 and 1")
-        if values.pixel_size <= 0:
-            raise ValueError("pixel_size must be positive")
+        if not math.isfinite(values.pixel_size) or not (0 < values.pixel_size <= 1000):
+            raise ValueError(f"pixel_size must be a finite value between 0 and 1000 microns (got {values.pixel_size})")
         if values.width <= 0 or values.height <= 0:
             raise ValueError("width and height must be positive integers")
         return values
