@@ -2,7 +2,7 @@
 
 ## Project License
 
-The project is licensed under **MIT** (`LICENSE`) — a recognized OSI-approved open source license.
+The project is licensed under **MIT** (`LICENSE.txt`) — a recognized OSI-approved open source license.
 
 **Copyright (c) 2026 Universidade de Vigo**
 
