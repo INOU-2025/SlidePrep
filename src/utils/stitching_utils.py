@@ -179,7 +179,7 @@ def write_inpaint_mask(tile_dir: str, ome_tiff_path: str, config: Any) -> Option
     aligner = reg.EdgeAligner(
         reader,
         channel=channel,
-        max_shift=15,
+        max_shift=config.max_shift,
         alpha=0.01,
         max_error=None,
         filter_sigma=0.0,

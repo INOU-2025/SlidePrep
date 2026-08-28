@@ -274,6 +274,7 @@ class StitchingConfig(BaseModel):
     layout: str = "raster"  # Acquisition layout
     direction: str = "horizontal"  # Raster direction
     align_channel: int | None = None  # Channel to use for alignment (0-based index)
+    max_shift: float = 30  # Maximum allowed per-tile corrective shift, in microns (Ashlar's -m/--maximum-shift)
 
     @model_validator(mode="after")
     def _validate_settings(cls, values: "StitchingConfig") -> "StitchingConfig":
@@ -288,6 +289,8 @@ class StitchingConfig(BaseModel):
             raise ValueError(f"pixel_size must be a finite value between 0 and 1000 microns (got {values.pixel_size})")
         if values.width <= 0 or values.height <= 0:
             raise ValueError("width and height must be positive integers")
+        if not math.isfinite(values.max_shift) or not (0 < values.max_shift <= 1000):
+            raise ValueError(f"max_shift must be a finite value between 0 and 1000 microns (got {values.max_shift})")
         return values
 
 

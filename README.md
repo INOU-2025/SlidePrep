@@ -113,6 +113,8 @@ After all tiles are processed, **Stitching** (`StitchingStep`) runs once on the 
 
 After Ashlar writes the file, SlidePrep patches the embedded OME-XML to set `PhysicalSizeX` and `PhysicalSizeY` (in µm) from `stitching.pixel_size` in your configuration. This ensures that bioimage analysis tools — QuPath, FIJI, napari, CellProfiler — read calibrated physical units instead of raw pixels for any downstream measurement.
 
+Ashlar's own registration defaults `--maximum-shift` to 15 microns; SlidePrep raises the pipeline default to `stitching.max_shift = 30` microns because at 0.630 µm/pixel, 15 microns is only ~24 pixels, and measured nominal offsets in production acquisitions reach 31 pixels — most side-by-side tile edges are discarded for exceeding the shift limit before their correlation error is ever considered. A sweep over 15, 25, 30, 40, and 60 microns showed the kept-edge count plateaus from 25 microns onward, and the maximum absolute shift among kept edges stabilises at 31.2 pixels, hence the default of 30.
+
 ### Inpaint mask output
 
 Whenever grid removal actually ran (i.e. not under `--no-grid`), stitching also writes `<mosaic_base>_inpaint_mask.tif` alongside the OME-TIFF — a single-channel `uint8` TIFF at the same width, height, and geometry as the mosaic, where `255` marks a pixel reconstructed by LaMa inpainting and `0` marks an observed pixel. It is derived from each tile's own detection mask, placed into mosaic space using the same per-tile positions Ashlar computed for the pixel data, with overlapping tiles combined by logical OR (any reconstructed contribution marks the pixel reconstructed). It is not added as an extra OME-TIFF channel and no Deep Zoom pyramid is generated for it.
@@ -414,7 +416,7 @@ All parameters are set via JSON configuration files. The top-level sections map 
                       "classifier": { "model_path": "...", "features": ["..."], "threshold": 0.5 } },
   "inpainting":     { "model": "lama" },
   "img_conversion": { "format": "tiff" },
-  "stitching":      { "pattern": "...", "width": 0, "height": 0, "pixel_size": 1.0 },
+  "stitching":      { "pattern": "...", "width": 0, "height": 0, "pixel_size": 1.0, "max_shift": 30 },
   "log":            { "log_to_file": true, "log_file_name": "app.log", "log_level": "INFO" },
   "debug":          { "saved_artifact_type": "image", "save_composite_img": false }
 }

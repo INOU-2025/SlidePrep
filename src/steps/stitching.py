@@ -67,6 +67,7 @@ class StitchingStep(PipelineStep):
         cmd = ["ashlar", "--output", output_path, series_arg]
         if self.config.align_channel is not None:
             cmd.extend(["--align-channel", str(self.config.align_channel)])
+        cmd.extend(["--maximum-shift", str(self.config.max_shift)])
         try:
             subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except subprocess.CalledProcessError as e:
