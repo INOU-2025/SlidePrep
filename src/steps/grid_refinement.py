@@ -94,6 +94,15 @@ class GridRefinementStep(PipelineStep):
         self.log(
             f"Loaded refinement model from {config.classifier.model_path}")
 
+        # Aggregate counters for the angle-correction bound, spanning every
+        # run() call for this job (one GridRefinementStep instance is reused
+        # across all tiles — see PipelineService/log_step_summaries). A high
+        # fraction exceeding the bound means target_inclination_angles
+        # doesn't match this acquisition; per-tile warnings alone don't make
+        # that visible.
+        self._tiles_seen = 0
+        self._tiles_bound_exceeded = 0
+
         # predict_proba() below is called with a positional feature array, so
         # config.classifier.features must list features in the exact order
         # the model was trained on. Catch a silent misinterpretation here,
@@ -149,10 +158,27 @@ class GridRefinementStep(PipelineStep):
         return top_contours
 
     def _adjust_contour_to_target_angle(
-        self, contour: np.ndarray, analysis: dict, target_angle: float, tolerance: Optional[float] = 0.0
-    ) -> np.ndarray:
+        self,
+        contour: np.ndarray,
+        analysis: dict,
+        target_angle: float,
+        tolerance: Optional[float] = 0.0,
+        max_correction: float = 15.0,
+        orientation_name: str = "",
+    ) -> Tuple[np.ndarray, bool]:
         """
         Rotate contour around its centroid to match target angle if outside tolerance.
+
+        If the required correction exceeds max_correction, the detection is
+        trusted over the configured target: the original, unrotated contour
+        is returned instead, and the second return value is True so the
+        caller can track how often this happens. Forcing a large rotation
+        onto a genuinely different detected angle would prefer configuration
+        over observation — the exact failure this bound exists to prevent.
+
+        Returns:
+            (contour, exceeded_bound) — exceeded_bound is True only when the
+            correction was skipped for exceeding max_correction.
         """
         current_angle = float(analysis.get("long_side_angle", 0.0))
         centroid = analysis.get("centroid", (0.0, 0.0))
@@ -161,14 +187,23 @@ class GridRefinementStep(PipelineStep):
         if abs(angle_diff) < (tolerance or 0.0):
             self.debug(
                 f"Angle difference {angle_diff:.2f}° within tolerance ({tolerance}°); no adjustment.")
-            return _as_cnt(contour)
+            return _as_cnt(contour), False
+
+        if abs(angle_diff) > max_correction:
+            self.warning(
+                f"{orientation_name or 'contour'} detected at {current_angle:.2f}° "
+                f"differs from target {target_angle:.2f}° by {angle_diff:.2f}°, "
+                f"exceeding the {max_correction:.1f}° correction bound — keeping "
+                f"the original, unrotated detection instead of forcing it to match."
+            )
+            return _as_cnt(contour), True
 
         center = (float(centroid[0]), float(centroid[1]))
         rot_mat = cv2.getRotationMatrix2D(center, -angle_diff, 1.0)
         rotated = cv2.transform(_as_cnt(contour), rot_mat)
         self.debug(
             f"Adjusted contour {current_angle:.2f}° -> {target_angle:.2f}° (Δ={angle_diff:.2f}°), centroid={center}")
-        return rotated
+        return rotated, False
 
     def _expand_min_rect(
         self,
@@ -306,11 +341,15 @@ class GridRefinementStep(PipelineStep):
         if target_angle is None:
             self.debug(
                 "No target angle specified. Returning the original contour.")
-            return {"contour": cnt0, "zone": zone, "analysis": analysis0}
+            return {"contour": cnt0, "zone": zone, "analysis": analysis0, "angle_bound_exceeded": False}
 
         # rotate using centroid + long_side_angle from analysis0
-        cnt_rot = self._adjust_contour_to_target_angle(
-            cnt0, analysis0, target_angle, angle_tolerance)
+        orientation_name = orientation.value if hasattr(orientation, "value") else str(orientation)
+        cnt_rot, angle_bound_exceeded = self._adjust_contour_to_target_angle(
+            cnt0, analysis0, target_angle, angle_tolerance,
+            max_correction=self.config.max_correction_angle,
+            orientation_name=orientation_name,
+        )
 
         # minRect on the rotated contour (no extra analysis yet)
         min_rect_rot = cv2.minAreaRect(cnt_rot)
@@ -327,7 +366,12 @@ class GridRefinementStep(PipelineStep):
             _as_cnt(expanded_box), orientation, strategy, image_shape)
         analysis_expanded["expanded_rect"] = expanded_rect
 
-        return {"contour": expanded_box, "zone": zone, "analysis": analysis_expanded}
+        return {
+            "contour": expanded_box,
+            "zone": zone,
+            "analysis": analysis_expanded,
+            "angle_bound_exceeded": angle_bound_exceeded,
+        }
 
     def run(self, data: Any) -> StepResult:
         """Refine detection results by analyzing and adjusting contours."""
@@ -345,6 +389,7 @@ class GridRefinementStep(PipelineStep):
         thickness_bias = float(self.config.thickness_bias)
 
         refined: Dict[Orientation, Any] = {}
+        tile_exceeded = False
 
         for orientation, contour_dicts in detections.items():
             strategy = strategies.get(orientation)
@@ -385,6 +430,9 @@ class GridRefinementStep(PipelineStep):
                     processed = self._process_contour(
                         cnt, orientation, strategy, target_angle, angle_tolerance, image_shape, zone
                     )
+
+                    if processed["angle_bound_exceeded"]:
+                        tile_exceeded = True
 
                     # EVEN thickness (centered) for GENERAL
                     analysis = processed["analysis"]
@@ -432,6 +480,9 @@ class GridRefinementStep(PipelineStep):
                     item["contour"], orientation, strategy, target_angle, angle_tolerance, image_shape, zone
                 )
 
+                if processed["angle_bound_exceeded"]:
+                    tile_exceeded = True
+
                 # UNEVEN thickness for non-GENERAL: bias growth toward the image edge
                 analysis = processed["analysis"]
                 # expanded rect
@@ -455,6 +506,31 @@ class GridRefinementStep(PipelineStep):
 
             refined[orientation] = post_processed
 
+        self._tiles_seen += 1
+        if tile_exceeded:
+            self._tiles_bound_exceeded += 1
+
         refined_results = {"detections": refined, "strategies": strategies}
         return StepResult.from_data(refined_results)
+
+    def log_summary(self) -> None:
+        """Log the job-wide angle-correction-bound tally.
+
+        Call once after all tiles for a job have gone through run() (see
+        PipelineService.log_step_summaries). Per-tile warnings alone don't
+        make a systematic mismatch visible; this aggregate does.
+        """
+        if self._tiles_seen == 0:
+            return
+        if self._tiles_bound_exceeded > 0:
+            self.warning(
+                f"{self._tiles_bound_exceeded}/{self._tiles_seen} tiles had a "
+                f"detected angle exceeding the {self.config.max_correction_angle:.1f}° "
+                f"correction bound — check whether target_inclination_angles matches "
+                f"this acquisition."
+            )
+        else:
+            self.log(
+                f"Angle correction bound never exceeded across {self._tiles_seen} tiles."
+            )
 

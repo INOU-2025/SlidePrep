@@ -1,4 +1,5 @@
 import os
+import warnings
 from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
@@ -81,6 +82,7 @@ class AppConfigManager(ConfigManager):
             self.grid_refinement_config = (
                 GridRefinementConfig(**refine_config) if refine_config else None
             )
+            self._check_grid_angle_consistency()
 
             inpaint_config = self.get("inpainting")
             self.inpainting_config = (
@@ -115,6 +117,49 @@ class AppConfigManager(ConfigManager):
             raise ValueError(
                 f"Error extracting config values. Malformed configuration: {e}"
             ) from e
+
+    def _check_grid_angle_consistency(self) -> None:
+        """Warn if the grid-detection search set and the grid-refinement
+        target angles are mutually inconsistent.
+
+        The search set (grid_detection.angles) is a list of *relative*
+        perturbations tried around each orientation's own canonical axis (0
+        degrees for horizontal, +/-90 for vertical) when building detection
+        templates. The refinement target (target_inclination_angles) is an
+        *absolute* angle in the same normalized space as the detector's own
+        long_side_angle. A target whose deviation from its orientation's
+        canonical axis is larger than anything the search set actually
+        tries means detection is unlikely to find a corroborating line near
+        that angle in the first place — advisory only, not rejected, since
+        there's no objectively-correct search width the way there is for
+        pixel_size's physical bound.
+        """
+        grid_config = self.grid_detection_config
+        refine_config = self.grid_refinement_config
+        if grid_config is None or refine_config is None:
+            return
+        targets = refine_config.target_inclination_angles
+        if not targets:
+            return
+
+        max_search_deviation = max(abs(a) for a in grid_config.angles)
+        canonical_axes = {"horizontal": 0.0}
+        target_vertical = targets["vertical"]
+        deviations = {
+            "horizontal": abs(targets["horizontal"] - canonical_axes["horizontal"]),
+            "vertical": min(abs(target_vertical - 90.0), abs(target_vertical + 90.0)),
+        }
+        for orientation, deviation in deviations.items():
+            if deviation > max_search_deviation:
+                warnings.warn(
+                    f"grid_refinement.target_inclination_angles[{orientation}]="
+                    f"{targets[orientation]} is {deviation:.1f} degrees from its "
+                    f"canonical axis, but grid_detection.angles={grid_config.angles} "
+                    f"only searches up to {max_search_deviation} degrees off-axis — "
+                    f"detection is unlikely to find a line near the declared target "
+                    f"for this orientation.",
+                    stacklevel=2,
+                )
 
     @property
     def logger_active(self) -> bool:

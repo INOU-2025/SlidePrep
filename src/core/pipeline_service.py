@@ -132,6 +132,19 @@ class PipelineService:
         self._prepare_context(image, image_path)
         return self.pipeline.run(image, on_step_start=on_step_start)
 
+    def log_step_summaries(self) -> None:
+        """Let any step log a job-wide summary after all tiles have run.
+
+        Call once, after the per-tile run() loop finishes for a job. Steps
+        that accumulate per-tile state worth reporting in aggregate (e.g.
+        GridRefinementStep's angle-correction-bound tally) implement
+        log_summary(); steps that don't are silently skipped.
+        """
+        for step in self.pipeline.steps:
+            summary_fn = getattr(step, "log_summary", None)
+            if callable(summary_fn):
+                summary_fn()
+
     def write_tile_mask(self, tile_output_path: str) -> Optional[str]:
         """Persist the most recent run()'s inpaint mask as a sidecar file, if any.
 

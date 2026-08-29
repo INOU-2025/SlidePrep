@@ -129,6 +129,8 @@ def run_pipeline(config_path: str, no_grid: bool = False,
     logger.info(
         f"Batch processing completed: {successful_count}/{len(images)} images processed successfully")
 
+    service.log_step_summaries()
+
     try:
         stitched_path = service.stitch(output_folder).data
         logger.info(f"Stitched slide written to {stitched_path}")

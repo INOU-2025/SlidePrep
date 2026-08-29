@@ -135,6 +135,8 @@ def process_images_task(self, job_id: str, input_path: str, output_path: str,
             progress = int((i + 1) / total_images * 80)
             self.update_state(state='PROCESSING', meta={'progress': progress, 'status': f'Processed {processed_count}/{total_images}'})
 
+        service.log_step_summaries()
+
         self.update_state(state='PROCESSING', meta={'progress': 80, 'status': 'Stitching'})
         stitch_result = service.stitch(processed_dir)
         stitched_path = stitch_result.data

@@ -218,6 +218,14 @@ class GridRefinementConfig(BaseModel):
     target_inclination_angles: Dict[str, float] = Field(default_factory=dict)
     target_thickness: int = 22
     thickness_bias: float = 0.90
+    # Safety bound on the post-detection angle correction: if a detected
+    # contour's angle differs from target_inclination_angles by more than
+    # this, the correction is skipped (the original, unrotated detection is
+    # kept and a warning is logged) rather than forcing a possibly-wrong
+    # target onto a real detection. An operator-tunable heuristic, not a
+    # physically derived constant — adjust based on how often the aggregate
+    # "N/M tiles exceeded the bound" warning fires.
+    max_correction_angle: float = 15.0
 
     @model_validator(mode="after")
     def _validate_settings(cls, values: "GridRefinementConfig") -> "GridRefinementConfig":
@@ -231,10 +239,36 @@ class GridRefinementConfig(BaseModel):
                 if not isinstance(v, (float, int)):
                     raise ValueError(
                         f"target_inclination_angles[{k}] must be a float")
+            for axis in ("horizontal", "vertical"):
+                angle = values.target_inclination_angles[axis]
+                if not -90 <= angle <= 90:
+                    raise ValueError(
+                        f"target_inclination_angles[{axis}] must be between "
+                        f"-90 and 90 degrees (got {angle})"
+                    )
+            tolerance = values.target_inclination_angles["tolerance"]
+            if not 0 <= tolerance <= 45:
+                raise ValueError(
+                    f"target_inclination_angles[tolerance] must be between "
+                    f"0 and 45 degrees (got {tolerance})"
+                )
+            if values.max_correction_angle <= tolerance:
+                raise ValueError(
+                    f"max_correction_angle ({values.max_correction_angle}) must be "
+                    f"greater than tolerance ({tolerance}) — otherwise every angle "
+                    f"difference is either within tolerance (no correction needed) "
+                    f"or past the bound (correction skipped), and the correction "
+                    f"itself is never actually applied"
+                )
         if not isinstance(values.target_thickness, int) or values.target_thickness <= 0:
             raise ValueError("target_thickness must be a positive integer")
         if not 0.0 <= values.thickness_bias <= 1.0:
             raise ValueError("thickness_bias must be between 0 and 1")
+        if not math.isfinite(values.max_correction_angle) or not (0 < values.max_correction_angle <= 90):
+            raise ValueError(
+                f"max_correction_angle must be a finite value between 0 and 90 "
+                f"degrees (got {values.max_correction_angle})"
+            )
         return values
 
 
