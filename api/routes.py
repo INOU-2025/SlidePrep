@@ -142,6 +142,18 @@ async def create_job(request: Request):
     grid_angle = form.get("grid_angle")
     detection_threshold = form.get("detection_threshold")
 
+    # No usable default exists for pixel_size (see StitchingConfig) — an omitted
+    # value would silently fall back to whatever the deployment's base config
+    # happens to declare, indistinguishable from a value actually measured for
+    # this job. Enforced here too since client-side validation is bypassable
+    # by calling this endpoint directly.
+    if not pixel_size:
+        raise HTTPException(
+            status_code=400,
+            detail="pixel_size is required: declare the physical pixel size "
+                   "(microns/pixel) for this scan — there is no default.",
+        )
+
     job_id = str(uuid.uuid4())
     job_dir = os.path.join(UPLOAD_DIR, job_id)
     os.makedirs(job_dir, exist_ok=True)

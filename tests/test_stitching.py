@@ -35,7 +35,7 @@ def test_stitching_step_raises_on_tile_count_mismatch(tmp_path):
     """3 real positions against a declared 2x2=4 grid must abort loudly, naming
     the found count and the declared width/height, before ever invoking ashlar."""
     _write_tiles(tmp_path, num_positions=3, num_channels=1)
-    config = StitchingConfig(pattern=PATTERN, width=2, height=2)
+    config = StitchingConfig(pattern=PATTERN, width=2, height=2, pixel_size=0.63)
     step = StitchingStep(config)
 
     with patch("src.steps.stitching.subprocess.run") as mock_run:
@@ -55,7 +55,7 @@ def test_stitching_step_passes_guard_on_matching_multi_channel_grid(tmp_path):
     multi-channel acquisition. subprocess.run is mocked since this only
     tests the guard, not a real ashlar invocation."""
     _write_tiles(tmp_path, num_positions=4, num_channels=2)
-    config = StitchingConfig(pattern=PATTERN, width=2, height=2)
+    config = StitchingConfig(pattern=PATTERN, width=2, height=2, pixel_size=0.63)
     step = StitchingStep(config)
 
     fake_completed = MagicMock(returncode=0)

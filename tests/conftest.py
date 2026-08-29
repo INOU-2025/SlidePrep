@@ -38,7 +38,8 @@ def minimal_config(tmp_path):
         "binarization": {"threshold_method": "combined_differential"},
         # pattern's extension must match img_conversion.format's output
         # extension (.png here) — see bootstrap._check_format_pattern_match.
-        "stitching": {"pattern": "TileScan_001_s{series:3}_ch{channel:2}.png"},
+        # pixel_size has no default (StitchingConfig requires it explicitly).
+        "stitching": {"pattern": "TileScan_001_s{series:3}_ch{channel:2}.png", "pixel_size": 0.63},
         "log": {"log_to_console": False},
     }
     p = tmp_path / "config.json"

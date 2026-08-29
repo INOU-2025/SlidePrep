@@ -56,7 +56,7 @@ export class CreateModalComponent {
     ) {}
 
     get tileCount(): number { return (parseInt(this.cols) || 0) * (parseInt(this.rows) || 0); }
-    get step1Valid(): boolean { return !!this.name.trim() && !!this.cols && !!this.rows; }
+    get step1Valid(): boolean { return !!this.name.trim() && !!this.cols && !!this.rows && !!this.pixelSize; }
     get step2Valid(): boolean { return this.files.length > 0 && this.phase === 'idle'; }
     get isRunning():  boolean { return this.phase === 'uploading' || this.phase === 'processing'; }
 
@@ -103,7 +103,7 @@ export class CreateModalComponent {
             gridWidth:          this.cols   ? +this.cols   : null,
             gridHeight:         this.rows   ? +this.rows   : null,
             overlap:            this.overlap   ? +this.overlap   : null,
-            pixelSize:          this.pixelSize ? +this.pixelSize : null,
+            pixelSize:          +this.pixelSize,
             direction:          this.dir    || undefined,
             suffixFilter:       this.suffix || '',
             gridAngle:          this.angle  ? +this.angle  : null,
@@ -117,7 +117,7 @@ export class CreateModalComponent {
                     jobId:     response.job_id,
                     status:    'processing',
                     tileCount: this.tileCount || undefined,
-                    pixelSize: this.pixelSize ? +this.pixelSize : undefined,
+                    pixelSize: +this.pixelSize,
                 });
                 this.beginPolling(response.job_id);
             },

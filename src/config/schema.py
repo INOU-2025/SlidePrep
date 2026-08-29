@@ -1,5 +1,6 @@
 import math
 import os
+import warnings
 from typing import Optional, List, Dict, Any, IO
 
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
@@ -268,7 +269,7 @@ class StitchingConfig(BaseModel):
     output_filename: str = "stitched_slide.ome.tif"  # Name of generated OME-TIFF
     pattern: str = "TileScan_001_s{series:3}_ch{channel:2}.tiff"  # File pattern used by Ashlar
     overlap: float = 0.1  # Fractional tile overlap for registration
-    pixel_size: float = 1.0  # Physical pixel size in microns
+    pixel_size: Optional[float] = None  # Physical pixel size in microns/pixel — must be declared explicitly, no default
     width: int = 1  # Tile grid width
     height: int = 1  # Tile grid height
     layout: str = "raster"  # Acquisition layout
@@ -285,8 +286,27 @@ class StitchingConfig(BaseModel):
             raise ValueError("pattern must be specified")
         if not 0 <= values.overlap < 1:
             raise ValueError("overlap must be between 0 and 1")
-        if not math.isfinite(values.pixel_size) or not (0 < values.pixel_size <= 1000):
-            raise ValueError(f"pixel_size must be a finite value between 0 and 1000 microns (got {values.pixel_size})")
+        if values.pixel_size is None:
+            raise ValueError(
+                "pixel_size must be declared: no default is assumed, since an "
+                "unstated pixel size would silently miscalibrate every "
+                "downstream micrometer measurement in the output. Declare the "
+                "microscope's physical pixel size (microns/pixel) in the "
+                "stitching config."
+            )
+        if not math.isfinite(values.pixel_size) or not (0.01 <= values.pixel_size <= 50):
+            raise ValueError(
+                "pixel_size must be a finite value between 0.01 and 50 "
+                f"microns/pixel — no microscope objective produces values "
+                f"outside this range (got {values.pixel_size})"
+            )
+        if not (0.05 <= values.pixel_size <= 5):
+            warnings.warn(
+                f"pixel_size={values.pixel_size} microns/pixel is outside the "
+                f"typical 0.05-5 range for standard microscope objectives. "
+                f"Proceeding, but confirm this value is correct for these optics.",
+                stacklevel=2,
+            )
         if values.width <= 0 or values.height <= 0:
             raise ValueError("width and height must be positive integers")
         if not math.isfinite(values.max_shift) or not (0 < values.max_shift <= 1000):
