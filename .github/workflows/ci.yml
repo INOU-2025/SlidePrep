@@ -7,6 +7,17 @@ name: CI
 jobs:
   test:
     runs-on: ubuntu-latest
+    # Real Redis for the API-level async-execution tests (tests/api/test_async_job.py)
+    # and status-read tests — GET /jobs/{id} reads a genuine Redis result backend
+    # (worker/celery_app.py), so a mock wouldn't exercise the real code path.
+    # No REDIS_URL override needed: celery_app.py's default already targets
+    # localhost:6379, which is where GitHub Actions service containers are
+    # reachable from job steps.
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
     steps:
       - uses: actions/checkout@v4
 
@@ -50,3 +61,52 @@ jobs:
 
       - name: Run test suite
         run: pytest tests/ -v
+
+  container-startup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # docker-compose.yml alone is a complete, valid stack — no .env file
+      # or dev overlay needed. Brings up api + worker + redis + frontend and
+      # confirms they actually build and start together, which no unit or
+      # API-level test exercises (those run the FastAPI app in-process).
+      - name: Build and start the compose stack
+        run: docker compose up --build -d
+
+      # No per-service healthcheck is defined in docker-compose.yml, so
+      # readiness is confirmed by polling the API's own root route
+      # (api/app.py's GET / — dependency-free, no GPU/model access at
+      # startup) rather than trusting container "Up" status alone.
+      - name: Wait for the API to respond
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/ > /dev/null; then
+              echo "API responded after ${i}0s"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "API never responded within 5 minutes"
+          docker compose logs
+          exit 1
+
+      # Confirms the worker container didn't build/start then immediately
+      # crash-loop — container-startup coverage should mean all services,
+      # not just the one being polled.
+      - name: Confirm the worker container is still running
+        run: |
+          if [ "$(docker compose ps --status=running --services | grep -c '^worker$')" != "1" ]; then
+            echo "worker container is not running"
+            docker compose ps
+            docker compose logs worker
+            exit 1
+          fi
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Tear down
+        if: always()
+        run: docker compose down
