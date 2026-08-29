@@ -1,0 +1,52 @@
+name: CI
+
+"on":
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # Same system packages the Dockerfile already installs — Java for
+      # Ashlar's OME-TIFF stitching, libvips-tools for the vips CLI used by
+      # DZI generation, the rest for OpenCV/build requirements.
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1 libglib2.0-0 build-essential default-jdk libvips-tools zlib1g-dev libjpeg-dev
+
+      # LaMa inpainting weights (~196 MB) are downloaded on first use, not
+      # bundled with the pip package — cache them so repeated CI runs don't
+      # re-download every time.
+      - name: Cache LaMa inpainting model weights
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/torch/hub/checkpoints
+          key: ${{ runner.os }}-lama-model-v0.1.2
+
+      # requirements.txt pins torch/torchvision to CUDA-tagged (+cu128) builds —
+      # correct for the Dockerfile/production, confirmed to install cleanly on
+      # linux/amd64 (verified directly: `docker build --platform linux/amd64`
+      # succeeds as-is). But that pulls the CUDA runtime libraries too
+      # (nvidia-cublas-cu12, nvidia-cudnn-cu12, etc. — a large, unused download
+      # on a GPU-less runner), so here specifically we install the same
+      # torch/torchvision *version numbers* without the CUDA tag instead —
+      # runs on CPU either way (simple_lama_inpainting auto-detects
+      # torch.cuda.is_available(), which is always False here).
+      - name: Install Python dependencies (CPU-only torch/torchvision — no GPU on this runner)
+        run: |
+          grep -vE "^torch(vision)?==" requirements.txt > requirements-ci.txt
+          pip install torch==2.7.1 torchvision==0.22.1
+          pip install -r requirements-ci.txt
+          pip install --no-deps simple-lama-inpainting==0.1.2
+
+      - name: Run test suite
+        run: pytest tests/ -v

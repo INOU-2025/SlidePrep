@@ -1,5 +1,7 @@
 # SlidePrep — Microscopy Image Processing Pipeline
 
+[![CI](https://github.com/INOU-2025/SlidePrep/actions/workflows/ci.yml/badge.svg)](https://github.com/INOU-2025/SlidePrep/actions/workflows/ci.yml)
+
 A modular, production-ready pipeline for generating high-quality Whole Slide Images (WSI) from microscopy image tiles. Supports two operating modes: full preprocessing (grid-artifact removal via LaMa inpainting, then stitching) for counting-chamber tiles, and passthrough mode (`--no-grid`) for clean tiles that need only stitching.
 
 Optimized for thick grid detection (21 px lines, ~2° rotation) with cellular content preservation.
@@ -375,7 +377,11 @@ long-running deployments.
 pytest tests/ -v
 ```
 
-Covers config parsing, pipeline factory and step chaining, binarization on synthetic images, inpainting (LaMa model mocked), OME-TIFF physical calibration injection, and DZI generation (skipped automatically when `vips` is not installed). Also covers inpaint-mask composition across a tile overlap (unit test), and an integration test that runs grid removal and stitching end-to-end over `sample_data/`, asserting the composed mask matches the mosaic's dimensions and is nonempty — skipped automatically when the `ashlar` CLI is not installed.
+Covers config parsing, pipeline factory and step chaining, binarization on synthetic images, inpainting (LaMa model mocked), OME-TIFF physical calibration injection, and DZI generation (skipped automatically when `vips` is not installed). Also covers inpaint-mask composition across a tile overlap (unit test), and an integration test that runs grid removal, real LaMa inpainting, and stitching end-to-end over `sample_data/`'s 9 tiles, asserting both the stitched OME-TIFF and the composed inpaint mask exist and the mask matches the mosaic's dimensions.
+
+Several test files (`test_inpaint_mask.py`, `test_stitching.py`, `test_stitching_metadata.py`) import `ashlar` directly and will fail to *collect* — not skip cleanly — if it isn't installed; the sample_data integration test additionally needs `simple-lama-inpainting` importable. `.github/workflows/ci.yml` installs all of this (matching the `Dockerfile`'s own install sequence) so the full suite, including the sample_data integration test, runs for real on every push and pull request rather than relying on skips.
+
+**What CI does *not* cover**: the reviewer-noted end-to-end paths of upload, archive (zip) handling, asynchronous job execution (`worker/tasks.py`), the export/deletion API endpoints, and container startup are not exercised by any current test — only the underlying image-processing pipeline (through stitching) is. Closing those gaps is tracked as follow-up work, not claimed here.
 
 ---
 
