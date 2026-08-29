@@ -22,6 +22,27 @@ def rgb_image(gray_image):
 
 
 @pytest.fixture
+def multilevel_gray_image():
+    """64×64 uint8 grayscale with 3 distinct intensity bands.
+
+    Multi-Otsu thresholding (the default binarization method) needs at
+    least as many distinct intensity levels as its `classes` parameter
+    (3) — the plain two-valued `gray_image` checkerboard can't satisfy
+    that. Background 0, a mid-tone stripe, and a bright stripe.
+    """
+    img = np.zeros((64, 64), dtype=np.uint8)
+    img[::8, :] = 128
+    img[:, ::8] = 255
+    return img
+
+
+@pytest.fixture
+def multilevel_rgb_image(multilevel_gray_image):
+    """64×64 uint8 RGB image derived from the multilevel grayscale fixture."""
+    return np.stack([multilevel_gray_image] * 3, axis=-1)
+
+
+@pytest.fixture
 def binary_mask():
     """64×64 uint8 mask with a filled centre square."""
     mask = np.zeros((64, 64), dtype=np.uint8)
