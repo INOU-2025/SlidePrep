@@ -149,8 +149,19 @@ A full machine-readable report is written to
 - **stdev** — values above ~5% of the median indicate system load interference;
   re-run with the machine otherwise idle.
 - **Per-stage percentages** are computed relative to the summed per-tile time
-  logged in the debug file, not the total wall-clock time. The remainder
-  (pipeline setup, I/O, inter-tile overhead) is not attributed to any stage.
+  logged in the debug file, not the total wall-clock time. The remainder is
+  not attributed to any stage — and it is not just generic overhead: it is
+  dominated by **stitching itself**, i.e. Ashlar's CLI registration pass and
+  the second, in-process `EdgeAligner` pass `write_inpaint_mask()` runs to
+  place per-tile masks in mosaic space (`src/utils/stitching_utils.py`).
+  Neither goes through `Pipeline.run()`'s per-tile step loop, so neither
+  emits the `"Step {name} completed successfully"` line this script parses —
+  they're invisible to the per-stage table but fully counted in `wall_times_s`
+  (both run inside the same timed `main.py` subprocess). Confirmed on
+  `docs/production_686tiles_rtx3050.json`: ~159s (CPU) / ~161s (GPU)
+  unattributed — nearly identical between modes, consistent with this being
+  CPU-only work that doesn't benefit from CUDA (only LaMa inpainting does).
+  Pipeline setup and per-tile I/O overhead make up whatever's left beyond that.
 - **n_tiles** — the count of tiles processed in the final timed run. Verify
   it matches the expected tile count for the dataset used.
 

@@ -446,11 +446,13 @@ All parameters are set via JSON configuration files. The top-level sections map 
                       "classifier": { "model_path": "...", "features": ["..."], "threshold": 0.5 } },
   "inpainting":     { "model": "lama" },
   "img_conversion": { "format": "tiff" },
-  "stitching":      { "pattern": "...", "width": 0, "height": 0, "pixel_size": 1.0, "max_shift": 30 },
+  "stitching":      { "pattern": "...", "width": 0, "height": 0, "pixel_size": "...", "max_shift": 30 },
   "log":            { "log_to_file": true, "log_file_name": "app.log", "log_level": "INFO" },
   "debug":          { "saved_artifact_type": "image", "save_composite_img": false }
 }
 ```
+
+`stitching.pixel_size` has no default — it must be declared explicitly (µm/pixel). A missing or guessed value would silently miscalibrate every downstream physical measurement, so config loading fails loudly instead.
 
 See `config/production.json` and `config/development.json` for full examples. Per-step test configs are in `config/test/`.
 
