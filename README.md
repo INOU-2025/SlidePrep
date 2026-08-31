@@ -212,6 +212,8 @@ SlidePrep/
 
 ### Prerequisites
 
+**Python 3.12** (pinned in `environment.yml`/`environment-cuda.yml`). For GPU acceleration, **CUDA 12.8** — `environment-cuda.yml` pins `torch==2.7.1+cu128`; using a different CUDA driver/toolkit version means installing a matching PyTorch build yourself.
+
 **Java (JDK)** is required by Ashlar for OME-TIFF stitching. Install it before creating the environment:
 
 - macOS: `brew install openjdk`
