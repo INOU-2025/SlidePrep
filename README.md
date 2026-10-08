@@ -474,18 +474,6 @@ Available methods: `global`, `otsu`, `adaptive`, `multi_otsu`, `line_enhanced`, 
 
 ---
 
-## Known limitations
-
-### Multi-channel mosaics from older versions in QuPath / Fiji
-
-Mosaics assembled before the calibration step was fixed could open in QuPath and Fiji (Bio-Formats) as `SizeC=1, SizeT=2 (uncertain)` instead of `SizeC=2, SizeT=1`, so only one channel appeared.
-
-Cause: the calibration step rewrote the OME-XML description and re-serialized the µ in the `PhysicalSizeXUnit`/`PhysicalSizeYUnit` attributes as the character reference `&#181;m`. Bio-Formats (verified on 8.5.0) rejects such a file as OME-TIFF, falls back to its generic TIFF reader, and ignores the OME-XML entirely. Ashlar's own output (literal `µm`) was always read correctly.
-
-Fixed: the calibration step now leaves Ashlar's description untouched when it already carries the declared pixel size, and otherwise writes only numeric `PhysicalSizeX`/`PhysicalSizeY` (the unit defaults to µm when absent). Verification fails if the description contains `&#`. Re-run stitching on affected slides to regenerate the mosaic; no other change to the pyramid or pixel data is involved.
-
----
-
 ## Documentation
 
 Extended guides are in the [`docs/`](docs/) folder:
