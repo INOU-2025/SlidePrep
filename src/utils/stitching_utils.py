@@ -47,12 +47,47 @@ def _parse_pixels(xml_str: str) -> tuple[ET.Element, str, list[ET.Element]]:
     return root, ns, list(root.iter(f'{ns_prefix}Pixels'))
 
 
+_MICRON = "\u00b5m"
+_PIXELS_TAG_RE = re.compile(r"<(?:[\w.-]+:)?Pixels\b[^>]*>")
+_PHYSICAL_ATTR_RE = re.compile(r"\s+PhysicalSize[XY](?:Unit)?\s*=\s*(?:\"[^\"]*\"|'[^']*')")
+
+
+def _close_to(found: str | None, expected_um: float) -> bool:
+    """True if ``found`` parses as a float within rel_tol=1e-6 of ``expected_um``."""
+    if found is None:
+        return False
+    try:
+        return math.isclose(float(found), expected_um, rel_tol=1e-6)
+    except ValueError:
+        return False
+
+
+def _is_calibrated(xml_str: str, expected_um: float) -> bool:
+    """True if every ``<Pixels>`` carries the declared PhysicalSizeX/Y, any unit
+    attribute is absent or a literal µm, and the text has no character
+    references (``&#``) — which Bio-Formats rejects as OME-TIFF."""
+    if "&#" in xml_str:
+        return False
+    _, _, pixels_elements = _parse_pixels(xml_str)
+    if not pixels_elements:
+        return False
+    for pixels in pixels_elements:
+        if not (_close_to(pixels.get('PhysicalSizeX'), expected_um)
+                and _close_to(pixels.get('PhysicalSizeY'), expected_um)):
+            return False
+        for unit in ('PhysicalSizeXUnit', 'PhysicalSizeYUnit'):
+            if pixels.get(unit) not in (None, _MICRON):
+                return False
+    return True
+
+
 def _verify_physical_size(path: str, expected_um: float) -> None:
-    """Re-reads the OME-XML just written and confirms PhysicalSizeX/Y
-    actually landed. Raises RuntimeError naming the expected value, what was
-    found (or absent), and the file path — a mosaic without correct
-    calibration is a wrong result, not a degraded one, so this never logs a
-    warning and continues.
+    """Re-reads the OME-XML and confirms PhysicalSizeX/Y are present, equal to
+    the declared value, and that the description holds no ``&#`` character
+    references. Raises RuntimeError naming the expected value, what was found
+    (or absent), and the file path — a mosaic without correct calibration is a
+    wrong result, not a degraded one, so this never logs a warning and
+    continues. A literal µm unit is accepted.
     """
     with tifffile.TiffFile(path) as tif:
         xml_str = tif.ome_metadata
@@ -64,52 +99,66 @@ def _verify_physical_size(path: str, expected_um: float) -> None:
             found_x = pixels_elements[0].get('PhysicalSizeX')
             found_y = pixels_elements[0].get('PhysicalSizeY')
 
-    def matches(found: str | None) -> bool:
-        if found is None:
-            return False
-        try:
-            return math.isclose(float(found), expected_um, rel_tol=1e-9)
-        except ValueError:
-            return False
-
-    if not (matches(found_x) and matches(found_y)):
+    if not (_close_to(found_x, expected_um) and _close_to(found_y, expected_um)):
         raise RuntimeError(
             f"Physical size verification failed for {path}: expected PhysicalSizeX/Y={expected_um}, "
             f"found PhysicalSizeX={found_x!r} PhysicalSizeY={found_y!r} after write."
         )
+    if "&#" in xml_str:
+        raise RuntimeError(
+            f"Physical size verification failed for {path}: the OME-XML description contains "
+            "a character reference ('&#'), which Bio-Formats rejects as OME-TIFF "
+            "(it falls back to the generic TIFF reader and misreads channels as timepoints)."
+        )
+
+
+def _rewrite_calibration(xml_str: str, pixel_size_um: float) -> str:
+    """Returns ``xml_str`` with every ``<Pixels>`` start tag carrying only
+    numeric PhysicalSizeX/Y (any PhysicalSize{X,Y}[Unit] attribute removed
+    first). Edits the text in place rather than re-serializing, so literal
+    characters elsewhere are never turned into ``&#NNN;`` references. OME
+    defaults the unit to µm when the attribute is absent."""
+    def patch(match: re.Match) -> str:
+        tag = _PHYSICAL_ATTR_RE.sub("", match.group(0))
+        name_end = re.match(r"<[^\s>/]+", tag).end()
+        added = f' PhysicalSizeX="{pixel_size_um}" PhysicalSizeY="{pixel_size_um}"'
+        return tag[:name_end] + added + tag[name_end:]
+
+    return _PIXELS_TAG_RE.sub(patch, xml_str)
 
 
 def inject_physical_size(path: str, pixel_size_um: float) -> None:
-    """Patch PhysicalSizeX/Y calibration into an existing OME-TIFF in-place,
-    then re-read the file to confirm the value actually landed.
+    """Ensure the OME-TIFF at ``path`` carries the declared pixel size.
+
+    If the description already has PhysicalSizeX/Y equal to ``pixel_size_um``
+    (Ashlar writes them itself from the ``pixel_size`` reader argument), the
+    file is left untouched. Otherwise only numeric PhysicalSizeX/Y are
+    written — no unit attributes and no character references, since
+    Bio-Formats rejects a description containing ``&#181;m`` as OME-TIFF.
+    The result is re-read to confirm.
 
     Raises RuntimeError (or whatever tifffile/ElementTree raise for a
-    genuinely unreadable/malformed file) on any failure — including cases
-    that would otherwise complete without having written anything: a
-    namespace mismatch or a missing ``<Pixels>`` element both used to
-    silently no-op the XML mutation while still "succeeding". A mosaic
-    without correct calibration is a wrong result, not a degraded one, so
-    nothing here logs a warning and continues.
+    genuinely unreadable/malformed file) on any failure. A mosaic without
+    correct calibration is a wrong result, not a degraded one, so nothing
+    here logs a warning and continues.
     """
     xml_str = tifffile.tiffcomment(path)
     if not xml_str:
         raise RuntimeError(f"No OME-XML metadata found in {path} — cannot inject physical size calibration.")
 
-    root, ns, pixels_elements = _parse_pixels(xml_str)
+    _, _, pixels_elements = _parse_pixels(xml_str)
     if not pixels_elements:
         raise RuntimeError(f"No <Pixels> element found in OME-XML metadata of {path} — cannot inject physical size calibration.")
 
-    for pixels in pixels_elements:
-        pixels.set('PhysicalSizeX', str(pixel_size_um))
-        pixels.set('PhysicalSizeY', str(pixel_size_um))
-        pixels.set('PhysicalSizeXUnit', 'µm')
-        pixels.set('PhysicalSizeYUnit', 'µm')
-
-    if ns:
-        ET.register_namespace('', ns)
-    # ASCII encoding replaces µ (U+00B5) with &#181; — valid XML that OME readers decode correctly.
-    # tifffile requires 7-bit ASCII for the ImageDescription tag.
-    tifffile.tiffcomment(path, ET.tostring(root, encoding='ascii').decode('ascii'))
+    if not _is_calibrated(xml_str, pixel_size_um):
+        new_xml = _rewrite_calibration(xml_str, pixel_size_um)
+        # tifffile requires 7-bit ASCII for the ImageDescription tag.
+        if not new_xml.isascii():
+            raise RuntimeError(
+                f"OME-XML of {path} contains non-ASCII text outside the physical-size "
+                "attributes; tifffile cannot write it back without character references."
+            )
+        tifffile.tiffcomment(path, new_xml)
 
     _verify_physical_size(path, pixel_size_um)
 

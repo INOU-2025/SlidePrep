@@ -113,9 +113,8 @@ Steps 1–5 are skipped entirely. Each tile passes only through **Image Conversi
 
 After all tiles are processed, **Stitching** (`StitchingStep`) runs once on the output folder to produce a single OME-TIFF via Ashlar. It runs outside the per-image pipeline because it operates on the full tile set.
 
-After Ashlar writes the file, SlidePrep patches the embedded OME-XML to set `PhysicalSizeX` and `PhysicalSizeY` (in µm) from `stitching.pixel_size` in your configuration. This ensures that bioimage analysis tools — QuPath, FIJI, napari, CellProfiler — read calibrated physical units instead of raw pixels for any downstream measurement.
+After Ashlar writes the file, SlidePrep checks that the embedded OME-XML carries `PhysicalSizeX` and `PhysicalSizeY` (in µm) equal to `stitching.pixel_size` in your configuration (Ashlar normally writes them itself), and writes only those numeric values if they are missing. This ensures that bioimage analysis tools — QuPath, FIJI, napari, CellProfiler — read calibrated physical units instead of raw pixels for any downstream measurement.
 
-Multi-channel mosaics have a known QuPath/Bio-Formats display caveat — see [Known limitations](#known-limitations).
 
 Ashlar's own registration defaults `--maximum-shift` to 15 microns; SlidePrep raises the pipeline default to `stitching.max_shift = 30` microns because at 0.630 µm/pixel, 15 microns is only ~24 pixels, and measured nominal offsets in production acquisitions reach 31 pixels — most side-by-side tile edges are discarded for exceeding the shift limit before their correlation error is ever considered. A sweep over 15, 25, 30, 40, and 60 microns showed the kept-edge count plateaus from 25 microns onward, and the maximum absolute shift among kept edges stabilises at 31.2 pixels, hence the default of 30.
 
@@ -477,19 +476,13 @@ Available methods: `global`, `otsu`, `adaptive`, `multi_otsu`, `line_enhanced`, 
 
 ## Known limitations
 
-### Multi-channel acquisitions in QuPath
+### Multi-channel mosaics from older versions in QuPath / Fiji
 
-For a multi-channel acquisition, QuPath (via Bio-Formats) may report the extra channels as timepoints instead of channels (e.g. a 2-channel mosaic showing `SizeC=1, SizeT=2` rather than `SizeC=2, SizeT=1`), so only one channel appears.
+Mosaics assembled before the calibration step was fixed could open in QuPath and Fiji (Bio-Formats) as `SizeC=1, SizeT=2 (uncertain)` instead of `SizeC=2, SizeT=1`, so only one channel appeared.
 
-The OME-XML Ashlar writes is correct — `SizeC="2"` and both `<Channel>` elements are present and accurate, confirmed by reading the raw file bytes directly (`grep`/`xxd`), independent of any XML tool or library. `tifffile` (Python) also reads it correctly, `SizeC=2`, at every scale tested — it is only Bio-Formats-based readers that misassign it. A single-channel mosaic is unaffected: read back with no ambiguity (`showinf` reports `(certain)`, `SizeC=1 SizeT=1`), which pins the fault specifically to how Bio-Formats resolves *multiple* planes, not to the pyramid layout in general.
+Cause: the calibration step rewrote the OME-XML description and re-serialized the µ in the `PhysicalSizeXUnit`/`PhysicalSizeYUnit` attributes as the character reference `&#181;m`. Bio-Formats (verified on 8.5.0) rejects such a file as OME-TIFF, falls back to its generic TIFF reader, and ignores the OME-XML entirely. Ashlar's own output (literal `µm`) was always read correctly.
 
-Root cause, as far as it's isolated: Ashlar writes each channel as its own base-level IFD with its own attached sub-resolution pyramid (SubIFDs), rather than interleaving channels within one pyramid series. Reproduced and confirmed against **Bio-Formats 8.5.0** (`bftools` build, March 2026) via `showinf -nopix` on the real multi-channel output — with `SamplesPerPixel=1` on every IFD (correct) and no other conflicting signal found, Bio-Formats still assigns the extra planes to T instead of C, and flags the result `(uncertain)`.
-
-Two fixes were tried and ruled out, so they don't need re-testing:
-- **Making the OME-XML unambiguous** — replacing the single `<TiffData IFD="0" PlaneCount="2"/>` with two explicit entries (`FirstC="0"` / `FirstC="1"`, `PlaneCount="1"` each) on the real file: no change, still `SizeT=2 SizeC=1 (uncertain)`. Bio-Formats isn't using `FirstC` to resolve this.
-- **Re-encoding via `bioformats2raw` → `raw2ometiff`** (the standard OME toolchain for pyramidal OME-TIFF): no change, and now reported `(certain)` instead of `(uncertain)` — worse, not better. `bioformats2raw` reads the source with the same Bio-Formats library, so it inherits the exact same C/T misassignment (confirmed in its own intermediate `OME/METADATA.ome.xml`, which already shows `SizeC="1" SizeT="2"` before `raw2ometiff` even runs) and then writes it out with full confidence instead of a caveat.
-
-If you hit this: use `tifffile` for any programmatic/scripted access to a multi-channel mosaic (it's correct); in QuPath, check for a newer Bio-Formats release, or verify the channel/timepoint assignment manually on import.
+Fixed: the calibration step now leaves Ashlar's description untouched when it already carries the declared pixel size, and otherwise writes only numeric `PhysicalSizeX`/`PhysicalSizeY` (the unit defaults to µm when absent). Verification fails if the description contains `&#`. Re-run stitching on affected slides to regenerate the mosaic; no other change to the pyramid or pixel data is involved.
 
 ---
 
